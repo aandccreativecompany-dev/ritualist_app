@@ -1,0 +1,74 @@
+name: Build APK (debug, manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.5
+          channel: stable
+          cache: true
+
+      # The repo holds only pubspec.yaml and lib/. This generates the android/
+      # folder (including the Gradle wrapper) without touching our source.
+      - name: Generate the Android project
+        run: flutter create . --platforms=android --org ai.aandccreative --project-name ritualist
+
+      - name: Apply our manifest
+        run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
+      - name: Set SDK levels and enable core library desugaring
+        run: |
+          GRADLE_FILE=android/app/build.gradle.kts
+          if [ ! -f "$GRADLE_FILE" ]; then GRADLE_FILE=android/app/build.gradle; fi
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/' "$GRADLE_FILE"
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/' "$GRADLE_FILE"
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 35/' "$GRADLE_FILE"
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 35/' "$GRADLE_FILE"
+          # flutter_local_notifications needs core library desugaring on API 24+.
+          sed -i '/sourceCompatibility = JavaVersion.VERSION_11/a\        isCoreLibraryDesugaringEnabled = true' "$GRADLE_FILE"
+          cat >> "$GRADLE_FILE" <<'EOF'
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+EOF
+          cat "$GRADLE_FILE"
+
+      - run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Name the artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$GITHUB_REF_TYPE" != "tag" ]; then VERSION="dev-${GITHUB_SHA::7}"; fi
+          cp build/app/outputs/flutter-apk/app-release.apk "ritualist-$VERSION.apk"
+
+      # Always keep the APK, even on a manual run with no tag.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ritualist-apk
+          path: ritualist-*.apk
+
+      - name: Draft the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: ritualist-*.apk

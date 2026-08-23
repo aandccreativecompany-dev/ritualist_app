@@ -2,6 +2,12 @@
 
 Ship the spine before the extras. Each phase is a releasable app.
 
+**Status**: Phases 0, 1, 2 and 4 are built (this includes the module picker
+and onboarding quiz from Phase 3, minus the account screens). Phase 3's
+sign-in/OTP/biometric-lock screens and Phase 5's paywall stay un-built —
+they need a real Supabase project and Play Billing setup respectively,
+which this build doesn't have. See the README's "Not in this build" section.
+
 ## Phase 0 — Foundation
 
 - `flutter create --org ai.aandccreative ritualist`
