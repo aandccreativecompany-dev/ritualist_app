@@ -1,0 +1,320 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../store.dart';
+import '../theme.dart';
+import '../widgets/common.dart';
+import 'lock_screen.dart';
+import 'module_picker_screen.dart';
+import 'weekly_review_screen.dart';
+
+class SettingsScreen extends StatelessWidget {
+  const SettingsScreen({super.key});
+
+  Future<void> _export(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: store.exportJson()));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Backup copied. Paste it somewhere safe.')));
+  }
+
+  Future<void> _import(BuildContext context) async {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final controller = TextEditingController();
+    final raw = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Restore a backup',
+            style: display(18, Surfaces.heading(dark))),
+        content: TextField(
+          controller: controller,
+          maxLines: 6,
+          decoration: const InputDecoration(
+              hintText: 'Paste your backup text here'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('Restore')),
+        ],
+      ),
+    );
+    if (raw == null || raw.trim().isEmpty) return;
+    final ok = await store.importJson(raw);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'Backup restored.'
+            : "That doesn't look like a Ritualist backup.")));
+  }
+
+  Future<void> _retakeQuiz(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retake the setup quiz?'),
+        content: const Text(
+            'Your tasks, habits and history stay put — only your preset and card picks reset.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Retake')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await store.retakeOnboarding();
+    if (!context.mounted) return;
+    // The root widget swaps to OnboardingScreen on its own once
+    // onboardingComplete flips — just pop back to it.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        return Scaffold(
+          body: Container(
+            decoration: Surfaces.pageBackground(dark),
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.arrow_back,
+                            color: Surfaces.bodyText(dark)),
+                      ),
+                      Text('Settings',
+                          style: body(14, Surfaces.heading(dark),
+                              weight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text('APPEARANCE', style: label(Surfaces.muted(dark))),
+                  const SizedBox(height: 12),
+                  ModuleCard(
+                    child: Column(
+                      children: [
+                        for (final option in const [
+                          ['system', 'Follow the phone'],
+                          ['light', 'Always light'],
+                          ['dark', 'Always dark'],
+                        ])
+                          InkWell(
+                            onTap: () => store.setThemeMode(option[0]),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(option[1],
+                                        style: body(
+                                            13.5, Surfaces.bodyText(dark),
+                                            weight: FontWeight.w500)),
+                                  ),
+                                  if (store.state.themeMode == option[0])
+                                    Icon(Icons.check,
+                                        size: 18,
+                                        color: Surfaces.accent(dark)),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text('YOUR RITUAL', style: label(Surfaces.muted(dark))),
+                  const SizedBox(height: 12),
+                  ModuleCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        _NavRow(
+                          icon: Icons.view_agenda_outlined,
+                          title: 'Customize your cards',
+                          subtitle: 'Reorder or hide what shows on Today',
+                          onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => const ModulePickerScreen())),
+                        ),
+                        _divider(dark),
+                        _NavRow(
+                          icon: Icons.insights_outlined,
+                          title: 'Weekly momentum review',
+                          subtitle: 'The last 7 days, at a glance',
+                          onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                  builder: (_) => const WeeklyReviewScreen())),
+                        ),
+                        _divider(dark),
+                        _NavRow(
+                          icon: Icons.replay_outlined,
+                          title: 'Retake the setup quiz',
+                          subtitle: 'Reset your preset and card picks',
+                          onTap: () => _retakeQuiz(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text('JOURNAL LOCK', style: label(Surfaces.muted(dark))),
+                  const SizedBox(height: 12),
+                  ModuleCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Local only — a privacy nudge for your evening reflection, not encryption.',
+                          style: body(12.5, Surfaces.muted(dark)),
+                        ),
+                        const SizedBox(height: 16),
+                        if (store.hasPin) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text('Unlock with biometrics',
+                                    style: body(13.5, Surfaces.bodyText(dark),
+                                        weight: FontWeight.w500)),
+                              ),
+                              Switch(
+                                value: store.biometricEnabled,
+                                activeTrackColor: Surfaces.accent(dark),
+                                onChanged: (v) => store.setBiometricEnabled(v),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          TextButton(
+                            onPressed: () => store.clearPin(),
+                            style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                alignment: Alignment.centerLeft),
+                            child: Text('Remove PIN lock',
+                                style: body(13, Colors.redAccent,
+                                    weight: FontWeight.w600)),
+                          ),
+                        ] else
+                          GoldButton(
+                            labelText: 'Set a PIN',
+                            onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const LockScreen(mode: LockMode.setup))),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text('YOUR DATA', style: label(Surfaces.muted(dark))),
+                  const SizedBox(height: 12),
+                  ModuleCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            'Everything stays on this phone. There is no account and nothing is uploaded, so a lost or wiped phone loses your entries unless you keep a backup.',
+                            style: body(12.5, Surfaces.muted(dark))),
+                        const SizedBox(height: 16),
+                        GoldButton(
+                            labelText: 'Copy a backup',
+                            onPressed: () => _export(context)),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: () => _import(context),
+                          child: Text('Restore from a backup',
+                              style: body(13, Surfaces.accent(dark),
+                                  weight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text('ABOUT', style: label(Surfaces.muted(dark))),
+                  const SizedBox(height: 12),
+                  ModuleCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Ritualist 0.1.0',
+                            style: body(13.5, Surfaces.bodyText(dark),
+                                weight: FontWeight.w600)),
+                        const SizedBox(height: 6),
+                        Text('A&C Creative Company',
+                            style: body(12.5, Surfaces.muted(dark))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+Widget _divider(bool dark) => Divider(
+      height: 1,
+      color: Surfaces.cardBorder(dark),
+      indent: 52,
+    );
+
+class _NavRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _NavRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        child: Row(
+          children: [
+            Icon(icon, color: Surfaces.accent(dark), size: 20),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: body(13.5, Surfaces.bodyText(dark),
+                          weight: FontWeight.w600)),
+                  const SizedBox(height: 3),
+                  Text(subtitle, style: body(11.5, Surfaces.muted(dark))),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,133 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.5
+          channel: stable
+          cache: true
+
+      # The repo holds only pubspec.yaml and lib/ — same as the debug build
+      # workflow. This generates android/ (including the Gradle wrapper).
+      - name: Generate the Android project
+        run: flutter create . --platforms=android --org ai.aandccreative --project-name ritualist
+
+      - name: Apply our manifest
+        run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+
+      - name: Set SDK levels and enable core library desugaring
+        run: |
+          GRADLE_FILE=android/app/build.gradle.kts
+          if [ ! -f "$GRADLE_FILE" ]; then GRADLE_FILE=android/app/build.gradle; fi
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/' "$GRADLE_FILE"
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/' "$GRADLE_FILE"
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 35/' "$GRADLE_FILE"
+          sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 35/' "$GRADLE_FILE"
+          # flutter_local_notifications needs core library desugaring on API 24+.
+          sed -i '/sourceCompatibility = JavaVersion.VERSION_11/a\        isCoreLibraryDesugaringEnabled = true' "$GRADLE_FILE"
+          cat >> "$GRADLE_FILE" <<'EOF'
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+EOF
+
+      - name: Restore keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/ritualist-upload.jks
+
+      - name: Write signing config
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=ritualist-upload.jks
+          EOF
+
+      # `flutter create` never wires a real signing config into the release
+      # build type — it always signs with the debug key. This patches in a
+      # `release` signingConfig that reads android/key.properties when present,
+      # and fails loudly if the patch didn't take (rather than silently
+      # shipping a debug-signed "release" APK).
+      - name: Wire up release signing
+        run: |
+          GRADLE_FILE=android/app/build.gradle.kts
+          python3 - "$GRADLE_FILE" <<'PYEOF'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+
+          preamble = (
+              'import java.util.Properties\n'
+              'import java.io.FileInputStream\n\n'
+              'val keystoreProperties = Properties()\n'
+              'val keystorePropertiesFile = rootProject.file("key.properties")\n'
+              'if (keystorePropertiesFile.exists()) {\n'
+              '    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n'
+              '}\n\n'
+          )
+          src = preamble + src
+
+          signing_configs = (
+              '    signingConfigs {\n'
+              '        create("release") {\n'
+              '            if (keystorePropertiesFile.exists()) {\n'
+              '                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)\n'
+              '                storePassword = keystoreProperties["storePassword"] as String\n'
+              '                keyAlias = keystoreProperties["keyAlias"] as String\n'
+              '                keyPassword = keystoreProperties["keyPassword"] as String\n'
+              '            }\n'
+              '        }\n'
+              '    }\n\n'
+              '    buildTypes {\n'
+          )
+          marker = '    buildTypes {\n'
+          assert marker in src, "build.gradle.kts template changed — buildTypes block not found"
+          src = src.replace(marker, signing_configs, 1)
+
+          old_signing = 'signingConfig = signingConfigs.getByName("debug")'
+          new_signing = (
+              'signingConfig = if (keystorePropertiesFile.exists())\n'
+              '                signingConfigs.getByName("release") else signingConfigs.getByName("debug")'
+          )
+          assert old_signing in src, "build.gradle.kts template changed — debug signingConfig line not found"
+          src = src.replace(old_signing, new_signing, 1)
+
+          open(path, 'w').write(src)
+          print("release signing config wired up")
+          PYEOF
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build apk --release
+
+      - name: Name the artifact
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk \
+             ritualist-${GITHUB_REF_NAME#v}.apk
+
+      - name: Draft the release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: ritualist-*.apk
+          generate_release_notes: true
