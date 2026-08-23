@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+doc-page:not(:defined){visibility:hidden}
+a{color:#4C2A85}
+a:hover{color:#B07E10}
+</style>
+<script src="./doc-page.js"></script>
+</helmet>
+
+<doc-page margin="0.8in">
+  <h1 style="font-family:'Archivo Black',sans-serif;font-size:31px;line-height:1.18;color:#1B0F33;margin:0 0 10px;letter-spacing:-.2px">Ritualist: getting from these screens to the Play Store</h1>
+  <p style="font:400 14.5px/1.6 Inter,system-ui,sans-serif;color:#6B6180;margin:0 0 6px">A manual, step-by-step path. Steps 1–3 are one-time setup, 4–8 are the build, 9–12 are publishing, 13 is the update loop. The appendix covers releasing from GitHub instead, with no Play Console fee.</p>
+  <p style="font:500 12px/1.6 Inter,system-ui,sans-serif;color:#9C93AE;margin:0 0 30px">Prepared 23 August 2026 · design source: <i>AC Planner App.dc.html</i> · repo: aandccreativecompany-dev/aandccreativecompany</p>
+
+  <div style="border-left:3px solid #E0A419;background:#FFF7E4;padding:16px 18px;margin:0 0 32px;break-inside:avoid">
+    <div style="font:700 11px Inter,system-ui,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#B07E10;margin-bottom:8px">Read first</div>
+    <p style="font:400 14px/1.65 Inter,system-ui,sans-serif;color:#1B0F33;margin:0">The Play Store accepts a compiled Android app, not HTML screens. Somebody has to write the app code — either you, learning Flutter, or a developer you hire. Everything below assumes Flutter, because one codebase covers Android now and iOS later, and its widget model maps cleanly onto the card-stack design. Budget four to eight weeks of build time for the full screen set, or two weeks for a first version with planner, habits, mantras and reminders only.</p>
+  </div>
+
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;color:#B07E10;margin:0 0 18px">Part one · Accounts and repository</h2>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 1 — Open a Google Play developer account</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Go to play.google.com/console, sign in with the Google account you want to own the app forever (use a company account, not a personal one you might lose), and pay the one-time 25 USD registration fee. You will be asked to verify identity and address; verification can take a few days, so do this first while the app is still being built.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Choose the account type carefully. An <b>organisation account</b> needs a D-U-N-S number for A&amp;C Creative Company but is exempt from the closed-testing gate. A <b>personal account</b> is faster to open, but personal developer accounts created after November 13, 2023 must run a closed test with at least 12 testers opted in continuously for the last 14 days before they can apply for production access. If you can produce a D-U-N-S number, the organisation route saves you two weeks and a tester hunt.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">While you are in there, also set up a <b>payments profile</b> — you cannot sell a subscription without one.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 2 — Create the app repository on GitHub</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Keep the app code separate from the website repo. Create a new private repository, for example <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">aandccreativecompany-dev/ritualist-app</code>, with a <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">main</code> branch. Two branches is enough: <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">main</code> is what ships, <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">dev</code> is where work happens.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Commit the design reference into the repo as <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">design/</code> so the developer always has the screens beside the code.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 3 — Install the toolchain</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">On the machine that will build the app: install Flutter (which pulls the Dart SDK), Android Studio with the Android SDK and command-line tools, and Git. Then run <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">flutter doctor</code> and clear every warning it prints before writing a line of app code.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 30px">Create the project with <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">flutter create --org ai.aandccreative ritualist</code>. The package name it generates, <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">ai.aandccreative.ritualist</code>, is permanent once published — you cannot rename it later, so decide now.</p>
+
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;color:#B07E10;margin:0 0 18px">Part two · Building the app</h2>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 4 — Set the design foundation</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Before building screens, translate the design into a Flutter theme so every screen inherits it: ink <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">#1B0F33</code>, violet <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">#4C2A85</code>, gold <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">#F2B93B</code> for dark and <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">#E0A419</code> for light, cream <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">#FAF4E9</code>, Archivo Black for headings, Inter for everything else. Define both a light and a dark <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">ThemeData</code> and set <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">themeMode: ThemeMode.system</code>, with a stored override for the settings toggle.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Data lives on the device first: a local database for plans, habits, mantras and journal entries, so the app works offline. Add cloud sync only when you want the same account on two devices.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 5 — Build the screens in this order</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 12px">Ship a working spine before the extras. Each row below points at the designed screen it comes from.</p>
+  <table style="width:100%;border-collapse:collapse;font:400 13.5px/1.55 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">
+    <thead>
+      <tr>
+        <th style="text-align:left;font:700 11px Inter,system-ui,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#B07E10;padding:0 10px 8px 0;border-bottom:1.5px solid rgba(27,15,51,.25)">Order</th>
+        <th style="text-align:left;font:700 11px Inter,system-ui,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#B07E10;padding:0 10px 8px 0;border-bottom:1.5px solid rgba(27,15,51,.25)">What to build</th>
+        <th style="text-align:left;font:700 11px Inter,system-ui,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#B07E10;padding:0 0 8px 0;border-bottom:1.5px solid rgba(27,15,51,.25)">Screens</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">1</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Home card stack, top-3 planner, habit ticks</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2g, 2h, 2n</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Mantra of the day, quote share</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2g, 2j</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">3</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Reminders and notification permission</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2r, 2s</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">4</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Onboarding quiz, module picker, settings</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2d, 2e, 2l</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">5</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Sign-in, biometric unlock, journal PIN</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2a, 2b, 2c, 2f</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">6</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Outcome engineering, evening reflection, weekly review</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2i, 2k, 2p</td></tr>
+      <tr><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">7</td><td style="padding:9px 10px 9px 0;border-bottom:1px solid rgba(27,15,51,.1)">Vision board, paywall, subscription</td><td style="padding:9px 0;border-bottom:1px solid rgba(27,15,51,.1)">2m, 2q</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 6 — Wire the reminders properly</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">This is the feature most likely to break silently, so treat it as its own piece of work. Use local scheduled notifications, not server push — the mantra and task list are already on the device, and local notifications keep working with no network and no backend cost.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">The three schedules from screen 2s: 7:30 am mantra with the top three priorities, 1 pm check that fires only if something is still open, 9 pm close-the-day. Ask for notification permission the first time the user turns reminders on, never at launch. Request exact-alarm handling and battery-optimisation exemption where the phone demands it, and reschedule everything on device reboot.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Test on a real Xiaomi, Samsung and Oppo device. Aggressive battery managers on those brands are the usual reason a reminder never arrives.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 7 — Set up the subscription</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">In Play Console, under Monetise → Subscriptions, create one subscription with a monthly and an annual base plan, and attach a 14-day free trial offer to each. Then integrate Google Play Billing in the app so the paywall on screen 2m reads its prices live from Play rather than hard-coding them.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 30px">You still owe me a price. Tell me the monthly and annual figures and I will put them into the paywall screen.</p>
+
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;color:#B07E10;margin:0 0 18px">Part three · Publishing</h2>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 8 — Create the signing key</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Generate an upload keystore once with <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">keytool</code> and point the Gradle release config at it. Opt in to Play App Signing when you create the app in Console.</p>
+  <div style="border-left:3px solid #B33A3A;background:#FBF0EE;padding:14px 16px;margin:0 0 22px;break-inside:avoid">
+    <p style="font:500 14px/1.65 Inter,system-ui,sans-serif;color:#5A1E1E;margin:0">Never commit the keystore or its passwords to GitHub. Add them to <code style="font:500 13.5px ui-monospace,Menlo,monospace">.gitignore</code>, keep an offline backup, and store the passwords in a password manager. Lose the upload key and you must ask Google to reset it; lose access to the account and the app is unrecoverable.</p>
+  </div>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 9 — Build the release bundle</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Run <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">flutter build appbundle --release</code>. Play requires an Android App Bundle (.aab), not an APK. Set <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">targetSdk 36</code> — starting August 31, 2026, new apps and app updates must target Android 16 (API level 36) or higher to be submitted to Google Play — and <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">minSdk 24</code> to cover older phones.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Every upload needs a higher <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">versionCode</code> than the last. Bump it on every release without exception; Play rejects duplicates.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 10 — Fill in the store listing</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Create the app in Console, then work through the Dashboard checklist. Screen 2t holds the assets: app name, short description, feature graphic at 1024×500, and the phone screenshots. You will additionally need a 512×512 app icon, a long description, a privacy policy hosted on aandccreative.ai, the content rating questionnaire, the data safety form declaring what the app stores, and the ads declaration (none).</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">The data safety form is where most first submissions get delayed. Answer it against what the app actually collects — journal text, habit history, email address — and keep the privacy policy consistent with it.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 11 — Test internally, then in closed testing</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Upload the .aab to the <b>Internal testing</b> track first and add your own devices. Install through the opt-in link, and check the reminders across a full day, a light-and-dark theme switch, biometric unlock, and a trial purchase against a test account.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Then promote to <b>Closed testing</b>. If you registered a personal account, this track is the gate: recruit 15 to 18 people so you keep 12 after drop-outs, send them the opt-in link, and ask them to actually use the app daily. The 14-day countdown starts only after your release is approved by Google and at least 12 testers have opted in, and tester engagement is assessed separately when Google reviews the application — so silent testers can cost you the application even when the count is met.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">After 14 continuous days, apply for production access from the Console dashboard.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 12 — Release to production</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 30px">Create a production release, attach the bundle, write the release notes, pick the countries, and submit. Review usually takes a few days for a first submission. Roll out to a staged percentage — 20 per cent for a couple of days, watching the crash and ANR numbers — before going to 100 per cent.</p>
+
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;color:#B07E10;margin:0 0 18px">Part four · Updates</h2>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">Step 13 — The loop, done manually</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Change the design here, commit the code change on the <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">dev</code> branch, merge into <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">main</code>, bump the version, rebuild the bundle, upload it to internal testing, check it, then promote the same build to production. Once you have shipped once, an update takes under an hour.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Automate it later, not now. When the manual loop is boring, add a GitHub Actions workflow that builds the bundle on every push to <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">main</code> and uploads it to the internal track through a Play service account. Keep the promotion to production a human click — an automatic path from a merge to every user's phone is a bug waiting for an audience.</p>
+
+  <h2 style="font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;color:#B07E10;margin:34px 0 18px;break-before:page">Appendix · Releasing from GitHub instead</h2>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">This is the no-fee route: the same app, built as an APK, attached to a GitHub Release, installed by hand. Use it to get the app into real hands now and move to Play later when you want to charge money or reach strangers. Steps 1 to 6 above still apply — only the publishing half changes.</p>
+  <div style="border-left:3px solid #E0A419;background:#FFF7E4;padding:14px 16px;margin:0 0 20px;break-inside:avoid">
+    <p style="font:500 14px/1.65 Inter,system-ui,sans-serif;color:#1B0F33;margin:0">What you give up: no subscription billing (Google Play Billing only works for apps installed from Play), no automatic updates, a Play Protect warning at install, and no discovery through search or ratings. Keep the paywall screen built but leave it switched off in this build.</p>
+  </div>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">A1 — Build a signed APK, not a bundle</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Run <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">flutter build apk --release</code>. The output lands at <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">build/app/outputs/flutter-apk/app-release.apk</code>. Sign it with the same keystore from step 8 and keep that keystore safe — if you later switch to Play, or ship a second version here, a different key means users must uninstall and lose their data before they can install. Rename the file to <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">ritualist-1.0.0.apk</code> so the version is visible in the download.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">A2 — Publish the release</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">The repository must be <b>public</b> for people to download without a GitHub account. If you would rather keep the code private, make a second public repo called <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">ritualist-releases</code> that holds only the APKs and a README.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Tag the commit <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">v1.0.0</code>, open Releases → Draft a new release, attach the APK, and write release notes in plain language for users, not commit messages. The permanent link to the newest build is <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">github.com/&lt;org&gt;/&lt;repo&gt;/releases/latest</code> — that is the URL to put on the website and in your WhatsApp message.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">A3 — Write the install instructions</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Most people have never sideloaded an app, so spell it out in the release notes: download the APK; when the phone asks, allow installs from this source for the browser; if a screen says the app is unsafe or unrecognised, choose <i>Install anyway</i> or <i>More details → Install anyway</i>; open Ritualist and allow notifications so the reminders arrive.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Expect to lose people at the Play Protect warning. Saying up front that the warning is normal for apps outside the Play Store recovers a good share of them.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">A4 — Solve updates</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 10px">Build an update check into the app: on launch, call <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">api.github.com/repos/&lt;org&gt;/&lt;repo&gt;/releases/latest</code>, compare the tag against the installed version, and if it is newer show a small card on the home stack offering the download. It is roughly fifty lines of code and it is the difference between users staying current and users stranded on version one.</p>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 22px">Mention Obtainium in the release notes as the option for anyone comfortable with it: they point it at the repo once and it updates the app automatically from then on.</p>
+
+  <h3 style="font:700 17px Inter,system-ui,sans-serif;color:#1B0F33;margin:0 0 8px">A5 — Automate the release build</h3>
+  <p style="font:400 14.5px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0 0 26px">This is where GitHub Actions earns its keep straight away. Add a workflow that triggers on a pushed tag matching <code style="font:500 13.5px ui-monospace,Menlo,monospace;background:#F4F0E6;padding:1px 5px;border-radius:4px">v*</code>, builds the release APK, and attaches it to the release automatically. Store the keystore as a base64 repository secret along with its passwords, so the signing key never sits in the repo. After that, pushing a tag is the entire publish step.</p>
+
+  <div style="border:1px solid rgba(27,15,51,.15);border-radius:10px;padding:18px 20px;margin:24px 0 0;break-inside:avoid">
+    <div style="font:700 11px Inter,system-ui,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#B07E10;margin-bottom:10px">What I need from you next</div>
+    <p style="font:400 14px/1.7 Inter,system-ui,sans-serif;color:#2A2140;margin:0">Subscription prices for the paywall; the long store description, keywords and category; a decision on personal versus organisation developer account. Say the word and I will also write the developer handoff pack — every screen annotated with spacing, states and behaviour — so a Flutter developer can build from it without guessing.</p>
+  </div>
+</doc-page>
+</x-dc>
+</body>
+</html>

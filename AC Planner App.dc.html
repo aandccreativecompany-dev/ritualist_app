@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>body{margin:0;background:#f0eee9;font-family:Inter,system-ui,sans-serif}a{color:#4C2A85}a:hover{color:#1B0F33}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 Inter,system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 Inter,system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-opt:target .dv-oid{background:#4C2A85;color:#fff}.dv-note{max-width:760px;font:400 13px/1.65 Inter,system-ui,sans-serif;color:rgba(0,0,0,.6)}.dv-next{margin:26px 0 0;font:12px/1.5 Inter,system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+
+<section class="dv-turn" id="t2">
+  <div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Ritualist — full screen set, built on <a class="dv-oid" href="#1a">1a</a></span></div>
+  <p class="dv-note"><b>Ritualist.</b> Card-stack home, every module reorderable or hideable. Reminders push the day’s mantra and open tasks so the app finds you, not the other way round. Theme follows the phone and can be overridden in settings — dark set below, warm-cream light set after it. Sign-in is email/password (your existing Supabase), Google, or phone OTP, with biometric unlock and a separate PIN on the journal. 14-day trial, then Pro. A returning user always lands straight on today: the quiz runs once and the app never asks again.</p>
+
+  <div class="dv-sub" style="font:800 10px Inter;letter-spacing:2px;color:rgba(0,0,0,.4);text-transform:uppercase;margin:26px 0 14px">First run — account &amp; setup</div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2a">
+      <div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Welcome</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 460px 340px at 50% 8%, rgba(242,185,59,.22), transparent 62%), linear-gradient(180deg,#150C28 0%,#1B0F33 55%,#3B2168 100%);padding:8px 26px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:108px;height:108px;filter:drop-shadow(0 0 40px rgba(242,185,59,.35))">
+              <circle cx="50" cy="50" r="48" fill="#1B0F33" stroke="#F2B93B" stroke-width="2.5"/>
+              <circle cx="50" cy="46" r="24" fill="#F2B93B"/>
+              <g stroke="#F2B93B" stroke-width="2" opacity="0.7"><line x1="50" y1="12" x2="50" y2="18"/><line x1="74" y1="22" x2="70" y2="26"/><line x1="26" y1="22" x2="30" y2="26"/></g>
+              <polygon points="50,42 68,78 32,78" fill="#1B0F33"/>
+              <rect x="20" y="78" width="60" height="4" fill="#4C2A85"/>
+            </svg>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:34px;letter-spacing:.5px;color:#fff;margin:28px 0 0">RITUALIST</div>
+            <div style="font:800 9.5px Inter;letter-spacing:3px;color:#F2B93B;text-transform:uppercase;margin-top:12px">Growth mindset, made practical</div>
+            <div style="font:400 14px/1.7 Inter;color:#C9BEE8;margin-top:26px;max-width:270px">A daily planner that holds both sides: real tasks and real mindset work. Set it up once — it opens on today, every day after.</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:26px">
+            <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 15px Inter;border-radius:999px;padding:16px 0">Start my 14-day trial</div>
+            <div style="text-align:center;font:600 13px Inter;color:#C9BEE8;padding:12px 0">I already have an account</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2b">
+      <div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Sign in — email, Google, phone</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 70%,#241645 100%);padding:8px 24px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="padding:14px 0 0;font-size:20px;color:#C9BEE8">←</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:26px;color:#fff;margin:26px 0 6px">Create your account</div>
+          <div style="font:400 13px/1.6 Inter;color:#8A7BB5;margin-bottom:26px">Your planner, habits and journal sync to this account.</div>
+
+          <div style="display:flex;background:rgba(255,255,255,.05);border-radius:999px;padding:4px;margin-bottom:22px">
+            <div style="flex:1;text-align:center;background:#F2B93B;color:#150C28;font:700 12.5px Inter;border-radius:999px;padding:10px 0">Sign up</div>
+            <div style="flex:1;text-align:center;color:#8A7BB5;font:600 12.5px Inter;padding:10px 0">Log in</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="border:1px solid rgba(242,185,59,.3);border-radius:14px;background:rgba(255,255,255,.04);padding:15px 16px;font:500 14px Inter;color:#fff">aanya@email.com</div>
+            <div style="border:1px solid rgba(242,185,59,.55);border-radius:14px;background:rgba(255,255,255,.04);padding:15px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font:500 14px Inter;color:#fff;letter-spacing:3px">••••••••</span><span style="font:600 11px Inter;color:#F2B93B">SHOW</span></div>
+            <div style="font:400 11px Inter;color:#8A7BB5;padding-left:4px">6+ characters</div>
+            <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 14.5px Inter;border-radius:999px;padding:15px 0;margin-top:6px">Create account</div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:14px;margin:26px 0">
+            <div style="flex:1;height:1px;background:rgba(242,185,59,.18)"></div>
+            <div style="font:700 10px Inter;letter-spacing:1.5px;color:#8A7BB5">OR</div>
+            <div style="flex:1;height:1px;background:rgba(242,185,59,.18)"></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:11px">
+            <div style="border:1.5px solid rgba(242,185,59,.4);border-radius:999px;padding:14px 0;text-align:center;font:700 13.5px Inter;color:#FFE9A8">Continue with Google</div>
+            <div style="border:1.5px solid rgba(242,185,59,.4);border-radius:999px;padding:14px 0;text-align:center;font:700 13.5px Inter;color:#FFE9A8">Continue with phone number</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="font:400 11px/1.6 Inter;color:#8A7BB5;text-align:center;padding:22px 10px">By continuing you agree to the Terms and Privacy Policy.</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2c">
+      <div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Phone OTP</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" keyboard="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 24px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="padding:14px 0 0;font-size:20px;color:#C9BEE8">←</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:24px;color:#fff;margin:24px 0 8px">Enter the 6-digit code</div>
+          <div style="font:400 13px/1.6 Inter;color:#8A7BB5;margin-bottom:28px">Sent to +91 98••• ••432 · <span style="color:#F2B93B;font-weight:600">Change</span></div>
+          <div style="display:flex;gap:9px">
+            <div style="flex:1;aspect-ratio:1;border:1px solid rgba(242,185,59,.3);border-radius:12px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff">4</div>
+            <div style="flex:1;aspect-ratio:1;border:1px solid rgba(242,185,59,.3);border-radius:12px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff">1</div>
+            <div style="flex:1;aspect-ratio:1;border:1px solid rgba(242,185,59,.3);border-radius:12px;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff">9</div>
+            <div style="flex:1;aspect-ratio:1;border:2px solid #F2B93B;border-radius:12px;background:rgba(242,185,59,.08)"></div>
+            <div style="flex:1;aspect-ratio:1;border:1px solid rgba(242,185,59,.18);border-radius:12px;background:rgba(255,255,255,.02)"></div>
+            <div style="flex:1;aspect-ratio:1;border:1px solid rgba(242,185,59,.18);border-radius:12px;background:rgba(255,255,255,.02)"></div>
+          </div>
+          <div style="font:600 12px Inter;color:#8A7BB5;margin-top:22px">Resend code in 0:24</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2d">
+      <div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Quiz — runs once, sets the preset</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 65%,#241645 100%);padding:8px 24px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px 0 0">
+            <span style="font-size:19px;color:#C9BEE8">←</span>
+            <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden"><div style="width:40%;height:100%;background:#F2B93B"></div></div>
+            <span style="font:700 11px Inter;color:#8A7BB5">2/5</span>
+          </div>
+          <div style="font:800 9.5px Inter;letter-spacing:2.5px;color:#F2B93B;text-transform:uppercase;margin:32px 0 14px">What matters most right now</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:25px;line-height:1.28;color:#fff;margin-bottom:10px">What are you here to work on?</div>
+          <div style="font:400 12.5px Inter;color:#8A7BB5;margin-bottom:26px">Pick up to two. This builds your daily flow — you can change it any time.</div>
+
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="border:2px solid #F2B93B;background:rgba(242,185,59,.09);border-radius:16px;padding:18px 18px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font:700 15px Inter;color:#fff">Getting things done</div><div style="font:400 12px Inter;color:#C9BEE8;margin-top:4px">Top 3, habits, focus</div></div>
+              <div style="width:22px;height:22px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 12px Inter">✓</div>
+            </div>
+            <div style="border:2px solid #F2B93B;background:rgba(242,185,59,.09);border-radius:16px;padding:18px 18px;display:flex;justify-content:space-between;align-items:center">
+              <div><div style="font:700 15px Inter;color:#fff">Engineering an outcome</div><div style="font:400 12px Inter;color:#C9BEE8;margin-top:4px">Scripting, vision board</div></div>
+              <div style="width:22px;height:22px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 12px Inter">✓</div>
+            </div>
+            <div style="border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:18px 18px">
+              <div style="font:700 15px Inter;color:#E8DFFA">Staying consistent</div><div style="font:400 12px Inter;color:#8A7BB5;margin-top:4px">Streaks, gentle reminders</div>
+            </div>
+            <div style="border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:18px 18px">
+              <div style="font:700 15px Inter;color:#E8DFFA">Feeling steadier</div><div style="font:400 12px Inter;color:#8A7BB5;margin-top:4px">Mood, gratitude, reflection</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 15px Inter;border-radius:999px;padding:16px 0;margin-bottom:26px">Continue</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2e">
+      <div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Module picker — the customization surface</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 24px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px 0 0">
+            <span style="font-size:19px;color:#C9BEE8">←</span>
+            <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden"><div style="width:100%;height:100%;background:#F2B93B"></div></div>
+            <span style="font:700 11px Inter;color:#8A7BB5">5/5</span>
+          </div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:24px;color:#fff;margin:30px 0 8px">Your daily cards</div>
+          <div style="font:400 12.5px Inter;color:#8A7BB5;margin-bottom:22px">Based on your answers. Drag to reorder, switch off what you don't want.</div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="border:1px solid rgba(242,185,59,.22);background:rgba(255,255,255,.04);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#8A7BB5;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#fff">Mantra of the day</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="border:1px solid rgba(242,185,59,.22);background:rgba(255,255,255,.04);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#8A7BB5;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#fff">Top 3 today</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="border:1px solid rgba(242,185,59,.22);background:rgba(255,255,255,.04);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#8A7BB5;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#fff">Habits</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="border:1px solid rgba(242,185,59,.22);background:rgba(255,255,255,.04);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#8A7BB5;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#fff">Scripting</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="border:1px solid rgba(242,185,59,.22);background:rgba(255,255,255,.04);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#8A7BB5;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#fff">Daily reminders</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#4C3A6B;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#8A7BB5">Mood check-in</span><div style="width:40px;height:23px;border-radius:999px;background:rgba(255,255,255,.1);display:flex;align-items:center;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#4C3A6B"></div></div></div>
+            <div style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#4C3A6B;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#8A7BB5">Evening reflection</span><div style="width:40px;height:23px;border-radius:999px;background:rgba(255,255,255,.1);display:flex;align-items:center;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#4C3A6B"></div></div></div>
+            <div style="border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:15px 16px;display:flex;align-items:center;gap:14px"><span style="color:#4C3A6B;font-size:15px">⠿</span><span style="flex:1;font:600 14px Inter;color:#8A7BB5">Vision board</span><span style="font:700 9.5px Inter;letter-spacing:1px;color:#F2B93B;border:1px solid rgba(242,185,59,.4);border-radius:999px;padding:4px 9px">PRO</span></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 15px Inter;border-radius:999px;padding:16px 0;margin:22px 0 10px">Open my planner</div>
+          <div style="font:400 11px Inter;color:#8A7BB5;text-align:center;padding-bottom:22px">You won't be asked this again — change it in Settings.</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2f">
+      <div class="dv-olabel"><a class="dv-oid" href="#2f">2f</a>Return unlock — biometric, PIN fallback</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 420px 300px at 50% 20%, rgba(242,185,59,.14), transparent 64%), linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 30px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+          <div style="width:72px;height:72px;border-radius:50%;border:1.5px solid rgba(242,185,59,.4);display:flex;align-items:center;justify-content:center;font-size:28px;color:#F2B93B">☉</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:20px;color:#fff;margin:24px 0 8px">Welcome back, Aanya</div>
+          <div style="font:400 13px/1.6 Inter;color:#8A7BB5;max-width:250px">Unlock with your fingerprint to open today.</div>
+          <div style="display:flex;gap:12px;margin-top:34px">
+            <div style="width:14px;height:14px;border-radius:50%;background:#F2B93B"></div>
+            <div style="width:14px;height:14px;border-radius:50%;background:#F2B93B"></div>
+            <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(242,185,59,.4)"></div>
+            <div style="width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(242,185,59,.4)"></div>
+          </div>
+          <div style="font:600 12px Inter;color:#C9BEE8;margin-top:30px">Use 4-digit PIN instead</div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <div class="dv-sub" style="font:800 10px Inter;letter-spacing:2px;color:rgba(0,0,0,.4);text-transform:uppercase;margin:34px 0 14px">Daily use — dark theme</div>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="2g">
+      <div class="dv-olabel"><a class="dv-oid" href="#2g">2g</a>Home — today</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 420px 300px at 90% -6%, rgba(242,185,59,.18), transparent 62%), linear-gradient(168deg,#150C28 0%,#1B0F33 46%,#3B2168 100%);padding:8px 18px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 18px">
+            <div>
+              <div style="font:800 10px/1 Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Monday · Aug 24</div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff;margin-top:8px">Good morning, Aanya</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:6px 11px"><div style="width:7px;height:7px;border-radius:50%;background:#F2B93B"></div><span style="font:700 12px Inter;color:#FFE9A8">12</span></div>
+          </div>
+          <div style="background:radial-gradient(ellipse at top, rgba(242,185,59,.12), transparent 72%), rgba(255,255,255,.03);border:1px solid rgba(242,185,59,.28);border-radius:20px;padding:22px 20px 18px;margin-bottom:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Mantra of the day</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1.38;color:#FFE9A8;margin:14px 0 16px">“I choose one aligned action over ten scattered ones.”</div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;text-align:center;background:#F2B93B;color:#150C28;font:700 13px Inter;border-radius:999px;padding:11px 0">Set my intention</div>
+              <div style="width:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(242,185,59,.5);border-radius:999px;color:#FFE9A8;font-size:15px">↻</div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff">Top 3 today</div><div style="font:600 11px Inter;color:#8A7BB5">1 of 3 done</div></div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 12px Inter;flex:none">✓</div><span style="font:500 14px Inter;color:#8A7BB5;text-decoration:line-through">Morning pages, 10 min</span></div>
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(242,185,59,.45);flex:none"></div><span style="font:500 14px Inter;color:#E8DFFA">Finish the client deck</span></div>
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(242,185,59,.45);flex:none"></div><span style="font:500 14px Inter;color:#E8DFFA">Walk 30 minutes</span></div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px"><div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff">Habits</div><div style="font:600 11px Inter;color:#F2B93B">Edit</div></div>
+            <div style="display:flex;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#C9BEE8">Water</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#C9BEE8">Read</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(242,185,59,.35)"></div><span style="font:500 10px Inter;color:#8A7BB5">Move</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px dashed rgba(242,185,59,.3);color:#8A7BB5;display:flex;align-items:center;justify-content:center;font-size:17px">+</div><span style="font:500 10px Inter;color:#8A7BB5">Add</span></div>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff;margin-bottom:14px">Scripting</div>
+            <div style="font:400 13px/1.6 Inter;color:#C9BEE8">“It's October and the studio is booked out through spring…”</div>
+            <div style="font:600 11px Inter;color:#F2B93B;margin-top:14px">Continue writing →</div>
+          </div>
+          <div style="border:1px dashed rgba(242,185,59,.28);border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#C9BEE8">Evening reflection</div><div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:5px">Unlocks at 8:00 PM</div></div>
+            <div style="font-size:15px;color:#8A7BB5">🌙</div>
+          </div>
+          <div style="height:18px"></div>
+          <div style="margin-top:auto;position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(21,12,40,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(242,185,59,.15);margin-left:-18px;margin-right:-18px;padding:0 18px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#F2B93B"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B">Today</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Habits</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Outcomes</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">You</span></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2h">
+      <div class="dv-olabel"><a class="dv-oid" href="#2h">2h</a>Habit detail — streak &amp; history</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 70%,#241645 100%);padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#C9BEE8">←</span><span style="font:600 12px Inter;color:#F2B93B">Edit</span></div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:26px;color:#fff;margin:22px 0 4px">Read 10 pages</div>
+          <div style="font:400 12.5px Inter;color:#8A7BB5">Every day · reminder 9:00 PM</div>
+
+          <div style="display:flex;gap:12px;margin:24px 0 20px">
+            <div style="flex:1;border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:26px;color:#F2B93B">12</div><div style="font:600 10px Inter;letter-spacing:1.4px;color:#8A7BB5;text-transform:uppercase;margin-top:5px">Day streak</div></div>
+            <div style="flex:1;border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:26px;color:#fff">86<span style="font-size:14px;color:#8A7BB5">%</span></div><div style="font:600 10px Inter;letter-spacing:1.4px;color:#8A7BB5;text-transform:uppercase;margin-top:5px">This month</div></div>
+          </div>
+
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:16px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin-bottom:16px">August</div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:7px">
+              <div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.07)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div>
+              <div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.07)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div>
+              <div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.07)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div>
+              <div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(242,185,59,.85)"></div><div style="aspect-ratio:1;border-radius:6px;background:#F2B93B;box-shadow:0 0 0 2px rgba(242,185,59,.35)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.04)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.04)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.04)"></div><div style="aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.04)"></div>
+            </div>
+          </div>
+
+          <div style="border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff;margin-bottom:12px">Best run</div>
+            <div style="font:400 13px/1.6 Inter;color:#C9BEE8">18 days, ending 2 August. You've never missed two days in a row.</div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 14.5px Inter;border-radius:999px;padding:15px 0;margin-bottom:24px">Mark done for today</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2i">
+      <div class="dv-olabel"><a class="dv-oid" href="#2i">2i</a>Scripting — outcome engineering entry</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" keyboard="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 420px 260px at 50% 0%, rgba(242,185,59,.14), transparent 66%), linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#C9BEE8">✕</span><span style="font:600 12px Inter;color:#F2B93B">Save</span></div>
+          <div style="font:800 9.5px Inter;letter-spacing:2.5px;color:#F2B93B;text-transform:uppercase;margin:22px 0 12px">Scripting · 24 August</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:21px;line-height:1.3;color:#fff;margin-bottom:8px">Write it as if it already happened.</div>
+          <div style="font:400 12.5px/1.6 Inter;color:#8A7BB5;margin-bottom:20px">Present tense, specific detail, no hedging.</div>
+          <div style="flex:1;border:1px solid rgba(242,185,59,.28);border-radius:18px;background:rgba(21,12,40,.5);padding:18px">
+            <div style="font:400 14.5px/1.75 Inter;color:#E8DFFA">It's October and the studio is booked out through spring. I sign the last contract on a Tuesday morning with coffee going cold beside me<span style="opacity:.6">|</span></div>
+          </div>
+          <div style="display:flex;gap:8px;padding:16px 0 20px;flex-wrap:wrap">
+            <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:8px 13px;font:600 11px Inter;color:#C9BEE8">Add a feeling</div>
+            <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:8px 13px;font:600 11px Inter;color:#C9BEE8">Prompt me</div>
+            <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:8px 13px;font:600 11px Inter;color:#C9BEE8">🔒 Lock entry</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2j">
+      <div class="dv-olabel"><a class="dv-oid" href="#2j">2j</a>Quote of the day — shareable</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(168deg,#150C28 0%,#241645 55%,#4C2A85 100%);padding:8px 22px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#C9BEE8">←</span><span style="font:800 10px Inter;letter-spacing:2px;color:#8A7BB5;text-transform:uppercase">24 August</span><span style="font-size:17px;color:#F2B93B">♡</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px 0">
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:44px;height:44px;opacity:.9"><circle cx="50" cy="46" r="24" fill="#F2B93B"/><g stroke="#F2B93B" stroke-width="2.5" opacity="0.7"><line x1="50" y1="10" x2="50" y2="18"/><line x1="76" y1="20" x2="70" y2="26"/><line x1="24" y1="20" x2="30" y2="26"/></g><polygon points="50,42 68,78 32,78" fill="#241645"/></svg>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:27px;line-height:1.35;color:#FFE9A8;margin:30px 0 20px">“Discipline today is freedom tomorrow.”</div>
+            <div style="font:600 11px Inter;letter-spacing:1.5px;color:#8A7BB5;text-transform:uppercase">Day 236 of your year</div>
+          </div>
+          <div style="display:flex;gap:10px;padding-bottom:14px">
+            <div style="flex:1;text-align:center;border:1.5px solid rgba(242,185,59,.45);border-radius:999px;padding:14px 0;font:700 13px Inter;color:#FFE9A8">Share as image</div>
+            <div style="width:52px;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(242,185,59,.45);border-radius:999px;color:#FFE9A8;font-size:16px">↻</div>
+          </div>
+          <div style="font:400 11px Inter;color:#8A7BB5;text-align:center;padding-bottom:22px">Same quote for everyone today — resets at midnight.</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2k">
+      <div class="dv-olabel"><a class="dv-oid" href="#2k">2k</a>Weekly momentum review</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 60%,#241645 100%);padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#C9BEE8">←</span><span style="font:600 12px Inter;color:#F2B93B">Aug 18–24</span></div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:25px;color:#fff;margin:22px 0 6px">Your week held.</div>
+          <div style="font:400 13px/1.6 Inter;color:#8A7BB5;margin-bottom:24px">Better than 3 of the last 4 weeks.</div>
+
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:22px 20px;margin-bottom:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin-bottom:20px">Momentum</div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;height:110px">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:62px;border-radius:5px;background:rgba(242,185,59,.5)"></div><span style="font:600 10px Inter;color:#8A7BB5">M</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:84px;border-radius:5px;background:rgba(242,185,59,.65)"></div><span style="font:600 10px Inter;color:#8A7BB5">T</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:34px;border-radius:5px;background:rgba(242,185,59,.3)"></div><span style="font:600 10px Inter;color:#8A7BB5">W</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:96px;border-radius:5px;background:#F2B93B"></div><span style="font:600 10px Inter;color:#8A7BB5">T</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:72px;border-radius:5px;background:rgba(242,185,59,.55)"></div><span style="font:600 10px Inter;color:#8A7BB5">F</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:44px;border-radius:5px;background:rgba(242,185,59,.35)"></div><span style="font:600 10px Inter;color:#8A7BB5">S</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1"><div style="width:20px;height:58px;border-radius:5px;background:rgba(242,185,59,.45)"></div><span style="font:600 10px Inter;color:#8A7BB5">S</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-bottom:14px">
+            <div style="flex:1;border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff">16<span style="font-size:13px;color:#8A7BB5">/21</span></div><div style="font:600 10px Inter;letter-spacing:1.3px;color:#8A7BB5;text-transform:uppercase;margin-top:5px">Priorities</div></div>
+            <div style="flex:1;border:1px solid rgba(242,185,59,.2);border-radius:16px;padding:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#F2B93B">5</div><div style="font:600 10px Inter;letter-spacing:1.3px;color:#8A7BB5;text-transform:uppercase;margin-top:5px">Scripted days</div></div>
+          </div>
+
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#fff;margin-bottom:14px">Mood vs. done</div>
+            <div style="font:400 13px/1.65 Inter;color:#C9BEE8">Your best days started with an intention before 9am. Wednesday was the only day you skipped it.</div>
+          </div>
+
+          <div style="border:1px solid rgba(242,185,59,.28);border-radius:20px;padding:20px;margin-bottom:20px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin-bottom:12px">One thing for next week</div>
+            <div style="font:500 14px/1.6 Inter;color:#FFE9A8">Keep Move to 4 days instead of 7. It's the only habit you're forcing.</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2l">
+      <div class="dv-olabel"><a class="dv-oid" href="#2l">2l</a>Settings — theme, lock, account</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="font-family:'Archivo Black',sans-serif;font-size:24px;color:#fff;padding:20px 0 22px">You</div>
+
+          <div style="display:flex;align-items:center;gap:14px;border:1px solid rgba(242,185,59,.22);border-radius:18px;padding:16px;margin-bottom:24px">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(242,185,59,.16);display:flex;align-items:center;justify-content:center;font-family:'Archivo Black',sans-serif;font-size:16px;color:#F2B93B">A</div>
+            <div style="flex:1"><div style="font:600 14px Inter;color:#fff">aanya@email.com</div><div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">Trial · 9 days left</div></div>
+            <div style="font:700 10px Inter;letter-spacing:1px;color:#150C28;background:#F2B93B;border-radius:999px;padding:6px 11px">GO PRO</div>
+          </div>
+
+          <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin-bottom:14px">Appearance</div>
+          <div style="display:flex;background:rgba(255,255,255,.05);border-radius:14px;padding:4px;margin-bottom:10px">
+            <div style="flex:1;text-align:center;color:#8A7BB5;font:600 12px Inter;padding:11px 0">Light</div>
+            <div style="flex:1;text-align:center;color:#8A7BB5;font:600 12px Inter;padding:11px 0">Dark</div>
+            <div style="flex:1;text-align:center;background:#F2B93B;color:#150C28;font:700 12px Inter;border-radius:11px;padding:11px 0">System</div>
+          </div>
+          <div style="font:400 11.5px Inter;color:#8A7BB5;margin-bottom:26px">Following your phone — currently dark.</div>
+
+          <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin-bottom:6px">Privacy</div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">Unlock with fingerprint</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">PIN on journal &amp; scripting</span><div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div></div>
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">Change PIN</span><span style="color:#8A7BB5">›</span></div>
+          </div>
+
+          <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase;margin:26px 0 6px">Planner</div>
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">My daily cards</span><span style="font:400 12px Inter;color:#8A7BB5;margin-right:8px">4 on</span><span style="color:#8A7BB5">›</span></div>
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">Reminders</span><span style="font:400 12px Inter;color:#8A7BB5;margin-right:8px">7:30 AM, 9 PM</span><span style="color:#8A7BB5">›</span></div>
+            <div style="display:flex;align-items:center;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.07)"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">Export to PDF</span><span style="font:700 9.5px Inter;letter-spacing:1px;color:#F2B93B;border:1px solid rgba(242,185,59,.4);border-radius:999px;padding:4px 9px">PRO</span></div>
+            <div style="display:flex;align-items:center;padding:16px 0"><span style="flex:1;font:500 14px Inter;color:#E8DFFA">Retake setup quiz</span><span style="color:#8A7BB5">›</span></div>
+          </div>
+          <div style="font:600 13px Inter;color:#8A7BB5;padding:26px 0">Log out</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2m">
+      <div class="dv-olabel"><a class="dv-oid" href="#2m">2m</a>Paywall — day 14</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 460px 320px at 50% 0%, rgba(242,185,59,.2), transparent 62%), linear-gradient(180deg,#150C28 0%,#1B0F33 55%,#3B2168 100%);padding:8px 22px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="text-align:right;padding:14px 0 0;font-size:18px;color:#8A7BB5">✕</div>
+          <div style="font:800 9.5px Inter;letter-spacing:2.5px;color:#F2B93B;text-transform:uppercase;margin:22px 0 14px">Your trial ends tomorrow</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:27px;line-height:1.25;color:#fff;margin-bottom:10px">You've shown up 12 days straight.</div>
+          <div style="font:400 13.5px/1.7 Inter;color:#C9BEE8;margin-bottom:26px">Keep the whole system — nothing you've written goes away either way.</div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+            <div style="display:flex;align-items:center;gap:12px"><span style="color:#F2B93B;font:800 13px Inter">✓</span><span style="font:500 13.5px Inter;color:#E8DFFA">Unlimited habits &amp; full history</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="color:#F2B93B;font:800 13px Inter">✓</span><span style="font:500 13.5px Inter;color:#E8DFFA">Scripting, vision board, weekly review</span></div>
+            <div style="display:flex;align-items:center;gap:12px"><span style="color:#F2B93B;font:800 13px Inter">✓</span><span style="font:500 13.5px Inter;color:#E8DFFA">Reminders, themes, PDF export</span></div>
+          </div>
+
+          <div style="border:2px solid #F2B93B;background:rgba(242,185,59,.08);border-radius:18px;padding:18px;margin-bottom:11px;position:relative">
+            <div style="position:absolute;top:-10px;right:16px;background:#F2B93B;color:#150C28;font:800 9px Inter;letter-spacing:1px;border-radius:999px;padding:4px 10px">SAVE 42%</div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 15px Inter;color:#fff">Yearly</div><div style="font:400 11.5px Inter;color:#C9BEE8;margin-top:4px">₹1,399 / year</div></div><div style="font-family:'Archivo Black',sans-serif;font-size:16px;color:#F2B93B">₹117<span style="font-size:10px;color:#8A7BB5">/mo</span></div></div>
+          </div>
+          <div style="border:1px solid rgba(242,185,59,.22);border-radius:18px;padding:18px;margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font:700 15px Inter;color:#E8DFFA">Monthly</div><div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:4px">Cancel any time</div></div><div style="font-family:'Archivo Black',sans-serif;font-size:16px;color:#C9BEE8">₹199<span style="font-size:10px;color:#8A7BB5">/mo</span></div></div>
+          </div>
+
+          <div style="flex:1"></div>
+          <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 15px Inter;border-radius:999px;padding:16px 0">Continue with yearly</div>
+          <div style="text-align:center;font:600 12.5px Inter;color:#8A7BB5;padding:18px 0 22px">Stay on the free plan</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2n">
+      <div class="dv-olabel"><a class="dv-oid" href="#2n">2n</a>First-run home — empty states</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 420px 300px at 90% -6%, rgba(242,185,59,.18), transparent 62%), linear-gradient(168deg,#150C28 0%,#1B0F33 46%,#3B2168 100%);padding:8px 18px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 18px">
+            <div><div style="font:800 10px/1 Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Monday · Aug 24</div><div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff;margin-top:8px">Day one, Aanya</div></div>
+            <div style="display:flex;align-items:center;gap:6px;border:1px solid rgba(242,185,59,.2);border-radius:999px;padding:6px 11px"><div style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2)"></div><span style="font:700 12px Inter;color:#8A7BB5">0</span></div>
+          </div>
+          <div style="background:radial-gradient(ellipse at top, rgba(242,185,59,.12), transparent 72%), rgba(255,255,255,.03);border:1px solid rgba(242,185,59,.28);border-radius:20px;padding:22px 20px 18px;margin-bottom:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Mantra of the day</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1.38;color:#FFE9A8;margin:14px 0 16px">“I don't need permission to begin again today.”</div>
+            <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 13px Inter;border-radius:999px;padding:11px 0">Set my first intention</div>
+          </div>
+          <div style="border:1px dashed rgba(242,185,59,.3);border-radius:20px;padding:26px 20px;margin-bottom:14px;text-align:center">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff;margin-bottom:8px">Three things. That's it.</div>
+            <div style="font:400 12.5px/1.65 Inter;color:#8A7BB5;margin-bottom:18px">The cap is the point — pick what actually matters today.</div>
+            <div style="display:inline-block;border:1.5px solid rgba(242,185,59,.5);border-radius:999px;padding:11px 22px;font:700 12.5px Inter;color:#FFE9A8">Add your first task</div>
+          </div>
+          <div style="border:1px dashed rgba(242,185,59,.3);border-radius:20px;padding:26px 20px;margin-bottom:14px;text-align:center">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff;margin-bottom:8px">No habits yet</div>
+            <div style="font:400 12.5px/1.65 Inter;color:#8A7BB5;margin-bottom:18px">Start with one you'd do even on a bad day.</div>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <div style="border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:9px 14px;font:600 11.5px Inter;color:#C9BEE8">Water</div>
+              <div style="border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:9px 14px;font:600 11.5px Inter;color:#C9BEE8">Read</div>
+              <div style="border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:9px 14px;font:600 11.5px Inter;color:#C9BEE8">Walk</div>
+              <div style="border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:9px 14px;font:600 11.5px Inter;color:#C9BEE8">Custom</div>
+            </div>
+          </div>
+          <div style="height:18px"></div>
+          <div style="margin-top:auto;position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(21,12,40,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(242,185,59,.15);margin-left:-18px;margin-right:-18px;padding:0 18px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#F2B93B"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B">Today</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Habits</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Outcomes</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">You</span></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2r">
+      <div class="dv-olabel"><a class="dv-oid" href="#2r">2r</a>Reminders — lock screen through the day</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 460px 340px at 50% 4%, rgba(242,185,59,.16), transparent 60%), linear-gradient(168deg,#150C28 0%,#1B0F33 45%,#2E1A55 100%);padding:8px 16px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="text-align:center;margin:38px 0 34px">
+            <div style="font-family:'Archivo Black',sans-serif;font-size:64px;line-height:1;color:#fff">9:41</div>
+            <div style="font:500 13px Inter;color:#C9BEE8;margin-top:8px">Monday, 24 August</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="background:rgba(255,255,255,.09);border:1px solid rgba(242,185,59,.28);border-radius:20px;padding:16px 16px 15px;backdrop-filter:blur(14px)">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+                <div style="width:18px;height:18px;border-radius:5px;background:#F2B93B;display:flex;align-items:center;justify-content:center;font:800 9px Inter;color:#150C28">R</div>
+                <span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B;text-transform:uppercase">Ritualist · 7:30 am</span>
+              </div>
+              <div style="font:700 14px Inter;color:#fff;margin-bottom:6px">Your mantra for today</div>
+              <div style="font:400 13.5px/1.55 Inter;color:#E8DFFA">“I choose one aligned action over ten scattered ones.”</div>
+            </div>
+            <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px;backdrop-filter:blur(14px)">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px">
+                <div style="width:18px;height:18px;border-radius:5px;background:#F2B93B;display:flex;align-items:center;justify-content:center;font:800 9px Inter;color:#150C28">R</div>
+                <span style="font:700 10.5px Inter;letter-spacing:.6px;color:#C9BEE8;text-transform:uppercase">Ritualist · 1:00 pm</span>
+              </div>
+              <div style="font:700 14px Inter;color:#fff;margin-bottom:8px">2 of 3 priorities still open</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:center;gap:10px"><div style="width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(242,185,59,.5)"></div><span style="font:500 13px Inter;color:#E8DFFA">Finish the deck</span></div>
+                <div style="display:flex;align-items:center;gap:10px"><div style="width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(242,185,59,.5)"></div><span style="font:500 13px Inter;color:#E8DFFA">Walk 30 minutes</span></div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:14px">
+                <div style="flex:1;text-align:center;background:rgba(242,185,59,.16);border:1px solid rgba(242,185,59,.4);border-radius:999px;padding:9px 0;font:700 12px Inter;color:#F2B93B">Mark done</div>
+                <div style="flex:1;text-align:center;border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:9px 0;font:600 12px Inter;color:#C9BEE8">Snooze 1h</div>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:15px 16px;backdrop-filter:blur(14px)">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+                <div style="width:18px;height:18px;border-radius:5px;background:rgba(242,185,59,.7);display:flex;align-items:center;justify-content:center;font:800 9px Inter;color:#150C28">R</div>
+                <span style="font:700 10.5px Inter;letter-spacing:.6px;color:#8A7BB5;text-transform:uppercase">Ritualist · 9:00 pm</span>
+              </div>
+              <div style="font:600 13.5px Inter;color:#E8DFFA">Close the day — 90 seconds</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="text-align:center;font:500 11.5px Inter;color:#6B5B94;margin-bottom:26px">Swipe a card to snooze · long-press to edit times</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2s">
+      <div class="dv-olabel"><a class="dv-oid" href="#2s">2s</a>Reminder settings — what fires, and when</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(180deg,#150C28 0%,#1B0F33 100%);padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px 0 0"><span style="font-size:19px;color:#C9BEE8">←</span><span style="font:600 14px Inter;color:#fff">Reminders</span></div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:23px;line-height:1.3;color:#fff;margin:22px 0 8px">Nudges for the busy hours</div>
+          <div style="font:400 12.5px/1.6 Inter;color:#8A7BB5;margin-bottom:24px">Ritualist reaches out so you don't have to remember to open it.</div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px">
+            <div style="border:1px solid rgba(242,185,59,.3);background:rgba(242,185,59,.07);border-radius:16px;padding:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="flex:1"><div style="font:700 14px Inter;color:#fff">Mantra of the day</div><div style="font:400 11.5px Inter;color:#C9BEE8;margin-top:4px">Sent with your top 3 priorities</div></div>
+                <div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div>
+              </div>
+              <div style="height:1px;background:rgba(242,185,59,.18);margin:14px 0"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:500 13px Inter;color:#E8DFFA">Time</span><span style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#F2B93B">7:30 AM</span></div>
+            </div>
+
+            <div style="border:1px solid rgba(242,185,59,.3);background:rgba(242,185,59,.07);border-radius:16px;padding:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="flex:1"><div style="font:700 14px Inter;color:#fff">Midday task check</div><div style="font:400 11.5px Inter;color:#C9BEE8;margin-top:4px">Only if something is still open</div></div>
+                <div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div>
+              </div>
+              <div style="height:1px;background:rgba(242,185,59,.18);margin:14px 0"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:500 13px Inter;color:#E8DFFA">Time</span><span style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#F2B93B">1:00 PM</span></div>
+            </div>
+
+            <div style="border:1px solid rgba(242,185,59,.3);background:rgba(242,185,59,.07);border-radius:16px;padding:16px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="flex:1"><div style="font:700 14px Inter;color:#fff">Evening close</div><div style="font:400 11.5px Inter;color:#C9BEE8;margin-top:4px">Habits, mood, reflection</div></div>
+                <div style="width:40px;height:23px;border-radius:999px;background:#F2B93B;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#150C28"></div></div>
+              </div>
+              <div style="height:1px;background:rgba(242,185,59,.18);margin:14px 0"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:500 13px Inter;color:#E8DFFA">Time</span><span style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#F2B93B">9:00 PM</span></div>
+            </div>
+
+            <div style="border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px">
+              <div style="flex:1"><div style="font:700 14px Inter;color:#8A7BB5">Per-habit reminders</div><div style="font:400 11.5px Inter;color:#6B5B94;margin-top:4px">A separate time for each habit</div></div>
+              <span style="font:700 9.5px Inter;letter-spacing:1px;color:#F2B93B;border:1px solid rgba(242,185,59,.4);border-radius:999px;padding:4px 9px">PRO</span>
+            </div>
+          </div>
+
+          <div style="font:800 9.5px Inter;letter-spacing:2px;color:#8A7BB5;text-transform:uppercase;margin-bottom:12px">Quiet hours</div>
+          <div style="border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <span style="font:500 13.5px Inter;color:#E8DFFA">Nothing between</span>
+            <span style="font:600 13.5px Inter;color:#F2B93B">10 PM – 7 AM</span>
+          </div>
+          <div style="border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:22px">
+            <span style="flex:1;font:500 13.5px Inter;color:#E8DFFA">Skip on weekends</span>
+            <div style="width:40px;height:23px;border-radius:999px;background:rgba(255,255,255,.1);display:flex;align-items:center;padding:0 3px"><div style="width:17px;height:17px;border-radius:50%;background:#4C3A6B"></div></div>
+          </div>
+          <div style="text-align:center;background:#F2B93B;color:#150C28;font:700 14.5px Inter;border-radius:999px;padding:15px 0;margin-bottom:14px">Save reminders</div>
+          <div style="text-align:center;font:500 11.5px Inter;color:#6B5B94;margin-bottom:24px">Ritualist needs notification permission to send these.</div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <div class="dv-sub" style="font:800 10px Inter;letter-spacing:2px;color:rgba(0,0,0,.4);text-transform:uppercase;margin:34px 0 14px">Light theme — warm cream + ink</div>
+  <div class="dv-opts">
+
+
+    <div class="dv-opt" id="2o">
+      <div class="dv-olabel"><a class="dv-oid" href="#2o">2o</a>Home — light</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:#FAF4E9;padding:8px 18px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 18px">
+            <div><div style="font:800 10px/1 Inter;letter-spacing:2px;color:#B07E10;text-transform:uppercase">Monday · Aug 24</div><div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#1B0F33;margin-top:8px">Good morning, Aanya</div></div>
+            <div style="display:flex;align-items:center;gap:6px;border:1px solid rgba(27,15,51,.14);border-radius:999px;padding:6px 11px"><div style="width:7px;height:7px;border-radius:50%;background:#E0A419"></div><span style="font:700 12px Inter;color:#1B0F33">12</span></div>
+          </div>
+          <div style="background:#FFF7E4;border:1px solid rgba(224,164,25,.42);border-radius:20px;padding:22px 20px 18px;margin-bottom:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#B07E10;text-transform:uppercase">Mantra of the day</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1.38;color:#1B0F33;margin:14px 0 16px">“I choose one aligned action over ten scattered ones.”</div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;text-align:center;background:#1B0F33;color:#FFF7E4;font:700 13px Inter;border-radius:999px;padding:11px 0">Set my intention</div>
+              <div style="width:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(27,15,51,.22);border-radius:999px;color:#4C2A85;font-size:15px">↻</div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(27,15,51,.1);border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(27,15,51,.05)">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px"><div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#1B0F33">Top 3 today</div><div style="font:600 11px Inter;color:#8A7BB5">1 of 3 done</div></div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;background:#E0A419;color:#fff;display:flex;align-items:center;justify-content:center;font:800 12px Inter;flex:none">✓</div><span style="font:500 14px Inter;color:#9C93AE;text-decoration:line-through">Morning pages, 10 min</span></div>
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(27,15,51,.25);flex:none"></div><span style="font:500 14px Inter;color:#1B0F33">Finish the client deck</span></div>
+              <div style="display:flex;align-items:center;gap:13px"><div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(27,15,51,.25);flex:none"></div><span style="font:500 14px Inter;color:#1B0F33">Walk 30 minutes</span></div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid rgba(27,15,51,.1);border-radius:20px;padding:20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(27,15,51,.05)">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px"><div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#1B0F33">Habits</div><div style="font:600 11px Inter;color:#B07E10">Edit</div></div>
+            <div style="display:flex;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#E0A419;color:#fff;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#4C2A85">Water</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#E0A419;color:#fff;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#4C2A85">Read</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(27,15,51,.2)"></div><span style="font:500 10px Inter;color:#6B6180">Move</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px dashed rgba(27,15,51,.2);color:#9C93AE;display:flex;align-items:center;justify-content:center;font-size:17px">+</div><span style="font:500 10px Inter;color:#6B6180">Add</span></div>
+            </div>
+          </div>
+          <div style="border:1px dashed rgba(27,15,51,.2);border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#4C2A85">Evening reflection</div><div style="font:400 11.5px Inter;color:#9C93AE;margin-top:5px">Unlocks at 8:00 PM</div></div>
+            <div style="font-size:15px">🌙</div>
+          </div>
+          <div style="height:18px"></div>
+          <div style="margin-top:auto;position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(250,244,233,.96);backdrop-filter:blur(10px);border-top:1px solid rgba(27,15,51,.1);margin-left:-18px;margin-right:-18px;padding:0 18px">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#E0A419"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#B07E10">Today</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(27,15,51,.15)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#9C93AE">Habits</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(27,15,51,.15)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#9C93AE">Outcomes</span></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(27,15,51,.15)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#9C93AE">You</span></div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2p">
+      <div class="dv-olabel"><a class="dv-oid" href="#2p">2p</a>Evening reflection — light</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:#FAF4E9;padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#4C2A85">←</span><span style="font:600 12px Inter;color:#B07E10">Save</span></div>
+          <div style="font:800 9.5px Inter;letter-spacing:2.5px;color:#B07E10;text-transform:uppercase;margin:22px 0 12px">Tonight · 24 August</div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:24px;line-height:1.28;color:#1B0F33;margin-bottom:24px">How did today actually go?</div>
+
+          <div style="background:#fff;border:1px solid rgba(27,15,51,.1);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="font:600 12px Inter;color:#4C2A85;margin-bottom:16px">Mood</div>
+            <div style="display:flex;justify-content:space-between">
+              <div style="width:48px;height:48px;border-radius:50%;border:1px solid rgba(27,15,51,.12);display:flex;align-items:center;justify-content:center;font-size:20px;opacity:.5">😔</div>
+              <div style="width:48px;height:48px;border-radius:50%;border:1px solid rgba(27,15,51,.12);display:flex;align-items:center;justify-content:center;font-size:20px;opacity:.5">😕</div>
+              <div style="width:48px;height:48px;border-radius:50%;border:1px solid rgba(27,15,51,.12);display:flex;align-items:center;justify-content:center;font-size:20px;opacity:.5">😐</div>
+              <div style="width:48px;height:48px;border-radius:50%;background:#FFF0CC;border:2px solid #E0A419;display:flex;align-items:center;justify-content:center;font-size:20px">🙂</div>
+              <div style="width:48px;height:48px;border-radius:50%;border:1px solid rgba(27,15,51,.12);display:flex;align-items:center;justify-content:center;font-size:20px;opacity:.5">😄</div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid rgba(27,15,51,.1);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="font:600 12px Inter;color:#4C2A85;margin-bottom:12px">Three things I'm grateful for</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;gap:11px;align-items:baseline"><span style="font-family:'Archivo Black',sans-serif;font-size:11px;color:#E0A419">01</span><span style="font:500 14px Inter;color:#1B0F33">The rain at lunch</span></div>
+              <div style="display:flex;gap:11px;align-items:baseline"><span style="font-family:'Archivo Black',sans-serif;font-size:11px;color:#E0A419">02</span><span style="font:500 14px Inter;color:#1B0F33">Priya calling back</span></div>
+              <div style="display:flex;gap:11px;align-items:baseline"><span style="font-family:'Archivo Black',sans-serif;font-size:11px;color:rgba(27,15,51,.2)">03</span><span style="font:400 14px Inter;color:#9C93AE">Add one more…</span></div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid rgba(27,15,51,.1);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="font:600 12px Inter;color:#4C2A85;margin-bottom:12px">What I'd repeat tomorrow</div>
+            <div style="font:400 14px/1.7 Inter;color:#1B0F33">Blocking the morning before opening email. It's the only reason the deck moved.</div>
+          </div>
+
+          <div style="background:#FFF7E4;border:1px solid rgba(224,164,25,.42);border-radius:20px;padding:20px;margin-bottom:20px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#B07E10;text-transform:uppercase;margin-bottom:10px">Closing the day</div>
+            <div style="font:500 14px/1.6 Inter;color:#1B0F33">2 of 3 priorities, 3 of 4 habits. Streak intact.</div>
+          </div>
+          <div style="text-align:center;background:#1B0F33;color:#FFF7E4;font:700 14.5px Inter;border-radius:999px;padding:15px 0;margin-bottom:24px">Close today</div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="2q">
+      <div class="dv-olabel"><a class="dv-oid" href="#2q">2q</a>Vision board — light, Pro</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:#FAF4E9;padding:8px 20px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0"><span style="font-size:19px;color:#4C2A85">←</span><span style="font:600 12px Inter;color:#B07E10">Add</span></div>
+          <div style="font-family:'Archivo Black',sans-serif;font-size:24px;color:#1B0F33;margin:22px 0 6px">Vision board</div>
+          <div style="font:400 12.5px Inter;color:#9C93AE;margin-bottom:22px">Spring 2027 · 6 items</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="aspect-ratio:3/4;border-radius:16px;border:1px solid rgba(27,15,51,.12);background:repeating-linear-gradient(135deg,#F2EADB 0 6px,#EDE3D1 6px 12px);display:flex;align-items:flex-end;padding:12px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:#6B6180">the studio space</span></div>
+            <div style="aspect-ratio:3/4;border-radius:16px;border:1px solid rgba(224,164,25,.4);background:#FFF7E4;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center"><span style="font-family:'Archivo Black',sans-serif;font-size:15px;line-height:1.35;color:#1B0F33">Booked out through spring</span></div>
+            <div style="aspect-ratio:3/4;border-radius:16px;border:1px solid rgba(27,15,51,.12);background:repeating-linear-gradient(135deg,#F2EADB 0 6px,#EDE3D1 6px 12px);display:flex;align-items:flex-end;padding:12px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:#6B6180">morning routine photo</span></div>
+            <div style="aspect-ratio:3/4;border-radius:16px;border:1px solid rgba(27,15,51,.12);background:repeating-linear-gradient(135deg,#F2EADB 0 6px,#EDE3D1 6px 12px);display:flex;align-items:flex-end;padding:12px"><span style="font:500 10px ui-monospace,Menlo,monospace;color:#6B6180">kerala trip</span></div>
+            <div style="aspect-ratio:3/4;border-radius:16px;background:#1B0F33;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center"><span style="font-family:'Archivo Black',sans-serif;font-size:14px;line-height:1.35;color:#FFE9A8">₹6L saved</span></div>
+            <div style="aspect-ratio:3/4;border-radius:16px;border:1.5px dashed rgba(27,15,51,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><span style="font-size:20px;color:#9C93AE">+</span><span style="font:600 11px Inter;color:#9C93AE">Add image<br>or words</span></div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="background:#FFF7E4;border:1px solid rgba(224,164,25,.42);border-radius:18px;padding:18px;margin:22px 0 24px;display:flex;align-items:center;gap:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:1px;color:#fff;background:#E0A419;border-radius:999px;padding:5px 10px">PRO</div>
+            <div style="flex:1;font:500 12.5px/1.55 Inter;color:#1B0F33">Set any tile as your lock-screen widget.</div>
+          </div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+
+  <div class="dv-sub" style="font:800 10px Inter;letter-spacing:2px;color:rgba(0,0,0,.4);text-transform:uppercase;margin:34px 0 14px">Play Store listing</div>
+  <div class="dv-opts">
+    <div class="dv-opt" id="2t">
+      <div class="dv-olabel"><a class="dv-oid" href="#2t">2t</a>Feature graphic (1024×500) + screenshot set</div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="width:1024px;height:500px;background:radial-gradient(ellipse 700px 500px at 78% 0%, rgba(242,185,59,.22), transparent 62%), linear-gradient(150deg,#150C28 0%,#1B0F33 45%,#4C2A85 100%);border-radius:12px;display:flex;align-items:center;padding:0 76px;box-sizing:border-box;gap:60px;overflow:hidden">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:16px">
+              <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:60px;height:60px"><circle cx="50" cy="50" r="48" fill="#1B0F33" stroke="#F2B93B" stroke-width="2.5"/><circle cx="50" cy="46" r="24" fill="#F2B93B"/><g stroke="#F2B93B" stroke-width="2" opacity="0.7"><line x1="50" y1="12" x2="50" y2="18"/><line x1="74" y1="22" x2="70" y2="26"/><line x1="26" y1="22" x2="30" y2="26"/></g><polygon points="50,42 68,78 32,78" fill="#1B0F33"/><rect x="20" y="78" width="60" height="4" fill="#4C2A85"/></svg>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:44px;letter-spacing:1px;color:#fff">RITUALIST</div>
+            </div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:40px;line-height:1.15;color:#FFE9A8;margin:32px 0 20px">Plan the day.<br>Mean it.</div>
+            <div style="font:400 19px/1.6 Inter;color:#C9BEE8;max-width:420px">Daily planner, habit tracker and outcome engineering practice in one place — built around three priorities, not thirty.</div>
+          </div>
+          <div style="width:300px;height:420px;border-radius:26px;border:1px solid rgba(242,185,59,.35);background:rgba(255,255,255,.05);padding:26px;box-sizing:border-box;transform:rotate(4deg)">
+            <div style="font:800 10px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Mantra of the day</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.35;color:#FFE9A8;margin:20px 0 26px">“I choose one aligned action over ten scattered ones.”</div>
+            <div style="height:1px;background:rgba(242,185,59,.2);margin-bottom:22px"></div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:center;gap:12px"><div style="width:20px;height:20px;border-radius:6px;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 11px Inter">✓</div><span style="font:500 14px Inter;color:#8A7BB5;text-decoration:line-through">Morning pages</span></div>
+              <div style="display:flex;align-items:center;gap:12px"><div style="width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(242,185,59,.45)"></div><span style="font:500 14px Inter;color:#E8DFFA">Finish the deck</span></div>
+              <div style="display:flex;align-items:center;gap:12px"><div style="width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(242,185,59,.45)"></div><span style="font:500 14px Inter;color:#E8DFFA">Walk 30 minutes</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:14px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:22px;align-items:flex-start">
+          <div style="flex:none;width:230px">
+            <div style="font:800 9px Inter;letter-spacing:2px;color:rgba(0,0,0,.4);text-transform:uppercase;margin-bottom:10px">Store copy</div>
+            <div style="font:700 15px Inter;color:#1a1a1a;margin-bottom:6px">Ritualist: Planner &amp; Habits</div>
+            <div style="font:400 12px/1.6 Inter;color:rgba(0,0,0,.6)">Short description (80 char): “Daily planner, habits and mantras — three priorities a day, with reminders.”</div>
+            <div style="font:400 11.5px/1.6 Inter;color:rgba(0,0,0,.45);margin-top:12px">Category: Productivity · Content rating: 3+ · Free with in-app subscription</div>
+          </div>
+          <div style="display:flex;gap:12px;overflow:hidden">
+            <div style="width:150px;height:320px;border-radius:14px;background:linear-gradient(168deg,#150C28,#3B2168);border:1px solid rgba(242,185,59,.25);padding:16px;box-sizing:border-box"><div style="font:800 7.5px Inter;letter-spacing:1.5px;color:#F2B93B;text-transform:uppercase">Your day, in three</div><div style="font-family:'Archivo Black',sans-serif;font-size:14px;line-height:1.3;color:#fff;margin-top:10px">Top 3 today</div><div style="display:flex;flex-direction:column;gap:9px;margin-top:16px"><div style="height:9px;border-radius:3px;background:rgba(242,185,59,.5);width:80%"></div><div style="height:9px;border-radius:3px;background:rgba(255,255,255,.14);width:95%"></div><div style="height:9px;border-radius:3px;background:rgba(255,255,255,.14);width:70%"></div></div></div>
+            <div style="width:150px;height:320px;border-radius:14px;background:#FAF4E9;border:1px solid rgba(27,15,51,.12);padding:16px;box-sizing:border-box"><div style="font:800 7.5px Inter;letter-spacing:1.5px;color:#B07E10;text-transform:uppercase">Light or dark</div><div style="font-family:'Archivo Black',sans-serif;font-size:14px;line-height:1.3;color:#1B0F33;margin-top:10px">Follows your phone</div><div style="display:flex;gap:8px;margin-top:16px"><div style="width:34px;height:34px;border-radius:50%;background:#E0A419"></div><div style="width:34px;height:34px;border-radius:50%;background:#E0A419"></div><div style="width:34px;height:34px;border-radius:50%;border:1.5px solid rgba(27,15,51,.2)"></div></div></div>
+            <div style="width:150px;height:320px;border-radius:14px;background:linear-gradient(168deg,#150C28,#4C2A85);border:1px solid rgba(242,185,59,.25);padding:16px;box-sizing:border-box"><div style="font:800 7.5px Inter;letter-spacing:1.5px;color:#F2B93B;text-transform:uppercase">Outcomes</div><div style="font-family:'Archivo Black',sans-serif;font-size:14px;line-height:1.3;color:#FFE9A8;margin-top:10px">Script it, then do it</div><div style="height:120px;border:1px solid rgba(242,185,59,.25);border-radius:10px;margin-top:16px"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="dv-next">Try next: "light version of the reminder screens" · "make the paywall softer" · "light versions of the habit and review screens too" · "tighten the store screenshots into a proper 9:16 set"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Home screen — three directions</span></div>
+  <p class="dv-note">Brand pulled from your repo: ink <b>#1B0F33</b> → violet <b>#4C2A85</b> gradient, gold <b>#F2B93B</b>, Archivo Black + Inter, the sunburst-over-mountain emblem. Mantra copy is taken from <b>assets/script.js</b>. All three assume the onboarding quiz sets a preset and everything stays rearrangeable afterwards. Pick one and I'll build the full screen set on it (onboarding, habits, outcome engineering, quote, weekly review, settings, paywall, empty states).</p>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Card stack — every module a card, drag to reorder, hide what you don't use</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 420px 300px at 90% -6%, rgba(242,185,59,.18), transparent 62%), linear-gradient(168deg,#150C28 0%,#1B0F33 46%,#3B2168 100%);padding:8px 18px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 18px">
+            <div>
+              <div style="font:800 10px/1 Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Monday · Aug 24</div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff;margin-top:8px">Good morning, Aanya</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;border:1px solid rgba(242,185,59,.35);border-radius:999px;padding:6px 11px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#F2B93B"></div>
+              <span style="font:700 12px Inter;color:#FFE9A8">12</span>
+            </div>
+          </div>
+
+          <div style="background:radial-gradient(ellipse at top, rgba(242,185,59,.12), transparent 72%), rgba(255,255,255,.03);border:1px solid rgba(242,185,59,.28);border-radius:20px;padding:22px 20px 18px;margin-bottom:14px">
+            <div style="font:800 9.5px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Mantra of the day</div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:19px;line-height:1.38;color:#FFE9A8;margin:14px 0 16px">“I choose one aligned action over ten scattered ones.”</div>
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;text-align:center;background:#F2B93B;color:#150C28;font:700 13px Inter;border-radius:999px;padding:11px 0">Set my intention</div>
+              <div style="width:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid rgba(242,185,59,.5);border-radius:999px;color:#FFE9A8;font-size:15px">↻</div>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff">Top 3 today</div>
+              <div style="font:600 11px Inter;color:#8A7BB5">1 of 3 done</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 12px Inter;flex:none">✓</div>
+                <span style="font:500 14px Inter;color:#8A7BB5;text-decoration:line-through">Morning pages, 10 min</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(242,185,59,.45);flex:none"></div>
+                <span style="font:500 14px Inter;color:#E8DFFA">Finish the client deck</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:13px">
+                <div style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(242,185,59,.45);flex:none"></div>
+                <span style="font:500 14px Inter;color:#E8DFFA">Walk 30 minutes</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,.035);border:1px solid rgba(242,185,59,.18);border-radius:20px;padding:20px;margin-bottom:14px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:15px;color:#fff">Habits</div>
+              <div style="font:600 11px Inter;color:#F2B93B">Edit</div>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#C9BEE8">Water</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 15px Inter">✓</div><span style="font:500 10px Inter;color:#C9BEE8">Read</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(242,185,59,.35)"></div><span style="font:500 10px Inter;color:#8A7BB5">Move</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(242,185,59,.35)"></div><span style="font:500 10px Inter;color:#8A7BB5">No phone</span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="width:44px;height:44px;border-radius:50%;border:1.5px dashed rgba(242,185,59,.3);color:#8A7BB5;display:flex;align-items:center;justify-content:center;font-size:17px">+</div><span style="font:500 10px Inter;color:#8A7BB5">Add</span></div>
+            </div>
+          </div>
+
+          <div style="border:1px dashed rgba(242,185,59,.28);border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:14px;color:#C9BEE8">Evening reflection</div>
+              <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:5px">Unlocks at 8:00 PM</div>
+            </div>
+            <div style="font-size:15px;color:#8A7BB5">🌙</div>
+          </div>
+          <div style="height:18px"></div>
+          <div style="margin-top:auto;position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(21,12,40,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(242,185,59,.15);margin-left:-18px;margin-right:-18px;padding:0 18px"><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#F2B93B"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B">Today</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Habits</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Outcomes</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">You</span></div></div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Swipe deck — one module at a time, full screen, swipe left to advance the day</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:linear-gradient(168deg,#150C28 0%,#241645 55%,#4C2A85 100%);padding:8px 0 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px 0">
+            <div style="font:800 10px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Step 2 of 5 · Morning</div>
+            <div style="font:600 11px Inter;color:#8A7BB5">Skip</div>
+          </div>
+          <div style="display:flex;gap:5px;padding:16px 20px 0">
+            <div style="flex:1;height:3px;border-radius:2px;background:#F2B93B"></div>
+            <div style="flex:1;height:3px;border-radius:2px;background:#F2B93B"></div>
+            <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14)"></div>
+            <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14)"></div>
+            <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14)"></div>
+          </div>
+
+          <div style="flex:1;display:flex;align-items:center;padding:22px 8px 0">
+            <div style="width:14px;height:300px;border-radius:16px 0 0 16px;background:rgba(255,255,255,.05);margin-right:6px"></div>
+            <div style="flex:1;background:radial-gradient(ellipse at top, rgba(242,185,59,.14), transparent 68%), rgba(255,255,255,.045);border:1px solid rgba(242,185,59,.3);border-radius:26px;padding:32px 26px 26px">
+              <div style="font:800 9.5px Inter;letter-spacing:2.5px;color:#F2B93B;text-transform:uppercase">Set your intention</div>
+              <div style="font-family:'Archivo Black',sans-serif;font-size:26px;line-height:1.25;color:#fff;margin:16px 0 10px">What is today<br>actually for?</div>
+              <div style="font:400 13px/1.6 Inter;color:#C9BEE8;margin-bottom:22px">One sentence. It becomes the header of your day.</div>
+              <div style="border:1px solid rgba(242,185,59,.35);border-radius:16px;background:rgba(21,12,40,.5);padding:16px;min-height:96px">
+                <div style="font:500 15px/1.5 Inter;color:#FFE9A8">Ship the deck, then rest without guilt<span style="opacity:.6">|</span></div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+                <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:7px 13px;font:600 11px Inter;color:#C9BEE8">Focus</div>
+                <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:7px 13px;font:600 11px Inter;color:#C9BEE8">Calm</div>
+                <div style="border:1px solid rgba(242,185,59,.3);border-radius:999px;padding:7px 13px;font:600 11px Inter;color:#C9BEE8">Abundance</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:26px">
+                <div style="flex:1;text-align:center;background:#F2B93B;color:#150C28;font:700 14px Inter;border-radius:999px;padding:14px 0">Next →</div>
+              </div>
+            </div>
+            <div style="width:14px;height:300px;border-radius:0 16px 16px 0;background:rgba(255,255,255,.05);margin-left:6px"></div>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:22px;padding:22px 20px 0">
+            <div style="text-align:center;opacity:.45"><div style="font:800 9px Inter;letter-spacing:1.5px;color:#C9BEE8;text-transform:uppercase">Quote</div></div>
+            <div style="text-align:center"><div style="font:800 9px Inter;letter-spacing:1.5px;color:#F2B93B;text-transform:uppercase">Intention</div></div>
+            <div style="text-align:center;opacity:.45"><div style="font:800 9px Inter;letter-spacing:1.5px;color:#C9BEE8;text-transform:uppercase">Top 3</div></div>
+            <div style="text-align:center;opacity:.45"><div style="font:800 9px Inter;letter-spacing:1.5px;color:#C9BEE8;text-transform:uppercase">Habits</div></div>
+          </div>
+          <div style="position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(21,12,40,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(242,185,59,.15);margin-top:18px"><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#F2B93B"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B">Today</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Habits</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Outcomes</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">You</span></div></div>
+        </div>
+      </x-import>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Sunburst dial — the emblem becomes the day's progress; modules read as a numbered agenda</div>
+      <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+        <div style="min-height:100%;box-sizing:border-box;background:radial-gradient(ellipse 460px 340px at 50% 2%, rgba(242,185,59,.2), transparent 60%), linear-gradient(180deg,#150C28 0%,#1B0F33 60%,#241645 100%);padding:8px 22px 0;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0 0">
+            <div style="font:800 10px Inter;letter-spacing:2px;color:#8A7BB5;text-transform:uppercase">Mon 24 Aug</div>
+            <div style="font:800 10px Inter;letter-spacing:2px;color:#F2B93B;text-transform:uppercase">Day 12 · Outcomes</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;padding:24px 0 6px">
+            <div style="position:relative;width:172px;height:172px;border-radius:50%;background:conic-gradient(#F2B93B 0turn 0.42turn, rgba(255,255,255,.09) 0.42turn 1turn);display:flex;align-items:center;justify-content:center">
+              <div style="width:146px;height:146px;border-radius:50%;background:#170D2B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:74px;height:74px;margin-top:4px">
+                  <circle cx="50" cy="46" r="24" fill="#F2B93B"/>
+                  <g stroke="#F2B93B" stroke-width="2" opacity="0.7">
+                    <line x1="50" y1="12" x2="50" y2="18"/>
+                    <line x1="74" y1="22" x2="70" y2="26"/>
+                    <line x1="26" y1="22" x2="30" y2="26"/>
+                  </g>
+                  <polygon points="50,42 68,78 32,78" fill="#1B0F33"/>
+                  <rect x="20" y="78" width="60" height="4" fill="#4C2A85"/>
+                </svg>
+                <div style="font-family:'Archivo Black',sans-serif;font-size:22px;color:#fff;line-height:1">42<span style="font-size:12px;color:#F2B93B">%</span></div>
+                <div style="font:700 8.5px Inter;letter-spacing:2px;color:#8A7BB5;text-transform:uppercase">Day complete</div>
+              </div>
+            </div>
+            <div style="font-family:'Archivo Black',sans-serif;font-size:16px;color:#FFE9A8;text-align:center;margin-top:22px;line-height:1.4">“What I repeat,<br>I become.”</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;margin-top:26px">
+            <div style="display:flex;align-items:center;gap:16px;padding:17px 0;border-top:1px solid rgba(242,185,59,.16)">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#F2B93B;width:20px">01</div>
+              <div style="flex:1">
+                <div style="font:600 15px Inter;color:#fff">Intention set</div>
+                <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">Ship the deck, then rest</div>
+              </div>
+              <div style="width:20px;height:20px;border-radius:50%;background:#F2B93B;color:#150C28;display:flex;align-items:center;justify-content:center;font:800 11px Inter">✓</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:17px 0;border-top:1px solid rgba(242,185,59,.16)">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#F2B93B;width:20px">02</div>
+              <div style="flex:1">
+                <div style="font:600 15px Inter;color:#fff">Top 3 priorities</div>
+                <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">1 done · 2 left</div>
+              </div>
+              <div style="font-size:16px;color:#8A7BB5">›</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:17px 0;border-top:1px solid rgba(242,185,59,.16)">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#F2B93B;width:20px">03</div>
+              <div style="flex:1">
+                <div style="font:600 15px Inter;color:#fff">Habits</div>
+                <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">2 of 4 checked</div>
+              </div>
+              <div style="display:flex;gap:5px">
+                <div style="width:9px;height:9px;border-radius:50%;background:#F2B93B"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#F2B93B"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.16)"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.16)"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:17px 0;border-top:1px solid rgba(242,185,59,.16)">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#F2B93B;width:20px">04</div>
+              <div style="flex:1">
+                <div style="font:600 15px Inter;color:#fff">Scripting</div>
+                <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">Not started</div>
+              </div>
+              <div style="font-size:16px;color:#8A7BB5">›</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;padding:17px 0;border-top:1px solid rgba(242,185,59,.16);border-bottom:1px solid rgba(242,185,59,.16);opacity:.55">
+              <div style="font-family:'Archivo Black',sans-serif;font-size:13px;color:#8A7BB5;width:20px">05</div>
+              <div style="flex:1">
+                <div style="font:600 15px Inter;color:#C9BEE8">Evening reflection</div>
+                <div style="font:400 11.5px Inter;color:#8A7BB5;margin-top:3px">Opens at 8:00 PM</div>
+              </div>
+            </div>
+          </div>
+          <div style="height:18px"></div>
+          <div style="margin-top:auto;position:sticky;bottom:0;display:flex;justify-content:space-around;align-items:center;height:64px;background:rgba(21,12,40,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(242,185,59,.15);margin-left:-22px;margin-right:-22px;padding:0 22px"><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:#F2B93B"></div><span style="font:700 10.5px Inter;letter-spacing:.6px;color:#F2B93B">Today</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Habits</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">Outcomes</span></div><div style="display:flex;flex-direction:column;align-items:center;gap:7px"><div style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.16)"></div><span style="font:600 10.5px Inter;letter-spacing:.6px;color:#8A7BB5">You</span></div></div>
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "build out <a class="dv-oid" href="#1a">1a</a> into all the screens" · "combine <a class="dv-oid" href="#1c">1c</a>'s dial with <a class="dv-oid" href="#1a">1a</a>'s cards" · "lighter theme, same layout"</p>
+</section>
+</x-dc>
+</body>
+</html>
