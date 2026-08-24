@@ -77,7 +77,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       style: display(23, Surfaces.heading(dark))),
                   const SizedBox(height: 8),
                   Text(
-                      "Ritualist reaches out so you don't have to remember to open it.",
+                      "Prakriyā reaches out so you don't have to remember to open it.",
                       style: body(12.5, Surfaces.muted(dark))),
                   const SizedBox(height: 22),
                   if (!_permissionGranted)
@@ -93,7 +93,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                     weight: FontWeight.w700)),
                             const SizedBox(height: 6),
                             Text(
-                                'Ritualist needs permission before it can send reminders.',
+                                'Prakriyā needs permission before it can send reminders.',
                                 style: body(12.5, Surfaces.bodyText(dark))),
                             const SizedBox(height: 14),
                             GoldButton(

@@ -5,8 +5,8 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'lock_screen.dart';
 
-/// The day's close — two short prompts, locked behind the journal PIN if one
-/// is set (design ref 2p).
+/// The day's close — three "what did I achieve" lines and a gratitude
+/// prompt, locked behind the journal PIN if one is set.
 class EveningReflectionScreen extends StatefulWidget {
   const EveningReflectionScreen({super.key});
 
@@ -16,26 +16,31 @@ class EveningReflectionScreen extends StatefulWidget {
 }
 
 class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
+  late final List<TextEditingController> _achievements;
   late final TextEditingController _gratitude;
-  late final TextEditingController _reflection;
 
   @override
   void initState() {
     super.initState();
     final entry = store.todaysJournal;
+    final a = entry.achievements;
+    _achievements = List.generate(
+        3, (i) => TextEditingController(text: i < a.length ? a[i] : ''));
     _gratitude = TextEditingController(text: entry.gratitude);
-    _reflection = TextEditingController(text: entry.reflection);
   }
 
   @override
   void dispose() {
+    for (final c in _achievements) {
+      c.dispose();
+    }
     _gratitude.dispose();
-    _reflection.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    await store.saveTodaysJournal(_gratitude.text, _reflection.text);
+    await store.saveTodaysJournal(
+        _achievements.map((c) => c.text).toList(), _gratitude.text);
     if (mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Saved.')));
@@ -69,32 +74,44 @@ class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
                   style: body(13, Surfaces.muted(dark))),
               const SizedBox(height: 22),
               ModuleCard(
-                eyebrow: 'One thing worth remembering',
-                child: TextField(
-                  controller: _gratitude,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  style: body(14, Surfaces.bodyText(dark)),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    border: InputBorder.none,
-                    hintText: 'What went well today?',
-                    hintStyle: body(13.5, Surfaces.muted(dark)),
-                  ),
+                eyebrow: 'What three things did I achieve today?',
+                child: Column(
+                  children: [
+                    for (var i = 0; i < 3; i++) ...[
+                      TextField(
+                        controller: _achievements[i],
+                        textCapitalization: TextCapitalization.sentences,
+                        style: body(14, Surfaces.bodyText(dark)),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          border: InputBorder.none,
+                          prefixText: '${i + 1}.  ',
+                          prefixStyle: body(14, Surfaces.muted(dark),
+                              weight: FontWeight.w700),
+                          hintText: 'Something that counted, big or small',
+                          hintStyle: body(13.5, Surfaces.muted(dark)),
+                        ),
+                      ),
+                      if (i < 2)
+                        Divider(
+                            height: 14,
+                            color: Surfaces.muted(dark).withValues(alpha: 0.15)),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 14),
               ModuleCard(
-                eyebrow: 'Anything you want to let go of',
+                eyebrow: 'Things I am grateful for',
                 child: TextField(
-                  controller: _reflection,
+                  controller: _gratitude,
                   maxLines: 4,
                   textCapitalization: TextCapitalization.sentences,
                   style: body(14, Surfaces.bodyText(dark)),
                   decoration: InputDecoration(
                     isDense: true,
                     border: InputBorder.none,
-                    hintText: 'Whatever is still on your mind…',
+                    hintText: 'What are you grateful for today?',
                     hintStyle: body(13.5, Surfaces.muted(dark)),
                   ),
                 ),

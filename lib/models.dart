@@ -20,12 +20,34 @@ class Task {
       );
 }
 
+/// Curated icons a habit can carry — index into this list is what's stored.
+const List<String> kHabitIconNames = [
+  'edit_note', // journaling
+  'directions_walk', // movement
+  'self_improvement', // meditation
+  'water_drop', // hydration
+  'menu_book', // reading
+  'bedtime', // sleep
+  'no_cell', // screen-free
+  'restaurant', // eating/nutrition
+  'fitness_center', // exercise
+  'favorite', // gratitude / wellbeing
+  'wb_sunny', // morning routine
+  'volunteer_activism', // kindness/giving
+];
+
 class Habit {
   String name;
   List<String> completedDays;
+  int iconIndex;
+  int colorIndex;
 
-  Habit({required this.name, List<String>? completedDays})
-      : completedDays = completedDays ?? <String>[];
+  Habit({
+    required this.name,
+    List<String>? completedDays,
+    this.iconIndex = 0,
+    this.colorIndex = 0,
+  }) : completedDays = completedDays ?? <String>[];
 
   bool isDoneOn(DateTime date) => completedDays.contains(dayKey(date));
 
@@ -59,13 +81,20 @@ class Habit {
     return count;
   }
 
-  Map<String, dynamic> toJson() => {'name': name, 'completedDays': completedDays};
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'completedDays': completedDays,
+        'iconIndex': iconIndex,
+        'colorIndex': colorIndex,
+      };
 
   static Habit fromJson(Map<String, dynamic> json) => Habit(
         name: (json['name'] ?? '') as String,
         completedDays: ((json['completedDays'] ?? <dynamic>[]) as List<dynamic>)
             .map((dynamic e) => e.toString())
             .toList(),
+        iconIndex: (json['iconIndex'] ?? 0) as int,
+        colorIndex: (json['colorIndex'] ?? 0) as int,
       );
 }
 
@@ -112,35 +141,57 @@ class Script {
 
 /// One day's evening reflection.
 class JournalEntry {
+  /// Up to 3 short "what did I achieve today" lines.
+  List<String> achievements;
   String gratitude;
+
+  /// Kept for backward compatibility with entries saved before v0.2 (the
+  /// old "anything you want to let go of" prompt) — no longer written to,
+  /// but preserved so existing journal history doesn't lose data.
   String reflection;
 
-  JournalEntry({this.gratitude = '', this.reflection = ''});
+  JournalEntry({List<String>? achievements, this.gratitude = '', this.reflection = ''})
+      : achievements = achievements ?? <String>['', '', ''];
 
-  bool get isEmpty => gratitude.trim().isEmpty && reflection.trim().isEmpty;
+  bool get isEmpty =>
+      achievements.every((a) => a.trim().isEmpty) &&
+      gratitude.trim().isEmpty &&
+      reflection.trim().isEmpty;
 
-  Map<String, dynamic> toJson() =>
-      {'gratitude': gratitude, 'reflection': reflection};
+  Map<String, dynamic> toJson() => {
+        'achievements': achievements,
+        'gratitude': gratitude,
+        'reflection': reflection,
+      };
 
   static JournalEntry fromJson(Map<String, dynamic> json) => JournalEntry(
+        achievements: (json['achievements'] as List?)
+                ?.map((e) => e as String)
+                .toList() ??
+            <String>['', '', ''],
         gratitude: (json['gratitude'] ?? '') as String,
         reflection: (json['reflection'] ?? '') as String,
       );
 }
 
-/// One placeholder tile on the vision board — a caption, no photo picker in v0.1.
+/// One tile on the vision board — a caption, optionally backed by an image
+/// copied into app-local storage from the device's own gallery (e.g. a
+/// screenshot saved from Pinterest — the app has no Pinterest integration,
+/// there's no public API for pulling their images directly).
 class VisionItem {
   String caption;
   int colorIndex;
+  String? imagePath;
 
-  VisionItem({required this.caption, this.colorIndex = 0});
+  VisionItem({required this.caption, this.colorIndex = 0, this.imagePath});
 
   Map<String, dynamic> toJson() =>
-      {'caption': caption, 'colorIndex': colorIndex};
+      {'caption': caption, 'colorIndex': colorIndex, 'imagePath': imagePath};
 
   static VisionItem fromJson(Map<String, dynamic> json) => VisionItem(
         caption: (json['caption'] ?? '') as String,
         colorIndex: (json['colorIndex'] ?? 0) as int,
+        imagePath: json['imagePath'] as String?,
       );
 }
 
@@ -205,7 +256,9 @@ class AppState {
   bool skipWeekends;
 
   bool onboardingComplete;
+  String userName;
   List<String> focusAreas;
+  String dailyTimeCommitment;
   String preset;
   List<ModuleConfig> modules;
 
@@ -224,7 +277,9 @@ class AppState {
     required this.themeMode,
     required this.skipWeekends,
     required this.onboardingComplete,
+    required this.userName,
     required this.focusAreas,
+    required this.dailyTimeCommitment,
     required this.preset,
     required this.modules,
     required this.scripts,
@@ -265,7 +320,9 @@ class AppState {
         themeMode: 'system',
         skipWeekends: false,
         onboardingComplete: false,
+        userName: '',
         focusAreas: <String>[],
+        dailyTimeCommitment: '',
         preset: kPresetBalance,
         modules: [for (final id in kAllModuleIds) ModuleConfig(id: id)],
         scripts: <Script>[],
@@ -284,7 +341,9 @@ class AppState {
         'themeMode': themeMode,
         'skipWeekends': skipWeekends,
         'onboardingComplete': onboardingComplete,
+        'userName': userName,
         'focusAreas': focusAreas,
+        'dailyTimeCommitment': dailyTimeCommitment,
         'preset': preset,
         'modules': modules.map((m) => m.toJson()).toList(),
         'scripts': scripts.map((s) => s.toJson()).toList(),
@@ -345,9 +404,13 @@ class AppState {
     if (json['onboardingComplete'] is bool) {
       state.onboardingComplete = json['onboardingComplete'] as bool;
     }
+    if (json['userName'] is String) state.userName = json['userName'] as String;
     final rawFocus = json['focusAreas'];
     if (rawFocus is List) {
       state.focusAreas = rawFocus.map((e) => e.toString()).toList();
+    }
+    if (json['dailyTimeCommitment'] is String) {
+      state.dailyTimeCommitment = json['dailyTimeCommitment'] as String;
     }
     if (json['preset'] is String) state.preset = json['preset'] as String;
 
