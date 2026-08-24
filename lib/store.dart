@@ -87,10 +87,14 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
-  Future<void> addHabit(String name) async {
+  Future<void> addHabit(String name, {int? iconIndex, int? colorIndex}) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
-    _state.habits.add(Habit(name: trimmed));
+    _state.habits.add(Habit(
+      name: trimmed,
+      iconIndex: iconIndex ?? 0,
+      colorIndex: colorIndex ?? _state.habits.length,
+    ));
     await _commit();
   }
 
@@ -103,6 +107,12 @@ class Store extends ChangeNotifier {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
     habit.name = trimmed;
+    await _commit();
+  }
+
+  Future<void> setHabitStyle(Habit habit, {int? iconIndex, int? colorIndex}) async {
+    if (iconIndex != null) habit.iconIndex = iconIndex;
+    if (colorIndex != null) habit.colorIndex = colorIndex;
     await _commit();
   }
 
@@ -175,12 +185,22 @@ class Store extends ChangeNotifier {
 
   bool get onboardingComplete => _state.onboardingComplete;
 
+  String get userName => _state.userName;
+
+  String get dailyTimeCommitment => _state.dailyTimeCommitment;
+
+  List<String> get focusAreas => _state.focusAreas;
+
   Future<void> completeOnboarding({
+    required String userName,
     required List<String> focusAreas,
+    required String dailyTimeCommitment,
     required String preset,
   }) async {
     _state.onboardingComplete = true;
+    _state.userName = userName.trim();
     _state.focusAreas = focusAreas;
+    _state.dailyTimeCommitment = dailyTimeCommitment;
     _state.preset = preset;
     await _commit();
   }

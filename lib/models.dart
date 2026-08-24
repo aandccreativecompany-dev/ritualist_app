@@ -20,12 +20,34 @@ class Task {
       );
 }
 
+/// Curated icons a habit can carry — index into this list is what's stored.
+const List<String> kHabitIconNames = [
+  'edit_note', // journaling
+  'directions_walk', // movement
+  'self_improvement', // meditation
+  'water_drop', // hydration
+  'menu_book', // reading
+  'bedtime', // sleep
+  'no_cell', // screen-free
+  'restaurant', // eating/nutrition
+  'fitness_center', // exercise
+  'favorite', // gratitude / wellbeing
+  'wb_sunny', // morning routine
+  'volunteer_activism', // kindness/giving
+];
+
 class Habit {
   String name;
   List<String> completedDays;
+  int iconIndex;
+  int colorIndex;
 
-  Habit({required this.name, List<String>? completedDays})
-      : completedDays = completedDays ?? <String>[];
+  Habit({
+    required this.name,
+    List<String>? completedDays,
+    this.iconIndex = 0,
+    this.colorIndex = 0,
+  }) : completedDays = completedDays ?? <String>[];
 
   bool isDoneOn(DateTime date) => completedDays.contains(dayKey(date));
 
@@ -59,13 +81,20 @@ class Habit {
     return count;
   }
 
-  Map<String, dynamic> toJson() => {'name': name, 'completedDays': completedDays};
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'completedDays': completedDays,
+        'iconIndex': iconIndex,
+        'colorIndex': colorIndex,
+      };
 
   static Habit fromJson(Map<String, dynamic> json) => Habit(
         name: (json['name'] ?? '') as String,
         completedDays: ((json['completedDays'] ?? <dynamic>[]) as List<dynamic>)
             .map((dynamic e) => e.toString())
             .toList(),
+        iconIndex: (json['iconIndex'] ?? 0) as int,
+        colorIndex: (json['colorIndex'] ?? 0) as int,
       );
 }
 
@@ -227,7 +256,9 @@ class AppState {
   bool skipWeekends;
 
   bool onboardingComplete;
+  String userName;
   List<String> focusAreas;
+  String dailyTimeCommitment;
   String preset;
   List<ModuleConfig> modules;
 
@@ -246,7 +277,9 @@ class AppState {
     required this.themeMode,
     required this.skipWeekends,
     required this.onboardingComplete,
+    required this.userName,
     required this.focusAreas,
+    required this.dailyTimeCommitment,
     required this.preset,
     required this.modules,
     required this.scripts,
@@ -287,7 +320,9 @@ class AppState {
         themeMode: 'system',
         skipWeekends: false,
         onboardingComplete: false,
+        userName: '',
         focusAreas: <String>[],
+        dailyTimeCommitment: '',
         preset: kPresetBalance,
         modules: [for (final id in kAllModuleIds) ModuleConfig(id: id)],
         scripts: <Script>[],
@@ -306,7 +341,9 @@ class AppState {
         'themeMode': themeMode,
         'skipWeekends': skipWeekends,
         'onboardingComplete': onboardingComplete,
+        'userName': userName,
         'focusAreas': focusAreas,
+        'dailyTimeCommitment': dailyTimeCommitment,
         'preset': preset,
         'modules': modules.map((m) => m.toJson()).toList(),
         'scripts': scripts.map((s) => s.toJson()).toList(),
@@ -367,9 +404,13 @@ class AppState {
     if (json['onboardingComplete'] is bool) {
       state.onboardingComplete = json['onboardingComplete'] as bool;
     }
+    if (json['userName'] is String) state.userName = json['userName'] as String;
     final rawFocus = json['focusAreas'];
     if (rawFocus is List) {
       state.focusAreas = rawFocus.map((e) => e.toString()).toList();
+    }
+    if (json['dailyTimeCommitment'] is String) {
+      state.dailyTimeCommitment = json['dailyTimeCommitment'] as String;
     }
     if (json['preset'] is String) state.preset = json['preset'] as String;
 

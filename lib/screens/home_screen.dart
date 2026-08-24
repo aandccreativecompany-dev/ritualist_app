@@ -86,6 +86,8 @@ class _Header extends StatelessWidget {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final done = store.todaysTasks.where((t) => t.done).length;
     final total = store.todaysTasks.length;
+    final greeting = _greeting();
+    final name = store.userName;
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -99,7 +101,8 @@ class _Header extends StatelessWidget {
                 Text(dateLine.toUpperCase(),
                     style: label(Surfaces.muted(dark))),
                 const SizedBox(height: 8),
-                Text('Today', style: display(28, Surfaces.heading(dark))),
+                Text(name.isEmpty ? greeting : '$greeting, $name',
+                    style: display(26, Surfaces.heading(dark))),
                 const SizedBox(height: 4),
                 Text(
                   total == 0
@@ -119,6 +122,15 @@ class _Header extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 5) return 'Still up';
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    if (hour < 21) return 'Good evening';
+    return 'Winding down';
   }
 }
 
@@ -257,29 +269,15 @@ class _HabitsCard extends StatelessWidget {
   const _HabitsCard();
 
   Future<void> _addHabit(BuildContext context) async {
-    final controller = TextEditingController();
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final name = await showDialog<String>(
+    final result = await showModalBottomSheet<(String, int, int)>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('New habit', style: display(18, Surfaces.heading(dark))),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Walk 30 minutes'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Add')),
-        ],
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const HabitEditorSheet(),
     );
-    if (name != null) await store.addHabit(name);
+    if (result != null) {
+      await store.addHabit(result.$1, iconIndex: result.$2, colorIndex: result.$3);
+    }
   }
 
   @override
@@ -292,32 +290,65 @@ class _HabitsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (store.habits.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text('Nothing tracked yet — add the first one below.',
+                  style: body(13, Surfaces.muted(dark))),
+            ),
           for (final habit in store.habits)
-            InkWell(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => HabitDetailScreen(habit: habit))),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                child: Row(
-                  children: [
-                    CheckSquare(
-                      checked: habit.isDoneOn(today),
-                      onTap: () => store.toggleHabit(habit),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(habit.name,
-                          style: body(14, Surfaces.bodyText(dark),
-                              weight: FontWeight.w500)),
-                    ),
-                    Text(
-                      habit.streak(today) > 0
-                          ? '${habit.streak(today)} day streak'
-                          : 'Not yet',
-                      style: body(11.5, Surfaces.muted(dark)),
-                    ),
+            Dismissible(
+              key: ValueKey(habit),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 6),
+                child: Icon(Icons.delete_outline, color: Colors.redAccent.withValues(alpha: 0.8)),
+              ),
+              confirmDismiss: (_) => showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Remove "${habit.name}"?',
+                      style: display(16, Surfaces.heading(dark))),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Keep it')),
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Remove')),
                   ],
+                ),
+              ),
+              onDismissed: (_) => store.removeHabit(habit),
+              child: InkWell(
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => HabitDetailScreen(habit: habit))),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      HabitBadge(iconIndex: habit.iconIndex, colorIndex: habit.colorIndex),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(habit.name,
+                            style: body(14, Surfaces.bodyText(dark),
+                                weight: FontWeight.w500)),
+                      ),
+                      Text(
+                        habit.streak(today) > 0
+                            ? '${habit.streak(today)} day streak'
+                            : 'Not yet',
+                        style: body(11, Surfaces.muted(dark)),
+                      ),
+                      const SizedBox(width: 10),
+                      CheckSquare(
+                        checked: habit.isDoneOn(today),
+                        onTap: () => store.toggleHabit(habit),
+                        size: 22,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -337,6 +368,7 @@ class _HabitsCard extends StatelessWidget {
     );
   }
 }
+
 
 class _ScriptingCard extends StatelessWidget {
   const _ScriptingCard();

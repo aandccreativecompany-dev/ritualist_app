@@ -36,6 +36,11 @@ class HabitDetailScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       IconButton(
+                        onPressed: () => _edit(context),
+                        icon: Icon(Icons.edit_outlined,
+                            color: Surfaces.muted(dark)),
+                      ),
+                      IconButton(
                         onPressed: () async {
                           await store.removeHabit(habit);
                           if (context.mounted) Navigator.pop(context);
@@ -45,10 +50,28 @@ class HabitDetailScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(habit.name, style: display(26, Surfaces.heading(dark))),
-                  const SizedBox(height: 6),
-                  Text('Every day', style: body(12.5, Surfaces.muted(dark))),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      HabitBadge(
+                          iconIndex: habit.iconIndex,
+                          colorIndex: habit.colorIndex,
+                          size: 44),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(habit.name,
+                                style: display(22, Surfaces.heading(dark))),
+                            const SizedBox(height: 4),
+                            Text('Every day',
+                                style: body(12.5, Surfaces.muted(dark))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -82,6 +105,23 @@ class HabitDetailScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _edit(BuildContext context) async {
+    final result = await showModalBottomSheet<(String, int, int)>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => HabitEditorSheet(
+        initialName: habit.name,
+        initialIcon: habit.iconIndex,
+        initialColor: habit.colorIndex,
+      ),
+    );
+    if (result != null) {
+      await store.renameHabit(habit, result.$1);
+      await store.setHabitStyle(habit, iconIndex: result.$2, colorIndex: result.$3);
+    }
   }
 }
 

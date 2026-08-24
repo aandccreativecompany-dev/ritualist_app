@@ -6,9 +6,9 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'module_picker_screen.dart';
 
-/// First-run flow: welcome, a short quiz that sets a preset, then the module
-/// picker. Runs once — retakeable later from Settings (README: "Onboarding:
-/// a one-time quiz sets a preset... Retakeable from Settings").
+/// First-run flow: welcome, name, a short quiz that sets a preset, a
+/// time-commitment question, then the module picker. Runs once — retakeable
+/// later from Settings.
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onDone;
   const OnboardingScreen({super.key, required this.onDone});
@@ -24,14 +24,27 @@ const _focusOptions = [
   ('steady', 'Feeling steadier', 'Mood, gratitude, reflection'),
 ];
 
+const _timeOptions = [
+  ('5', 'Just a couple minutes', 'One quick check-in a day'),
+  ('15', 'About 15 minutes', 'Enough to plan and reflect'),
+  ('30', 'Half an hour or so', 'Room for scripting and journaling too'),
+  ('60', 'As much as it takes', "I'm building a real practice"),
+];
+
+const _totalSteps = 5;
+
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
+  late final _nameController =
+      TextEditingController(text: store.userName);
   int _step = 0;
-  final Set<String> _focus = {};
+  late final Set<String> _focus = store.focusAreas.toSet();
+  String _timeCommitment = store.dailyTimeCommitment;
 
   @override
   void dispose() {
     _pageController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -52,9 +65,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
-    if (_step == 2) {
+    if (_step == _totalSteps - 1) {
       store.completeOnboarding(
+        userName: _nameController.text,
         focusAreas: _focus.toList(),
+        dailyTimeCommitment: _timeCommitment,
         preset: _presetFromFocus(),
       );
       widget.onDone();
@@ -85,9 +100,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             physics: const NeverScrollableScrollPhysics(),
             children: [
               _WelcomeStep(onStart: _next),
+              _NameStep(controller: _nameController, onBack: _back, onNext: _next),
               _QuizStep(
                 selected: _focus,
                 onToggle: _toggleFocus,
+                onBack: _back,
+                onNext: _next,
+              ),
+              _TimeStep(
+                selected: _timeCommitment,
+                onSelect: (v) => setState(() => _timeCommitment = v),
                 onBack: _back,
                 onNext: _next,
               ),
@@ -96,6 +118,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StepHeader extends StatelessWidget {
+  final int step; // 1-based
+  final VoidCallback onBack;
+  const _StepHeader({required this.step, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        IconButton(
+            onPressed: onBack,
+            icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark))),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: step / 4,
+              minHeight: 3,
+              backgroundColor: Surfaces.muted(dark).withValues(alpha: 0.16),
+              valueColor: AlwaysStoppedAnimation(Surfaces.accent(dark)),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text('$step/4',
+            style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
+      ],
     );
   }
 }
@@ -144,6 +198,61 @@ class _WelcomeStep extends StatelessWidget {
   }
 }
 
+class _NameStep extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  const _NameStep({required this.controller, required this.onBack, required this.onNext});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepHeader(step: 1, onBack: onBack),
+          const SizedBox(height: 22),
+          Text('FIRST THINGS FIRST', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 12),
+          Text('What should we call you?',
+              style: display(23, Surfaces.heading(dark))),
+          const SizedBox(height: 8),
+          Text("We'll use it to greet you here — nothing leaves this phone.",
+              style: body(12.5, Surfaces.muted(dark))),
+          const SizedBox(height: 24),
+          ModuleCard(
+            child: TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              onSubmitted: (_) => onNext(),
+              style: display(20, Surfaces.heading(dark)),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: 'Your name',
+                hintStyle: display(20, Surfaces.muted(dark)),
+              ),
+            ),
+          ),
+          const Spacer(),
+          GoldButton(labelText: 'Continue', onPressed: onNext),
+          const SizedBox(height: 10),
+          Center(
+            child: TextButton(
+              onPressed: onNext,
+              child: Text("I'd rather skip this",
+                  style: body(12.5, Surfaces.muted(dark), weight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _QuizStep extends StatelessWidget {
   final Set<String> selected;
   final ValueChanged<String> onToggle;
@@ -164,26 +273,7 @@ class _QuizStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              IconButton(
-                  onPressed: onBack,
-                  icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark))),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: 0.5,
-                    minHeight: 3,
-                    backgroundColor: Surfaces.muted(dark).withValues(alpha: 0.16),
-                    valueColor: AlwaysStoppedAnimation(Surfaces.accent(dark)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text('2/3', style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
-            ],
-          ),
+          _StepHeader(step: 2, onBack: onBack),
           const SizedBox(height: 22),
           Text('WHAT MATTERS MOST RIGHT NOW', style: label(Surfaces.eyebrow(dark))),
           const SizedBox(height: 12),
@@ -199,7 +289,7 @@ class _QuizStep extends StatelessWidget {
                 for (final option in _focusOptions)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _FocusCard(
+                    child: _PickCard(
                       title: option.$2,
                       subtitle: option.$3,
                       selected: selected.contains(option.$1),
@@ -216,12 +306,65 @@ class _QuizStep extends StatelessWidget {
   }
 }
 
-class _FocusCard extends StatelessWidget {
+class _TimeStep extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  const _TimeStep({
+    required this.selected,
+    required this.onSelect,
+    required this.onBack,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepHeader(step: 3, onBack: onBack),
+          const SizedBox(height: 22),
+          Text('YOUR PACE', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 12),
+          Text('How much time can you give this each day?',
+              style: display(21, Surfaces.heading(dark))),
+          const SizedBox(height: 8),
+          Text("There's no wrong answer — this just shapes what we show you first.",
+              style: body(12.5, Surfaces.muted(dark))),
+          const SizedBox(height: 22),
+          Expanded(
+            child: ListView(
+              children: [
+                for (final option in _timeOptions)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _PickCard(
+                      title: option.$2,
+                      subtitle: option.$3,
+                      selected: selected == option.$1,
+                      onTap: () => onSelect(option.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          GoldButton(labelText: 'Continue', onPressed: onNext),
+        ],
+      ),
+    );
+  }
+}
+
+class _PickCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final bool selected;
   final VoidCallback onTap;
-  const _FocusCard({
+  const _PickCard({
     required this.title,
     required this.subtitle,
     required this.selected,
@@ -289,26 +432,7 @@ class _ModuleStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              IconButton(
-                  onPressed: onBack,
-                  icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark))),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: 1,
-                    minHeight: 3,
-                    backgroundColor: Surfaces.muted(dark).withValues(alpha: 0.16),
-                    valueColor: AlwaysStoppedAnimation(Surfaces.accent(dark)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text('3/3', style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
-            ],
-          ),
+          _StepHeader(step: 4, onBack: onBack),
           const SizedBox(height: 22),
           Text('Your daily cards', style: display(23, Surfaces.heading(dark))),
           const SizedBox(height: 8),
