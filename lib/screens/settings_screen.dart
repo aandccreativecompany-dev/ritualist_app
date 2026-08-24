@@ -48,7 +48,7 @@ class SettingsScreen extends StatelessWidget {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(ok
             ? 'Backup restored.'
-            : "That doesn't look like a Ritualist backup.")));
+            : "That doesn't look like a Prakriyā backup.")));
   }
 
   Future<void> _retakeQuiz(BuildContext context) async {
@@ -250,7 +250,7 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Ritualist 0.1.0',
+                        Text('Prakriyā 0.2.0',
                             style: body(13.5, Surfaces.bodyText(dark),
                                 weight: FontWeight.w600)),
                         const SizedBox(height: 6),

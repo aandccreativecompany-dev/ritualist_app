@@ -43,7 +43,7 @@ class QuoteScreen extends StatelessWidget {
                           style: display(28, Surfaces.heading(dark)),
                         ),
                         const SizedBox(height: 36),
-                        Text('RITUALIST',
+                        Text('PRAKRIYĀ',
                             style: label(Surfaces.muted(dark))
                                 .copyWith(letterSpacing: 3)),
                       ],
@@ -54,7 +54,7 @@ class QuoteScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => SharePlus.instance.share(
-                      ShareParams(text: '"$mantra"\n\n— Ritualist'),
+                      ShareParams(text: '"$mantra"\n\n— Prakriyā'),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),

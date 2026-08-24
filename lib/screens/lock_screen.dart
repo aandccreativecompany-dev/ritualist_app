@@ -25,7 +25,15 @@ enum LockMode { setup, unlock }
 
 class LockScreen extends StatefulWidget {
   final LockMode mode;
-  const LockScreen({super.key, required this.mode});
+
+  /// When set, a successful unlock calls this instead of Navigator.pop —
+  /// used for the app-wide relock, which is shown in place rather than
+  /// pushed on top of a route (there's nothing safe to pop back to).
+  /// When set alongside [LockMode.unlock], the screen also can't be
+  /// dismissed with the back button/close icon.
+  final VoidCallback? onUnlocked;
+
+  const LockScreen({super.key, required this.mode, this.onUnlocked});
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -63,7 +71,7 @@ class _LockScreenState extends State<LockScreen> {
         localizedReason: 'Unlock your journal',
         options: const AuthenticationOptions(biometricOnly: false, stickyAuth: true),
       );
-      if (ok && mounted) Navigator.pop(context, true);
+      if (ok && mounted) _succeed();
     } catch (_) {
       // Falls through to PIN entry — the device may not support biometrics,
       // or the app was built without the native activity biometrics needs.
@@ -85,7 +93,7 @@ class _LockScreenState extends State<LockScreen> {
 
   void _submitUnlock() {
     if (store.verifyPin(_pin.text)) {
-      Navigator.pop(context, true);
+      _succeed();
     } else {
       setState(() {
         _error = 'Wrong PIN.';
@@ -94,12 +102,26 @@ class _LockScreenState extends State<LockScreen> {
     }
   }
 
+  void _succeed() {
+    if (widget.onUnlocked != null) {
+      widget.onUnlocked!();
+    } else if (mounted) {
+      Navigator.pop(context, true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final isSetup = widget.mode == LockMode.setup;
+    // An in-place app-wide relock has nowhere safe to dismiss to — the
+    // caller must actually unlock. A pushed journal-only lock can still be
+    // backed out of.
+    final canDismiss = widget.onUnlocked == null;
 
-    return Scaffold(
+    return PopScope(
+      canPop: canDismiss,
+      child: Scaffold(
       body: Container(
         decoration: Surfaces.pageBackground(dark),
         child: SafeArea(
@@ -108,15 +130,16 @@ class _LockScreenState extends State<LockScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      icon: Icon(isSetup ? Icons.close : Icons.arrow_back,
-                          color: Surfaces.bodyText(dark)),
-                    ),
-                  ],
-                ),
+                if (canDismiss)
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        icon: Icon(isSetup ? Icons.close : Icons.arrow_back,
+                            color: Surfaces.bodyText(dark)),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 Icon(Icons.lock_outline, color: Surfaces.accent(dark), size: 34),
                 const SizedBox(height: 20),
@@ -184,6 +207,7 @@ class _LockScreenState extends State<LockScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

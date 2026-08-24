@@ -118,7 +118,7 @@ class _WelcomeStep extends StatelessWidget {
                 children: [
                   Icon(Icons.wb_twilight, color: Surfaces.accent(dark), size: 64),
                   const SizedBox(height: 24),
-                  Text('RITUALIST',
+                  Text('PRAKRIYĀ',
                       style: display(30, Surfaces.heading(dark))
                           .copyWith(letterSpacing: .5)),
                   const SizedBox(height: 10),
@@ -316,7 +316,7 @@ class _ModuleStep extends StatelessWidget {
               style: body(12.5, Surfaces.muted(dark))),
           const SizedBox(height: 20),
           const Expanded(child: SingleChildScrollView(child: ModulePickerBody())),
-          GoldButton(labelText: 'Start using Ritualist', onPressed: onDone),
+          GoldButton(labelText: 'Start using Prakriyā', onPressed: onDone),
         ],
       ),
     );
