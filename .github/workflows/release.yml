@@ -116,6 +116,12 @@ jobs:
           PYEOF
 
       - run: flutter pub get
+
+      # Generates mipmap-*/ic_launcher.png + the adaptive icon XML/foreground
+      # from assets/icon/, overwriting whatever `flutter create` scaffolded.
+      - name: Apply the app icon
+        run: dart run flutter_launcher_icons
+
       - run: flutter analyze
       - run: flutter test
       - run: flutter build apk --release
