@@ -8,10 +8,14 @@ import '../theme.dart';
 class QuoteScreen extends StatelessWidget {
   const QuoteScreen({super.key});
 
+  static const _shareFooter = 'A & C Creative Company\n'
+      'aandccreativecompany.netlify.app\n'
+      'IG/Threads/YT @aandccreativecompany';
+
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final mantra = store.mantraOfTheDay;
+    final mantra = store.mantraEntryOfTheDay;
 
     return Scaffold(
       body: Container(
@@ -38,10 +42,15 @@ class QuoteScreen extends StatelessWidget {
                             style: label(Surfaces.eyebrow(dark))),
                         const SizedBox(height: 24),
                         Text(
-                          mantra,
+                          mantra.text,
                           textAlign: TextAlign.center,
                           style: display(28, Surfaces.heading(dark)),
                         ),
+                        const SizedBox(height: 18),
+                        Text('— ${mantra.source}',
+                            textAlign: TextAlign.center,
+                            style: body(13, Surfaces.muted(dark),
+                                weight: FontWeight.w500)),
                         const SizedBox(height: 36),
                         Text('PRAKRIYĀ',
                             style: label(Surfaces.muted(dark))
@@ -54,7 +63,10 @@ class QuoteScreen extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => SharePlus.instance.share(
-                      ShareParams(text: '"$mantra"\n\n— Prakriyā'),
+                      ShareParams(
+                        text: '"${mantra.text}"\n— ${mantra.source}\n\n'
+                            'Shared from Prakriyā by $_shareFooter',
+                      ),
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),

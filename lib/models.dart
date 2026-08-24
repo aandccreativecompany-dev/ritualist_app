@@ -112,35 +112,57 @@ class Script {
 
 /// One day's evening reflection.
 class JournalEntry {
+  /// Up to 3 short "what did I achieve today" lines.
+  List<String> achievements;
   String gratitude;
+
+  /// Kept for backward compatibility with entries saved before v0.2 (the
+  /// old "anything you want to let go of" prompt) — no longer written to,
+  /// but preserved so existing journal history doesn't lose data.
   String reflection;
 
-  JournalEntry({this.gratitude = '', this.reflection = ''});
+  JournalEntry({List<String>? achievements, this.gratitude = '', this.reflection = ''})
+      : achievements = achievements ?? <String>['', '', ''];
 
-  bool get isEmpty => gratitude.trim().isEmpty && reflection.trim().isEmpty;
+  bool get isEmpty =>
+      achievements.every((a) => a.trim().isEmpty) &&
+      gratitude.trim().isEmpty &&
+      reflection.trim().isEmpty;
 
-  Map<String, dynamic> toJson() =>
-      {'gratitude': gratitude, 'reflection': reflection};
+  Map<String, dynamic> toJson() => {
+        'achievements': achievements,
+        'gratitude': gratitude,
+        'reflection': reflection,
+      };
 
   static JournalEntry fromJson(Map<String, dynamic> json) => JournalEntry(
+        achievements: (json['achievements'] as List?)
+                ?.map((e) => e as String)
+                .toList() ??
+            <String>['', '', ''],
         gratitude: (json['gratitude'] ?? '') as String,
         reflection: (json['reflection'] ?? '') as String,
       );
 }
 
-/// One placeholder tile on the vision board — a caption, no photo picker in v0.1.
+/// One tile on the vision board — a caption, optionally backed by an image
+/// copied into app-local storage from the device's own gallery (e.g. a
+/// screenshot saved from Pinterest — the app has no Pinterest integration,
+/// there's no public API for pulling their images directly).
 class VisionItem {
   String caption;
   int colorIndex;
+  String? imagePath;
 
-  VisionItem({required this.caption, this.colorIndex = 0});
+  VisionItem({required this.caption, this.colorIndex = 0, this.imagePath});
 
   Map<String, dynamic> toJson() =>
-      {'caption': caption, 'colorIndex': colorIndex};
+      {'caption': caption, 'colorIndex': colorIndex, 'imagePath': imagePath};
 
   static VisionItem fromJson(Map<String, dynamic> json) => VisionItem(
         caption: (json['caption'] ?? '') as String,
         colorIndex: (json['colorIndex'] ?? 0) as int,
+        imagePath: json['imagePath'] as String?,
       );
 }
 

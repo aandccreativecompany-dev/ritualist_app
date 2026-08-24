@@ -1,12 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// A grid of captioned placeholders — no photo picker in v0.1 (no raster
-/// assets, per the design bundle), so each tile is a hatched placeholder the
-/// user labels with what it stands for.
+/// A collage of what the user is working toward — a picked photo (saved from
+/// Pinterest, a screenshot, anything in the gallery) with a word or sentence
+/// captioning it, or a caption-only tile when there's no image yet.
 class VisionBoardScreen extends StatelessWidget {
   const VisionBoardScreen({super.key});
 
@@ -47,6 +52,17 @@ class VisionBoardScreen extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Pin a saved photo (from Pinterest or anywhere) with a\n'
+                        'word or sentence, or just the words on their own.',
+                        style: body(12, Surfaces.muted(dark)),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: items.isEmpty
                         ? Center(
@@ -75,7 +91,7 @@ class VisionBoardScreen extends StatelessWidget {
                             ),
                           )
                         : GridView.builder(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
@@ -94,6 +110,7 @@ class VisionBoardScreen extends StatelessWidget {
                                   await store.removeVisionItem(item);
                                 },
                                 child: Container(
+                                  clipBehavior: Clip.antiAlias,
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(18),
                                     border: Border.all(
@@ -102,23 +119,48 @@ class VisionBoardScreen extends StatelessWidget {
                                     color: color.withValues(alpha: dark ? 0.08 : 0.1),
                                   ),
                                   child: Stack(
+                                    fit: StackFit.expand,
                                     children: [
-                                      Positioned.fill(
-                                        child: CustomPaint(
-                                            painter: _HatchPainter(color: color)),
-                                      ),
-                                      Positioned(
-                                        left: 12,
-                                        right: 12,
-                                        bottom: 12,
-                                        child: Text(
-                                          item.caption,
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: body(13, Surfaces.heading(dark),
-                                              weight: FontWeight.w700),
+                                      if (item.imagePath != null)
+                                        Image.file(
+                                          File(item.imagePath!),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              CustomPaint(painter: _HatchPainter(color: color)),
+                                        )
+                                      else
+                                        CustomPaint(painter: _HatchPainter(color: color)),
+                                      if (item.imagePath != null)
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                Colors.black.withValues(alpha: 0.55),
+                                              ],
+                                              stops: const [0.5, 1.0],
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      if (item.caption.isNotEmpty)
+                                        Positioned(
+                                          left: 12,
+                                          right: 12,
+                                          bottom: 12,
+                                          child: Text(
+                                            item.caption,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: body(
+                                                13,
+                                                item.imagePath != null
+                                                    ? Colors.white
+                                                    : Surfaces.heading(dark),
+                                                weight: FontWeight.w700),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -138,32 +180,101 @@ class VisionBoardScreen extends StatelessWidget {
   Future<void> _addItem(BuildContext context) async {
     final controller = TextEditingController();
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final caption = await showDialog<String>(
+    String? pickedPath;
+
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('New tile', style: display(18, Surfaces.heading(dark))),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'What are you working toward?'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('New tile', style: display(18, Surfaces.heading(dark))),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final path = await _pickAndCopyImage();
+                  if (path != null) setState(() => pickedPath = path);
+                },
+                child: Container(
+                  height: 120,
+                  width: double.infinity,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Brand.gold.withValues(alpha: 0.1),
+                    border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+                  ),
+                  child: pickedPath == null
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_photo_alternate_outlined,
+                                color: Surfaces.accent(dark)),
+                            const SizedBox(height: 6),
+                            Text('Add a photo from your gallery\n(optional)',
+                                textAlign: TextAlign.center,
+                                style: body(11.5, Surfaces.muted(dark))),
+                          ],
+                        )
+                      : Image.file(File(pickedPath!), fit: BoxFit.cover),
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: pickedPath == null,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                    hintText: 'A word or sentence for this tile'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Add')),
+          ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Add')),
-        ],
       ),
     );
-    if (caption != null) await store.addVisionItem(caption);
+
+    if (result == true) {
+      await store.addVisionItem(controller.text, imagePath: pickedPath);
+    }
+  }
+
+  /// Opens the device gallery and copies the chosen image into app-local
+  /// storage, so it keeps working even if the original is deleted from the
+  /// gallery. Returns null on cancel or on any picker/copy failure.
+  Future<String?> _pickAndCopyImage() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null) return null;
+      final dir = await getApplicationDocumentsDirectory();
+      final visionDir = Directory(p.join(dir.path, 'vision_board'));
+      if (!await visionDir.exists()) await visionDir.create(recursive: true);
+      final ext = p.extension(picked.path).isNotEmpty ? p.extension(picked.path) : '.jpg';
+      final dest = p.join(
+          visionDir.path, '${DateTime.now().microsecondsSinceEpoch}$ext');
+      await File(picked.path).copy(dest);
+      return dest;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
-/// Diagonal hatch lines standing in for a photo — matches the design's
-/// "hatched placeholders where user photographs go".
+/// Diagonal hatch lines standing in for a photo, used when a tile has no
+/// image yet.
 class _HatchPainter extends CustomPainter {
   final Color color;
   const _HatchPainter({required this.color});

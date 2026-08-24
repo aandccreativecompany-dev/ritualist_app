@@ -136,8 +136,17 @@ class _MantraCard extends StatelessWidget {
         accent: true,
         eyebrow: 'Mantra of the day',
         padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
-        child: Text(store.mantraOfTheDay,
-            style: display(19, Surfaces.accentText(dark))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(store.mantraEntryOfTheDay.text,
+                style: display(19, Surfaces.accentText(dark))),
+            const SizedBox(height: 10),
+            Text('— ${store.mantraEntryOfTheDay.source}',
+                style: body(11.5, Surfaces.accentText(dark).withValues(alpha: 0.7),
+                    weight: FontWeight.w500)),
+          ],
+        ),
       ),
     );
   }

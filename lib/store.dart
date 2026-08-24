@@ -111,13 +111,17 @@ class Store extends ChangeNotifier {
 
   // ---- Mantra ----
 
-  /// Stable for the whole day, different every day, no repeat for 120 days.
-  String get mantraOfTheDay {
+  /// Stable for the whole day, different every day, cycling through the
+  /// full sourced quote list before repeating.
+  int get _mantraIndex {
     final today = DateTime.now();
     final dayNumber = today.difference(DateTime(2026, 1, 1)).inDays;
-    final index = (dayNumber + _state.mantraSeed) % mantras.length;
-    return mantras[index.abs()];
+    return (dayNumber + _state.mantraSeed) % mantras.length;
   }
+
+  Mantra get mantraEntryOfTheDay => mantras[_mantraIndex.abs()];
+
+  String get mantraOfTheDay => mantraEntryOfTheDay.text;
 
   // ---- Theme ----
 
@@ -238,8 +242,9 @@ class Store extends ChangeNotifier {
 
   JournalEntry get todaysJournal => journalFor(DateTime.now());
 
-  Future<void> saveTodaysJournal(String gratitude, String reflection) async {
-    final entry = JournalEntry(gratitude: gratitude, reflection: reflection);
+  Future<void> saveTodaysJournal(
+      List<String> achievements, String gratitude) async {
+    final entry = JournalEntry(achievements: achievements, gratitude: gratitude);
     if (entry.isEmpty) {
       _state.journalByDay.remove(dayKey(DateTime.now()));
     } else {
@@ -252,11 +257,14 @@ class Store extends ChangeNotifier {
 
   List<VisionItem> get visionItems => _state.visionItems;
 
-  Future<void> addVisionItem(String caption) async {
+  Future<void> addVisionItem(String caption, {String? imagePath}) async {
     final trimmed = caption.trim();
-    if (trimmed.isEmpty) return;
-    _state.visionItems
-        .add(VisionItem(caption: trimmed, colorIndex: _state.visionItems.length));
+    if (trimmed.isEmpty && imagePath == null) return;
+    _state.visionItems.add(VisionItem(
+      caption: trimmed,
+      colorIndex: _state.visionItems.length,
+      imagePath: imagePath,
+    ));
     await _commit();
   }
 
