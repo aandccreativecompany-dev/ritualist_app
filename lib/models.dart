@@ -238,7 +238,7 @@ const kAllModuleIds = [
 
 const kModuleTitles = {
   'mantra': 'Mantra of the day',
-  'priorities': 'Top 3 today',
+  'priorities': 'Goals & to-dos',
   'habits': 'Habits',
   'tips': 'Productivity tip',
   'scripting': 'Scripting',
@@ -246,6 +246,19 @@ const kModuleTitles = {
   'visionBoard': 'Vision board',
   'reminders': 'Daily reminders',
 };
+
+/// The five habits every fresh install starts with — still fully editable
+/// and deletable, just a friendlier starting point than an empty list.
+List<Habit> defaultHabits() => [
+      Habit(name: 'Exercise', iconIndex: 8, colorIndex: 0),
+      Habit(name: 'Read 10 pages', iconIndex: 4, colorIndex: 1),
+      Habit(name: 'Get sunlight', iconIndex: 10, colorIndex: 2),
+      Habit(name: 'Personal care', iconIndex: 9, colorIndex: 3),
+      Habit(name: 'Learn something new', iconIndex: 2, colorIndex: 4),
+    ];
+
+/// Vision board tile shapes the user can switch between.
+const kVisionShapes = ['square', 'circle', 'star'];
 
 /// Which section of the two-card home ("Productivity" / "Outcome
 /// engineering") each module lives in. `mantra` isn't listed — it sits
@@ -300,6 +313,17 @@ class AppState {
   /// asks at most once per day rather than nagging every time home opens.
   String? lastEveningPromptDay;
 
+  /// Standalone goal lists, separate from the daily task list — surfaced via
+  /// the three floating quick-launch buttons on the Productivity section.
+  List<Task> weeklyGoals;
+  List<Task> monthlyGoals;
+
+  /// Which cartoon character greets the user on open, chosen during setup.
+  String avatarGender;
+
+  /// Vision board tile shape: 'square' | 'circle' | 'star'.
+  String visionBoardShape;
+
   AppState({
     required this.tasksByDay,
     required this.habits,
@@ -321,15 +345,15 @@ class AppState {
     required this.lastMoodPromptDay,
     required this.moodByDay,
     required this.lastEveningPromptDay,
+    required this.weeklyGoals,
+    required this.monthlyGoals,
+    required this.avatarGender,
+    required this.visionBoardShape,
   });
 
   static AppState initial() => AppState(
         tasksByDay: <String, List<Task>>{},
-        habits: [
-          Habit(name: 'Morning pages'),
-          Habit(name: 'Walk 30 minutes'),
-          Habit(name: 'No phone before 9am'),
-        ],
+        habits: defaultHabits(),
         reminders: [
           ReminderSetting(
               id: 'mantra',
@@ -367,6 +391,10 @@ class AppState {
         lastMoodPromptDay: null,
         moodByDay: <String, String>{},
         lastEveningPromptDay: null,
+        weeklyGoals: <Task>[],
+        monthlyGoals: <Task>[],
+        avatarGender: 'girl',
+        visionBoardShape: 'square',
       );
 
   Map<String, dynamic> toJson() => {
@@ -392,6 +420,10 @@ class AppState {
         'lastMoodPromptDay': lastMoodPromptDay,
         'moodByDay': moodByDay,
         'lastEveningPromptDay': lastEveningPromptDay,
+        'weeklyGoals': weeklyGoals.map((t) => t.toJson()).toList(),
+        'monthlyGoals': monthlyGoals.map((t) => t.toJson()).toList(),
+        'avatarGender': avatarGender,
+        'visionBoardShape': visionBoardShape,
       };
 
   static AppState fromJson(Map<String, dynamic> json) {
@@ -508,6 +540,24 @@ class AppState {
     }
     if (json['lastEveningPromptDay'] is String) {
       state.lastEveningPromptDay = json['lastEveningPromptDay'] as String;
+    }
+
+    final rawWeekly = json['weeklyGoals'];
+    if (rawWeekly is List) {
+      state.weeklyGoals =
+          rawWeekly.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
+    final rawMonthly = json['monthlyGoals'];
+    if (rawMonthly is List) {
+      state.monthlyGoals =
+          rawMonthly.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
+    if (json['avatarGender'] is String) {
+      state.avatarGender = json['avatarGender'] as String;
+    }
+    if (json['visionBoardShape'] is String &&
+        kVisionShapes.contains(json['visionBoardShape'])) {
+      state.visionBoardShape = json['visionBoardShape'] as String;
     }
 
     return state;

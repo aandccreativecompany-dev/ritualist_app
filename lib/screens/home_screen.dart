@@ -7,11 +7,14 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'evening_reflection_screen.dart';
 import 'habit_detail_screen.dart';
+import 'monthly_goals_screen.dart';
 import 'quote_screen.dart';
 import 'reminders_screen.dart';
 import 'scripting_screen.dart';
 import 'settings_screen.dart';
+import 'todo_list_screen.dart';
 import 'vision_board_screen.dart';
+import 'weekly_goals_screen.dart';
 
 const _monthNames = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -37,11 +40,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _pageController = PageController();
   int _page = 0;
+  late final String _mascotGreeting = kMascotGreetings[
+      DateTime.now().millisecondsSinceEpoch % kMascotGreetings.length];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDailyPrompts());
+  }
+
+  Future<void> _refresh() async {
+    await store.load();
   }
 
   @override
@@ -97,77 +106,96 @@ class _HomeScreenState extends State<HomeScreen> {
           body: Container(
             decoration: Surfaces.pageBackground(dark),
             child: SafeArea(
-              child: Column(
+              child: Stack(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-                    child: _Header(dateLine: dateLine),
-                  ),
-                  const SizedBox(height: 14),
-                  if (visible.contains('mantra'))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      child: const _MantraCard(),
-                    ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: pages.isEmpty
-                        ? Center(
-                            child: Text('Nothing turned on — check Settings.',
-                                style: body(13, Surfaces.muted(dark))),
-                          )
-                        : AnimatedBuilder(
-                            animation: _pageController,
-                            builder: (context, _) {
-                              return PageView.builder(
-                                controller: _pageController,
-                                itemCount: pages.length,
-                                onPageChanged: (i) => setState(() => _page = i),
-                                itemBuilder: (context, i) {
-                                  var scale = 1.0;
-                                  if (_pageController.position.haveDimensions) {
-                                    final delta =
-                                        (i - (_pageController.page ?? _page.toDouble()))
-                                            .abs()
-                                            .clamp(0.0, 1.0);
-                                    scale = 1 - (delta * 0.08);
-                                  }
-                                  return Padding(
-                                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 4),
-                                    child: Transform.scale(
-                                      scale: scale,
-                                      child: pages[i],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                  ),
-                  if (pages.length > 1) ...[
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0; i < pages.length; i++)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            width: i == _page ? 20 : 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: i == _page
-                                  ? Surfaces.accent(dark)
-                                  : Surfaces.muted(dark).withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
+                  Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
+                        child: _Header(dateLine: dateLine),
+                      ),
+                      const SizedBox(height: 14),
+                      if (visible.contains('mantra'))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          child: const _MantraCard(),
+                        ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: pages.isEmpty
+                            ? Center(
+                                child: Text('Nothing turned on — check Settings.',
+                                    style: body(13, Surfaces.muted(dark))),
+                              )
+                            : RefreshIndicator(
+                                onRefresh: _refresh,
+                                color: Surfaces.accent(dark),
+                                child: AnimatedBuilder(
+                                  animation: _pageController,
+                                  builder: (context, _) {
+                                    return PageView.builder(
+                                      controller: _pageController,
+                                      itemCount: pages.length,
+                                      onPageChanged: (i) => setState(() => _page = i),
+                                      itemBuilder: (context, i) {
+                                        var scale = 1.0;
+                                        if (_pageController.position.haveDimensions) {
+                                          final delta = (i -
+                                                  (_pageController.page ??
+                                                      _page.toDouble()))
+                                              .abs()
+                                              .clamp(0.0, 1.0);
+                                          scale = 1 - (delta * 0.08);
+                                        }
+                                        return Padding(
+                                          padding:
+                                              const EdgeInsets.fromLTRB(18, 0, 18, 4),
+                                          child: Transform.scale(
+                                            scale: scale,
+                                            child: pages[i],
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                      ),
+                      if (pages.length > 1) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (var i = 0; i < pages.length; i++)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                margin: const EdgeInsets.symmetric(horizontal: 4),
+                                width: i == _page ? 20 : 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: i == _page
+                                      ? Surfaces.accent(dark)
+                                      : Surfaces.muted(dark).withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
                       ],
+                      const _Footer(),
+                      const SizedBox(height: 6),
+                    ],
+                  ),
+                  Positioned(
+                    top: 4,
+                    left: 0,
+                    right: 0,
+                    child: GreetingMascot(
+                      avatarGender: store.avatarGender,
+                      greeting: _mascotGreeting,
                     ),
-                    const SizedBox(height: 6),
-                  ],
-                  const _Footer(),
-                  const SizedBox(height: 6),
+                  ),
                 ],
               ),
             ),
@@ -180,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _itemFor(String id) {
     switch (id) {
       case 'priorities':
-        return const _PriorityContent();
+        return const _QuickLaunchButtons();
       case 'habits':
         return const _HabitsContent();
       case 'tips':
@@ -386,111 +414,99 @@ class _TipItem extends StatelessWidget {
   }
 }
 
-class _PriorityContent extends StatefulWidget {
-  const _PriorityContent();
-
-  @override
-  State<_PriorityContent> createState() => _PriorityContentState();
-}
-
-class _PriorityContentState extends State<_PriorityContent> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _add() async {
-    if (_controller.text.trim().isEmpty) return;
-    await store.addTask(_controller.text);
-    _controller.clear();
-    if (mounted) {
-      FocusScope.of(context).unfocus();
-      toastSaved(context);
-    }
-  }
-
-  Future<void> _remove(int i) async {
-    await store.removeTask(i);
-    if (mounted) toastSaved(context);
-  }
+/// Three floating quick-launch buttons replacing the old inline "today's
+/// log" list — each opens its own full screen (to-do list, weekly goals,
+/// monthly goals) with its own add/save/display flow.
+class _QuickLaunchButtons extends StatelessWidget {
+  const _QuickLaunchButtons();
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final tasks = store.todaysTasks;
+    final openTodos = store.todaysTasks.where((t) => !t.done).length;
+    final openWeekly = store.weeklyGoals.where((t) => !t.done).length;
+    final openMonthly = store.monthlyGoals.where((t) => !t.done).length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _ItemHeader(
-            icon: Icons.checklist_rounded, title: "Today's log — top 3"),
+        const _ItemHeader(icon: Icons.dashboard_customize_outlined, title: 'Goals & to-dos'),
         const SizedBox(height: 14),
-        if (tasks.isEmpty)
-          Text('Pick three things that would make today count.',
-              style: body(13.5, Surfaces.muted(dark))),
-        for (var i = 0; i < tasks.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: Row(
-              children: [
-                CheckSquare(
-                    checked: tasks[i].done,
-                    onTap: () async {
-                      await store.toggleTask(i);
-                      if (mounted) toastSaved(context);
-                    }),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    tasks[i].title,
-                    style: body(14.5,
-                        tasks[i].done
-                            ? Surfaces.muted(dark)
-                            : Surfaces.bodyText(dark),
-                        weight: FontWeight.w500).copyWith(
-                      decoration: tasks[i].done
-                          ? TextDecoration.lineThrough
-                          : TextDecoration.none,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => _remove(i),
-                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-        if (tasks.length < 3) ...[
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (_) => _add(),
-                  textCapitalization: TextCapitalization.sentences,
-                  style: body(14.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Add a priority',
-                    hintStyle: body(14, Surfaces.muted(dark)),
-                    border: InputBorder.none,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: _add,
-                icon: Icon(Icons.add, color: Surfaces.accent(dark)),
-              ),
-            ],
-          ),
-        ],
+        _QuickLaunchButton(
+          icon: Icons.edit_note_rounded,
+          label: "Today's to-do list",
+          summary: openTodos == 0 ? 'All clear' : '$openTodos open',
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const TodoListScreen())),
+        ),
+        const SizedBox(height: 10),
+        _QuickLaunchButton(
+          icon: Icons.sports_score_rounded,
+          label: 'Weekly goals',
+          summary: openWeekly == 0 ? 'All clear' : '$openWeekly open',
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const WeeklyGoalsScreen())),
+        ),
+        const SizedBox(height: 10),
+        _QuickLaunchButton(
+          icon: Icons.calendar_month_rounded,
+          label: 'Monthly goals',
+          summary: openMonthly == 0 ? 'All clear' : '$openMonthly open',
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute(builder: (_) => const MonthlyGoalsScreen())),
+        ),
       ],
+    );
+  }
+}
+
+class _QuickLaunchButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String summary;
+  final VoidCallback onTap;
+  const _QuickLaunchButton({
+    required this.icon,
+    required this.label,
+    required this.summary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Surfaces.accent(dark).withValues(alpha: 0.10),
+          border: Border.all(color: Surfaces.accent(dark).withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Surfaces.accent(dark).withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: Surfaces.accent(dark), size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: body(14, Surfaces.heading(dark), weight: FontWeight.w700)),
+            ),
+            Text(summary, style: body(11.5, Surfaces.muted(dark))),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,9 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'notifications.dart';
 import 'screens/home_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'services/auth_service.dart';
+import 'services/cloud_sync.dart';
 import 'store.dart';
 import 'theme.dart';
 
@@ -11,6 +14,19 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Notifications.instance.init();
   await store.load();
+  // Firebase reads its config from android/app/google-services.json (baked
+  // in at build time) — no explicit FirebaseOptions needed on Android. If
+  // it's ever missing (a local dev build without the file), sign-in/sync
+  // just won't be available rather than crashing the whole app.
+  try {
+    await Firebase.initializeApp();
+    CloudSync.instance.wire();
+    AuthService.instance.userChanges.listen((user) {
+      if (user != null) CloudSync.instance.pullAndApply(user.uid);
+    });
+  } catch (_) {
+    // No google-services.json in this build — app still works fully offline.
+  }
   runApp(const PrakriyaApp());
 }
 

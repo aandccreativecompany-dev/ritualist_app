@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Each signed-in user's data lives at /users/{their own uid}. Nobody can
+// read or write another user's document — Firebase Auth's own UID is the
+// only thing that grants access, not anything the client sends.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

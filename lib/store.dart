@@ -48,6 +48,15 @@ class Store extends ChangeNotifier {
     await _save();
   }
 
+  /// Swaps in a whole different AppState — used when a cloud backup is
+  /// pulled down after signing in — and immediately persists + notifies,
+  /// same as any other write.
+  Future<void> replaceState(AppState newState) async {
+    _state = newState;
+    await _commit();
+    await rescheduleReminders();
+  }
+
   // ---- Tasks ----
 
   List<Task> tasksFor(DateTime date) =>
@@ -62,8 +71,7 @@ class Store extends ChangeNotifier {
     if (trimmed.isEmpty) return;
     final key = dayKey(DateTime.now());
     final list = _state.tasksByDay.putIfAbsent(key, () => <Task>[]);
-    if (list.length >= 3) return;
-    list.add(Task(title: trimmed));
+    list.insert(0, Task(title: trimmed));
     await _commit();
   }
 
@@ -85,6 +93,14 @@ class Store extends ChangeNotifier {
 
   Future<void> toggleHabit(Habit habit) async {
     habit.toggle(DateTime.now());
+    await _commit();
+  }
+
+  /// Toggle a habit's completion for any calendar day, not just today — for
+  /// the tappable habit calendar (users can back-fill or correct any date).
+  Future<void> toggleHabitOn(Habit habit, DateTime date) async {
+    final target = _findHabit(habit.id) ?? habit;
+    target.toggle(date);
     await _commit();
   }
 
@@ -339,6 +355,66 @@ class Store extends ChangeNotifier {
 
   Future<void> removeVisionItem(VisionItem item) async {
     _state.visionItems.remove(item);
+    await _commit();
+  }
+
+  // ---- Weekly / monthly goals ----
+
+  List<Task> get weeklyGoals => _state.weeklyGoals;
+  List<Task> get monthlyGoals => _state.monthlyGoals;
+
+  Future<void> addWeeklyGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.weeklyGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleWeeklyGoal(int index) async {
+    if (index < 0 || index >= _state.weeklyGoals.length) return;
+    _state.weeklyGoals[index].done = !_state.weeklyGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeWeeklyGoal(int index) async {
+    if (index < 0 || index >= _state.weeklyGoals.length) return;
+    _state.weeklyGoals.removeAt(index);
+    await _commit();
+  }
+
+  Future<void> addMonthlyGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.monthlyGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleMonthlyGoal(int index) async {
+    if (index < 0 || index >= _state.monthlyGoals.length) return;
+    _state.monthlyGoals[index].done = !_state.monthlyGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeMonthlyGoal(int index) async {
+    if (index < 0 || index >= _state.monthlyGoals.length) return;
+    _state.monthlyGoals.removeAt(index);
+    await _commit();
+  }
+
+  // ---- Avatar / vision board shape ----
+
+  String get avatarGender => _state.avatarGender;
+
+  Future<void> setAvatarGender(String value) async {
+    _state.avatarGender = value;
+    await _commit();
+  }
+
+  String get visionBoardShape => _state.visionBoardShape;
+
+  Future<void> setVisionBoardShape(String value) async {
+    if (!kVisionShapes.contains(value)) return;
+    _state.visionBoardShape = value;
     await _commit();
   }
 

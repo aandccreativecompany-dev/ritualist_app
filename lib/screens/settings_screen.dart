@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/auth_service.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -8,8 +9,15 @@ import 'lock_screen.dart';
 import 'module_picker_screen.dart';
 import 'weekly_review_screen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _busy = false;
 
   Future<void> _export(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: store.exportJson()));
@@ -74,6 +82,27 @@ class SettingsScreen extends StatelessWidget {
     // The root widget swaps to OnboardingScreen on its own once
     // onboardingComplete flips — just pop back to it.
     Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _signIn() async {
+    setState(() => _busy = true);
+    final user = await AuthService.instance.signInWithGoogle();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (user != null) {
+      toastSaved(context, label: 'Signed in — syncing your data');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't sign in — try again.")));
+    }
+  }
+
+  Future<void> _signOut() async {
+    setState(() => _busy = true);
+    await AuthService.instance.signOut();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    toastSaved(context, label: 'Signed out');
   }
 
   @override
@@ -229,6 +258,75 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 22),
+                          Text('ACCOUNT', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (AuthService.instance.isSignedIn) ...[
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.account_circle,
+                                          size: 36, color: Brand.gold),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              AuthService.instance.currentUser
+                                                      ?.displayName ??
+                                                  'Signed in',
+                                              style: body(14,
+                                                  Surfaces.heading(dark),
+                                                  weight: FontWeight.w700),
+                                            ),
+                                            Text(
+                                              AuthService.instance.currentUser
+                                                      ?.email ??
+                                                  '',
+                                              style: body(
+                                                  11.5, Surfaces.muted(dark)),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    'Your data syncs to this account and follows you to any device you sign into.',
+                                    style: body(12, Surfaces.muted(dark)),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  TextButton(
+                                    onPressed: _busy ? null : _signOut,
+                                    style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        alignment: Alignment.centerLeft),
+                                    child: Text('Sign out',
+                                        style: body(13, Colors.redAccent,
+                                            weight: FontWeight.w600)),
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    'Sign in with Google to back your data up and sync it across your devices. Optional — everything works fully offline without it.',
+                                    style: body(12.5, Surfaces.muted(dark)),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  GoldButton(
+                                    labelText: _busy
+                                        ? 'Signing in…'
+                                        : 'Sign in with Google',
+                                    onPressed: _busy ? () {} : _signIn,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
                           Text('YOUR DATA', style: label(Surfaces.muted(dark))),
                           const SizedBox(height: 12),
                           ModuleCard(
@@ -236,7 +334,9 @@ class SettingsScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                    'Everything stays on this phone. There is no account and nothing is uploaded, so a lost or wiped phone loses your entries unless you keep a backup.',
+                                    AuthService.instance.isSignedIn
+                                        ? 'Synced to your account, plus stored on this phone. You can still keep a manual backup below.'
+                                        : 'Everything stays on this phone. There is no account and nothing is uploaded, so a lost or wiped phone loses your entries unless you keep a backup.',
                                     style: body(12.5, Surfaces.muted(dark))),
                                 const SizedBox(height: 16),
                                 GoldButton(
@@ -259,7 +359,7 @@ class SettingsScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.2',
+                                Text('Prakriyā 0.2.4',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),

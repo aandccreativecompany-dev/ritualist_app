@@ -344,7 +344,8 @@ class _HabitEditorSheetState extends State<HabitEditorSheet> {
           color: Surfaces.card(dark),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -429,6 +430,133 @@ class _HabitEditorSheetState extends State<HabitEditorSheet> {
               },
             ),
           ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Positive greetings the walking mascot can open with. Picked by day so it
+/// changes but stays stable through a single session.
+const List<String> kMascotGreetings = [
+  "Hi! Ready to make today count?",
+  "Welcome back — let's build some momentum.",
+  "So glad you're here. Small steps, big shifts.",
+  "You showed up — that's the hardest part, done.",
+  "Today's a clean page. Let's write something good.",
+  "Welcome back! Your future self says thanks.",
+  "Hello again! One good habit at a time.",
+  "Great to see you. Let's keep the streak alive.",
+];
+
+/// A small cartoon figure that walks from the left edge to the right edge of
+/// the screen once, carrying a speech bubble with a positive greeting. Shown
+/// every time the home screen opens (per the onboarding avatar choice).
+class GreetingMascot extends StatefulWidget {
+  final String avatarGender;
+  final String greeting;
+  const GreetingMascot({super.key, required this.avatarGender, required this.greeting});
+
+  @override
+  State<GreetingMascot> createState() => _GreetingMascotState();
+}
+
+class _GreetingMascotState extends State<GreetingMascot>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3400),
+  )..forward();
+  bool _dismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() => _dismissed = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String get _emoji => widget.avatarGender == 'boy' ? '🧑' : '👧';
+
+  @override
+  Widget build(BuildContext context) {
+    if (_dismissed) return const SizedBox.shrink();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return IgnorePointer(
+      child: SizedBox(
+        height: 118,
+        width: double.infinity,
+        child: LayoutBuilder(
+        builder: (context, constraints) {
+          final travel = constraints.maxWidth - 64;
+          return AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final t = Curves.easeInOut.transform(_controller.value);
+              final x = 12 + travel * t;
+              final bounce = (t * 18).remainder(1) < 0.5 ? 0.0 : -4.0;
+              return Opacity(
+                opacity: _controller.value > 0.92
+                    ? (1 - (_controller.value - 0.92) / 0.08).clamp(0.0, 1.0)
+                    : 1.0,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      left: x - 90,
+                      top: 0,
+                      width: 200,
+                      child: Column(
+                        children: [
+                          Container(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: Surfaces.card(dark),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: Surfaces.cardBorder(dark)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              widget.greeting,
+                              textAlign: TextAlign.center,
+                              style: body(11.5, Surfaces.bodyText(dark),
+                                  weight: FontWeight.w600),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Icon(Icons.arrow_drop_down,
+                              color: Surfaces.card(dark), size: 20),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      left: x,
+                      top: 58 + bounce,
+                      child: Text(_emoji, style: const TextStyle(fontSize: 34)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,6 +44,11 @@ class VisionBoardScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (items.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                        child: _ShapePicker(dark: dark),
+                      ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: items.isEmpty
@@ -102,10 +108,10 @@ class VisionBoardScreen extends StatelessWidget {
                                         if (context.mounted) toastSaved(context, label: 'Removed');
                                       }
                                     },
-                                    child: Container(
-                                      clipBehavior: Clip.antiAlias,
+                                    child: ClipPath(
+                                      clipper: _shapeClipper(store.visionBoardShape),
+                                      child: Container(
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(18),
                                         border: Border.all(
                                             color: color.withValues(alpha: 0.35),
                                             width: 1.5),
@@ -155,6 +161,7 @@ class VisionBoardScreen extends StatelessWidget {
                                               ),
                                             ),
                                         ],
+                                      ),
                                       ),
                                     ),
                                   ),
@@ -211,7 +218,8 @@ class VisionBoardScreen extends StatelessWidget {
               color: Surfaces.card(dark),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -262,6 +270,7 @@ class VisionBoardScreen extends StatelessWidget {
                   onPressed: () => Navigator.pop(context, true),
                 ),
               ],
+              ),
             ),
           ),
         ),
@@ -297,6 +306,133 @@ class VisionBoardScreen extends StatelessWidget {
       return null;
     }
   }
+}
+
+CustomClipper<Path> _shapeClipper(String shape) {
+  switch (shape) {
+    case 'circle':
+      return const _CircleClipper();
+    case 'star':
+      return const _StarClipper();
+    default:
+      return const _RoundedSquareClipper();
+  }
+}
+
+/// Segmented control letting the user pick how vision board tiles are
+/// clipped: a friendly rounded square, a circle, or a star.
+class _ShapePicker extends StatelessWidget {
+  final bool dark;
+  const _ShapePicker({required this.dark});
+
+  static const _options = [
+    ('square', Icons.crop_square_rounded, 'Square'),
+    ('circle', Icons.circle_outlined, 'Circle'),
+    ('star', Icons.star_outline_rounded, 'Star'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final current = store.visionBoardShape;
+    return Row(
+      children: [
+        for (final (value, icon, labelText) in _options)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () async {
+                await store.setVisionBoardShape(value);
+                if (context.mounted) toastSaved(context);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: current == value
+                      ? Surfaces.accent(dark).withValues(alpha: 0.16)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: current == value
+                        ? Surfaces.accent(dark)
+                        : Surfaces.accentBorder(dark),
+                    width: current == value ? 1.4 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon,
+                        size: 15,
+                        color:
+                            current == value ? Surfaces.accent(dark) : Surfaces.muted(dark)),
+                    const SizedBox(width: 5),
+                    Text(labelText,
+                        style: body(11.5,
+                            current == value ? Surfaces.accent(dark) : Surfaces.muted(dark),
+                            weight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _RoundedSquareClipper extends CustomClipper<Path> {
+  const _RoundedSquareClipper();
+  @override
+  Path getClip(Size size) => Path()
+    ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, size.width, size.height), const Radius.circular(18)));
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _CircleClipper extends CustomClipper<Path> {
+  const _CircleClipper();
+  @override
+  Path getClip(Size size) {
+    final side = size.shortestSide;
+    final center = Offset(size.width / 2, size.height / 2);
+    return Path()..addOval(Rect.fromCenter(center: center, width: side, height: side));
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// Five-point star, inscribed in the tile so it still reads clearly at
+/// grid-tile size.
+class _StarClipper extends CustomClipper<Path> {
+  const _StarClipper();
+  @override
+  Path getClip(Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final outerRadius = size.shortestSide / 2;
+    final innerRadius = outerRadius * 0.42;
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final radius = i.isEven ? outerRadius : innerRadius;
+      final angle = (-90 + i * 36) * math.pi / 180;
+      final point = Offset(
+        center.dx + radius * math.cos(angle),
+        center.dy + radius * math.sin(angle),
+      );
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 /// Diagonal hatch lines standing in for a photo, used when a tile has no

@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+
+import '../store.dart';
+import '../theme.dart';
+import '../widgets/common.dart';
+
+/// Today's to-do list — unlimited items (no more 3-item cap), with an
+/// explicit Save button alongside the auto-save every add/toggle already
+/// does, and newly-added items appear on top as a card.
+class TodoListScreen extends StatefulWidget {
+  const TodoListScreen({super.key});
+
+  @override
+  State<TodoListScreen> createState() => _TodoListScreenState();
+}
+
+class _TodoListScreenState extends State<TodoListScreen> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_controller.text.trim().isEmpty) return;
+    await store.addTask(_controller.text);
+    _controller.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final tasks = store.todaysTasks;
+        return Scaffold(
+          body: Container(
+            decoration: Surfaces.pageBackground(dark),
+            child: SafeArea(
+              child: FadeSlideIn(
+                child: Column(
+                  children: [
+                    ScreenHeader(
+                      icon: Icons.edit_note_rounded,
+                      title: "Today's to-do list",
+                      subtitle: 'Add as many as you need — nothing here is capped.',
+                      actions: [
+                        IconButton(
+                          onPressed: () => toastSaved(context, label: 'All saved'),
+                          icon: Icon(Icons.save_outlined, color: Surfaces.accent(dark)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _controller,
+                              onSubmitted: (_) => _add(),
+                              textCapitalization: TextCapitalization.sentences,
+                              style: body(14.5, Surfaces.bodyText(dark),
+                                  weight: FontWeight.w500),
+                              decoration: InputDecoration(
+                                hintText: 'Add a to-do',
+                                hintStyle: body(14, Surfaces.muted(dark)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: _add,
+                            icon: Icon(Icons.add_circle,
+                                color: Surfaces.accent(dark), size: 30),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: tasks.isEmpty
+                          ? Center(
+                              child: Text('Nothing on the list yet.',
+                                  style: body(13, Surfaces.muted(dark))),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                              itemCount: tasks.length,
+                              itemBuilder: (context, i) {
+                                return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0, end: 1),
+                                  duration: Duration(milliseconds: 220 + i * 40),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, t, child) => Transform.translate(
+                                    offset: Offset(0, (1 - t.clamp(0, 1)) * 10),
+                                    child: Opacity(opacity: t.clamp(0, 1), child: child),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: ModuleCard(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          CheckSquare(
+                                            checked: tasks[i].done,
+                                            onTap: () async {
+                                              await store.toggleTask(i);
+                                              if (context.mounted) toastSaved(context);
+                                            },
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Text(
+                                              tasks[i].title,
+                                              style: body(
+                                                14.5,
+                                                tasks[i].done
+                                                    ? Surfaces.muted(dark)
+                                                    : Surfaces.bodyText(dark),
+                                                weight: FontWeight.w500,
+                                              ).copyWith(
+                                                decoration: tasks[i].done
+                                                    ? TextDecoration.lineThrough
+                                                    : TextDecoration.none,
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () async {
+                                              await store.removeTask(i);
+                                              if (context.mounted) {
+                                                toastSaved(context, label: 'Removed');
+                                              }
+                                            },
+                                            icon: Icon(Icons.close,
+                                                size: 16, color: Surfaces.muted(dark)),
+                                            visualDensity: VisualDensity.compact,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

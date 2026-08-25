@@ -106,7 +106,7 @@ class HabitDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     ModuleCard(
-                      eyebrow: 'Last five weeks',
+                      eyebrow: 'Tap any day to tick or untick it',
                       child: _Grid(habit: habit),
                     ),
                     const SizedBox(height: 20),
@@ -184,12 +184,29 @@ class _Grid extends StatelessWidget {
       final day = DateTime(today.year, today.month, today.day)
           .subtract(Duration(days: i));
       final done = habit.isDoneOn(day);
-      cells.add(Container(
-        decoration: BoxDecoration(
-          color: done
-              ? Surfaces.accent(dark)
-              : Surfaces.muted(dark).withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(5),
+      final isToday = i == 0;
+      cells.add(InkWell(
+        borderRadius: BorderRadius.circular(5),
+        onTap: () async {
+          await store.toggleHabitOn(habit, day);
+          if (context.mounted) toastSaved(context);
+        },
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: done
+                ? Surfaces.accent(dark)
+                : Surfaces.muted(dark).withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(5),
+            border: isToday
+                ? Border.all(color: Surfaces.heading(dark), width: 1.4)
+                : null,
+          ),
+          child: Text(
+            '${day.day}',
+            style: body(9.5,
+                done ? Brand.deep : Surfaces.muted(dark), weight: FontWeight.w600),
+          ),
         ),
       ));
     }
