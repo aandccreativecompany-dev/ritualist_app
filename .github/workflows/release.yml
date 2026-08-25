@@ -33,6 +33,11 @@ jobs:
       - name: Apply our manifest
         run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
+      # Lets the Firebase Android SDK (used for optional Google sign-in +
+      # cloud sync) find its project config at build time.
+      - name: Apply Firebase config
+        run: cp android_overrides/google-services.json android/app/google-services.json
+
       - name: Set SDK levels and enable core library desugaring
         run: |
           GRADLE_FILE=android/app/build.gradle.kts
@@ -49,6 +54,34 @@ jobs:
             echo "    coreLibraryDesugaring(\"com.android.tools:desugar_jdk_libs:2.1.4\")"
             echo "}"
           } >> "$GRADLE_FILE"
+
+      # Registers the Google Services Gradle plugin so google-services.json
+      # gets processed into Android resources at build time. Also bumps the
+      # Kotlin Gradle plugin — firebase_auth/cloud_firestore ship Kotlin
+      # metadata newer than the 2.1.0 the Flutter template pins — and
+      # migrates the now-removed `kotlinOptions { jvmTarget = ... }` DSL to
+      # the current `kotlin { compilerOptions { ... } }` form so the newer
+      # Kotlin plugin doesn't hard-error on it.
+      - name: Add the Google Services Gradle plugin and bump Kotlin
+        run: |
+          sed -i '/id("org.jetbrains.kotlin.android") version "2.1.0" apply false/a\    id("com.google.gms.google-services") version "4.4.4" apply false' android/settings.gradle.kts
+          sed -i 's/id("org.jetbrains.kotlin.android") version "2.1.0" apply false/id("org.jetbrains.kotlin.android") version "2.3.20" apply false/' android/settings.gradle.kts
+          sed -i '/id("dev.flutter.flutter-gradle-plugin")/a\    id("com.google.gms.google-services")' android/app/build.gradle.kts
+          python3 - android/app/build.gradle.kts <<'PYEOF'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+          old = '    kotlinOptions {\n        jvmTarget = JavaVersion.VERSION_11.toString()\n    }\n'
+          new = ('    kotlin {\n'
+                 '        compilerOptions {\n'
+                 '            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11\n'
+                 '        }\n'
+                 '    }\n')
+          assert old in src, "kotlinOptions block not found — template changed"
+          src = src.replace(old, new, 1)
+          open(path, 'w').write(src)
+          print("kotlinOptions migrated to compilerOptions DSL")
+          PYEOF
 
       - name: Restore keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/ritualist-upload.jks

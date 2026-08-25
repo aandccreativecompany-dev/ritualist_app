@@ -31,6 +31,11 @@ jobs:
       - name: Apply our manifest
         run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
+      # Lets the Firebase Android SDK (used for optional Google sign-in +
+      # cloud sync) find its project config at build time.
+      - name: Apply Firebase config
+        run: cp android_overrides/google-services.json android/app/google-services.json
+
       - name: Set SDK levels and enable core library desugaring
         run: |
           GRADLE_FILE=android/app/build.gradle.kts
@@ -48,6 +53,102 @@ jobs:
             echo "}"
           } >> "$GRADLE_FILE"
           cat "$GRADLE_FILE"
+
+      # Registers the Google Services Gradle plugin so google-services.json
+      # gets processed into Android resources at build time. Also bumps the
+      # Kotlin Gradle plugin — firebase_auth/cloud_firestore ship Kotlin
+      # metadata newer than the 2.1.0 the Flutter template pins — and
+      # migrates the now-removed `kotlinOptions { jvmTarget = ... }` DSL to
+      # the current `kotlin { compilerOptions { ... } }` form so the newer
+      # Kotlin plugin doesn't hard-error on it.
+      - name: Add the Google Services Gradle plugin and bump Kotlin
+        run: |
+          sed -i '/id("org.jetbrains.kotlin.android") version "2.1.0" apply false/a\    id("com.google.gms.google-services") version "4.4.4" apply false' android/settings.gradle.kts
+          sed -i 's/id("org.jetbrains.kotlin.android") version "2.1.0" apply false/id("org.jetbrains.kotlin.android") version "2.3.20" apply false/' android/settings.gradle.kts
+          sed -i '/id("dev.flutter.flutter-gradle-plugin")/a\    id("com.google.gms.google-services")' android/app/build.gradle.kts
+          python3 - android/app/build.gradle.kts <<'PYEOF'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+          old = '    kotlinOptions {\n        jvmTarget = JavaVersion.VERSION_11.toString()\n    }\n'
+          new = ('    kotlin {\n'
+                 '        compilerOptions {\n'
+                 '            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11\n'
+                 '        }\n'
+                 '    }\n')
+          assert old in src, "kotlinOptions block not found — template changed"
+          src = src.replace(old, new, 1)
+          open(path, 'w').write(src)
+          print("kotlinOptions migrated to compilerOptions DSL")
+          PYEOF
+
+      # Same stable signing key used by the tagged Release workflow, so a
+      # manual build's SHA-1 matches what's registered with Google Sign-In
+      # instead of a throwaway key that changes every run.
+      - name: Restore keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/ritualist-upload.jks
+
+      - name: Write signing config
+        run: |
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=ritualist-upload.jks
+          EOF
+
+      # `flutter create` never wires a real signing config into the release
+      # build type — it always signs with the debug key. This patches in a
+      # `release` signingConfig that reads android/key.properties when present,
+      # and fails loudly if the patch didn't take (rather than silently
+      # shipping a debug-signed "release" APK).
+      - name: Wire up release signing
+        run: |
+          GRADLE_FILE=android/app/build.gradle.kts
+          python3 - "$GRADLE_FILE" <<'PYEOF'
+          import sys
+          path = sys.argv[1]
+          src = open(path).read()
+
+          preamble = (
+              'import java.util.Properties\n'
+              'import java.io.FileInputStream\n\n'
+              'val keystoreProperties = Properties()\n'
+              'val keystorePropertiesFile = rootProject.file("key.properties")\n'
+              'if (keystorePropertiesFile.exists()) {\n'
+              '    keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n'
+              '}\n\n'
+          )
+          src = preamble + src
+
+          signing_configs = (
+              '    signingConfigs {\n'
+              '        create("release") {\n'
+              '            if (keystorePropertiesFile.exists()) {\n'
+              '                storeFile = rootProject.file(keystoreProperties["storeFile"] as String)\n'
+              '                storePassword = keystoreProperties["storePassword"] as String\n'
+              '                keyAlias = keystoreProperties["keyAlias"] as String\n'
+              '                keyPassword = keystoreProperties["keyPassword"] as String\n'
+              '            }\n'
+              '        }\n'
+              '    }\n\n'
+              '    buildTypes {\n'
+          )
+          marker = '    buildTypes {\n'
+          assert marker in src, "build.gradle.kts template changed — buildTypes block not found"
+          src = src.replace(marker, signing_configs, 1)
+
+          old_signing = 'signingConfig = signingConfigs.getByName("debug")'
+          new_signing = (
+              'signingConfig = if (keystorePropertiesFile.exists())\n'
+              '                signingConfigs.getByName("release") else signingConfigs.getByName("debug")'
+          )
+          assert old_signing in src, "build.gradle.kts template changed — debug signingConfig line not found"
+          src = src.replace(old_signing, new_signing, 1)
+
+          open(path, 'w').write(src)
+          print("release signing config wired up")
+          PYEOF
 
       - run: flutter pub get
 

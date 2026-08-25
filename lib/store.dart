@@ -48,6 +48,15 @@ class Store extends ChangeNotifier {
     await _save();
   }
 
+  /// Swaps in a whole different AppState — used when a cloud backup is
+  /// pulled down after signing in — and immediately persists + notifies,
+  /// same as any other write.
+  Future<void> replaceState(AppState newState) async {
+    _state = newState;
+    await _commit();
+    await rescheduleReminders();
+  }
+
   // ---- Tasks ----
 
   List<Task> tasksFor(DateTime date) =>
