@@ -31,7 +31,7 @@ const _timeOptions = [
   ('60', 'As much as it takes', "I'm building a real practice"),
 ];
 
-const _totalSteps = 5;
+const _totalSteps = 6;
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
@@ -40,6 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _step = 0;
   late final Set<String> _focus = store.focusAreas.toSet();
   String _timeCommitment = store.dailyTimeCommitment;
+  String _avatarGender = store.avatarGender;
 
   @override
   void dispose() {
@@ -69,6 +70,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _next() {
     if (_step == _totalSteps - 1) {
+      store.setAvatarGender(_avatarGender);
       store.completeOnboarding(
         userName: _nameController.text,
         focusAreas: _focus.toList(),
@@ -104,6 +106,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             children: [
               _WelcomeStep(onStart: _next),
               _NameStep(controller: _nameController, onBack: _back, onNext: _next),
+              _AvatarStep(
+                selected: _avatarGender,
+                onSelect: (v) => setState(() => _avatarGender = v),
+                onBack: _back,
+                onNext: _next,
+              ),
               _QuizStep(
                 selected: _focus,
                 onToggle: _toggleFocus,
@@ -142,7 +150,7 @@ class _StepHeader extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
-              value: step / 4,
+              value: step / 5,
               minHeight: 3,
               backgroundColor: Surfaces.muted(dark).withValues(alpha: 0.16),
               valueColor: AlwaysStoppedAnimation(Surfaces.accent(dark)),
@@ -150,7 +158,7 @@ class _StepHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text('$step/4',
+        Text('$step/5',
             style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
       ],
     );
@@ -256,6 +264,113 @@ class _NameStep extends StatelessWidget {
   }
 }
 
+/// Lets the user pick which cartoon character greets them on every app
+/// open — a small personalization touch that also feeds the mascot's
+/// pronoun-free emoji choice later on.
+class _AvatarStep extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onBack;
+  final VoidCallback onNext;
+  const _AvatarStep({
+    required this.selected,
+    required this.onSelect,
+    required this.onBack,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepHeader(step: 2, onBack: onBack),
+          const SizedBox(height: 22),
+          Text('YOUR DAILY GREETER', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 12),
+          Text('Who should greet you each time you open the app?',
+              style: display(21, Surfaces.heading(dark))),
+          const SizedBox(height: 8),
+          Text('A friendly little character with a welcome message — your pick.',
+              style: body(12.5, Surfaces.muted(dark))),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _AvatarChoiceCard(
+                  emoji: '👧',
+                  labelText: 'Girl',
+                  selected: selected == 'girl',
+                  onTap: () => onSelect('girl'),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _AvatarChoiceCard(
+                  emoji: '🧑',
+                  labelText: 'Boy',
+                  selected: selected == 'boy',
+                  onTap: () => onSelect('boy'),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          GoldButton(labelText: 'Continue', onPressed: onNext),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvatarChoiceCard extends StatelessWidget {
+  final String emoji;
+  final String labelText;
+  final bool selected;
+  final VoidCallback onTap;
+  const _AvatarChoiceCard({
+    required this.emoji,
+    required this.labelText,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 26),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected
+                ? Surfaces.accent(dark)
+                : Surfaces.accent(dark).withValues(alpha: 0.2),
+            width: selected ? 2 : 1,
+          ),
+          color: selected
+              ? Surfaces.accent(dark).withValues(alpha: 0.09)
+              : Colors.transparent,
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 44)),
+            const SizedBox(height: 10),
+            Text(labelText,
+                style: body(13.5, Surfaces.heading(dark), weight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _QuizStep extends StatelessWidget {
   final Set<String> selected;
   final ValueChanged<String> onToggle;
@@ -276,7 +391,7 @@ class _QuizStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepHeader(step: 2, onBack: onBack),
+          _StepHeader(step: 3, onBack: onBack),
           const SizedBox(height: 22),
           Text('WHAT MATTERS MOST RIGHT NOW', style: label(Surfaces.eyebrow(dark))),
           const SizedBox(height: 12),
@@ -329,7 +444,7 @@ class _TimeStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepHeader(step: 3, onBack: onBack),
+          _StepHeader(step: 4, onBack: onBack),
           const SizedBox(height: 22),
           Text('YOUR PACE', style: label(Surfaces.eyebrow(dark))),
           const SizedBox(height: 12),
@@ -435,7 +550,7 @@ class _ModuleStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepHeader(step: 4, onBack: onBack),
+          _StepHeader(step: 5, onBack: onBack),
           const SizedBox(height: 22),
           Text('Your daily cards', style: display(23, Surfaces.heading(dark))),
           const SizedBox(height: 8),
