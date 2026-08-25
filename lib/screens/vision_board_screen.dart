@@ -29,146 +29,141 @@ class VisionBoardScreen extends StatelessWidget {
           body: Container(
             decoration: Surfaces.pageBackground(dark),
             child: SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.arrow_back,
-                              color: Surfaces.bodyText(dark)),
-                        ),
-                        Expanded(
-                          child: Text('Vision board',
-                              style: body(14, Surfaces.heading(dark),
-                                  weight: FontWeight.w600)),
-                        ),
+              child: FadeSlideIn(
+                child: Column(
+                  children: [
+                    ScreenHeader(
+                      icon: Icons.grid_view_rounded,
+                      title: 'Vision board',
+                      subtitle: 'Pin a photo with a word or sentence, or just the words.',
+                      actions: [
                         IconButton(
                           onPressed: () => _addItem(context),
-                          icon: Icon(Icons.add, color: Surfaces.accent(dark)),
+                          icon: Icon(Icons.add_circle_outline, color: Surfaces.accent(dark)),
                         ),
                       ],
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Pin a saved photo (from Pinterest or anywhere) with a\n'
-                        'word or sentence, or just the words on their own.',
-                        style: body(12, Surfaces.muted(dark)),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: items.isEmpty
-                        ? Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.grid_view_rounded,
-                                      color: Surfaces.accent(dark), size: 30),
-                                  const SizedBox(height: 16),
-                                  Text('Nothing pinned yet',
-                                      style: display(18, Surfaces.heading(dark))),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Add a tile for anything you\'re working toward.',
-                                    style: body(13, Surfaces.muted(dark)),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 20),
-                                  GoldButton(
-                                      labelText: 'Add your first tile',
-                                      onPressed: () => _addItem(context)),
-                                ],
-                              ),
-                            ),
-                          )
-                        : GridView.builder(
-                            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 14,
-                              crossAxisSpacing: 14,
-                              childAspectRatio: 0.92,
-                            ),
-                            itemCount: items.length,
-                            itemBuilder: (context, i) {
-                              final item = items[i];
-                              final color =
-                                  _hatchColors[item.colorIndex % _hatchColors.length];
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onLongPress: () async {
-                                  await store.removeVisionItem(item);
-                                },
-                                child: Container(
-                                  clipBehavior: Clip.antiAlias,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                        color: color.withValues(alpha: 0.35),
-                                        width: 1.5),
-                                    color: color.withValues(alpha: dark ? 0.08 : 0.1),
-                                  ),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      if (item.imagePath != null)
-                                        Image.file(
-                                          File(item.imagePath!),
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              CustomPaint(painter: _HatchPainter(color: color)),
-                                        )
-                                      else
-                                        CustomPaint(painter: _HatchPainter(color: color)),
-                                      if (item.imagePath != null)
-                                        DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [
-                                                Colors.transparent,
-                                                Colors.black.withValues(alpha: 0.55),
-                                              ],
-                                              stops: const [0.5, 1.0],
-                                            ),
-                                          ),
-                                        ),
-                                      if (item.caption.isNotEmpty)
-                                        Positioned(
-                                          left: 12,
-                                          right: 12,
-                                          bottom: 12,
-                                          child: Text(
-                                            item.caption,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: body(
-                                                13,
-                                                item.imagePath != null
-                                                    ? Colors.white
-                                                    : Surfaces.heading(dark),
-                                                weight: FontWeight.w700),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: items.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.grid_view_rounded,
+                                        color: Surfaces.accent(dark), size: 30),
+                                    const SizedBox(height: 16),
+                                    Text('Nothing pinned yet',
+                                        style: display(18, Surfaces.heading(dark))),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add a tile for anything you\'re working toward.',
+                                      style: body(13, Surfaces.muted(dark)),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    GoldButton(
+                                        labelText: 'Add your first tile',
+                                        onPressed: () => _addItem(context)),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                              ),
+                            )
+                          : GridView.builder(
+                              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14,
+                                childAspectRatio: 0.92,
+                              ),
+                              itemCount: items.length,
+                              itemBuilder: (context, i) {
+                                final item = items[i];
+                                final color =
+                                    _hatchColors[item.colorIndex % _hatchColors.length];
+                                return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0, end: 1),
+                                  duration: Duration(milliseconds: 260 + i * 40),
+                                  curve: Curves.easeOutBack,
+                                  builder: (context, t, child) => Transform.scale(
+                                    scale: 0.85 + (t.clamp(0, 1) * 0.15),
+                                    child: Opacity(opacity: t.clamp(0, 1), child: child),
+                                  ),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(18),
+                                    onLongPress: () async {
+                                      final remove = await _confirmRemove(context, item.caption);
+                                      if (remove == true) {
+                                        await store.removeVisionItem(item);
+                                        if (context.mounted) toastSaved(context, label: 'Removed');
+                                      }
+                                    },
+                                    child: Container(
+                                      clipBehavior: Clip.antiAlias,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(18),
+                                        border: Border.all(
+                                            color: color.withValues(alpha: 0.35),
+                                            width: 1.5),
+                                        color: color.withValues(alpha: dark ? 0.08 : 0.1),
+                                      ),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          if (item.imagePath != null)
+                                            Image.file(
+                                              File(item.imagePath!),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  CustomPaint(painter: _HatchPainter(color: color)),
+                                            )
+                                          else
+                                            CustomPaint(painter: _HatchPainter(color: color)),
+                                          if (item.imagePath != null)
+                                            DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  colors: [
+                                                    Colors.transparent,
+                                                    Colors.black.withValues(alpha: 0.55),
+                                                  ],
+                                                  stops: const [0.5, 1.0],
+                                                ),
+                                              ),
+                                            ),
+                                          if (item.caption.isNotEmpty)
+                                            Positioned(
+                                              left: 12,
+                                              right: 12,
+                                              bottom: 12,
+                                              child: Text(
+                                                item.caption,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: body(
+                                                    13,
+                                                    item.imagePath != null
+                                                        ? Colors.white
+                                                        : Surfaces.heading(dark),
+                                                    weight: FontWeight.w700),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -177,74 +172,105 @@ class VisionBoardScreen extends StatelessWidget {
     );
   }
 
+  Future<bool?> _confirmRemove(BuildContext context, String caption) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+            caption.isEmpty ? 'Remove this tile?' : 'Remove "$caption"?',
+            style: display(16, Surfaces.heading(dark))),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep it')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remove')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _addItem(BuildContext context) async {
     final controller = TextEditingController();
     final dark = Theme.of(context).brightness == Brightness.dark;
     String? pickedPath;
 
-    final result = await showDialog<bool>(
+    final result = await showModalBottomSheet<bool>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text('New tile', style: display(18, Surfaces.heading(dark))),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () async {
-                  final path = await _pickAndCopyImage();
-                  if (path != null) setState(() => pickedPath = path);
-                },
-                child: Container(
-                  height: 120,
-                  width: double.infinity,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Brand.gold.withValues(alpha: 0.1),
-                    border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+        builder: (context, setState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            decoration: BoxDecoration(
+              color: Surfaces.card(dark),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('New tile', style: display(18, Surfaces.heading(dark))),
+                const SizedBox(height: 16),
+                InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () async {
+                    final path = await _pickAndCopyImage();
+                    if (path != null) setState(() => pickedPath = path);
+                  },
+                  child: Container(
+                    height: 130,
+                    width: double.infinity,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      color: Brand.gold.withValues(alpha: 0.1),
+                      border: Border.all(color: Brand.gold.withValues(alpha: 0.4)),
+                    ),
+                    child: pickedPath == null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined,
+                                  color: Surfaces.accent(dark)),
+                              const SizedBox(height: 6),
+                              Text('Add a photo from your gallery\n(optional)',
+                                  textAlign: TextAlign.center,
+                                  style: body(11.5, Surfaces.muted(dark))),
+                            ],
+                          )
+                        : Image.file(File(pickedPath!), fit: BoxFit.cover),
                   ),
-                  child: pickedPath == null
-                      ? Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_photo_alternate_outlined,
-                                color: Surfaces.accent(dark)),
-                            const SizedBox(height: 6),
-                            Text('Add a photo from your gallery\n(optional)',
-                                textAlign: TextAlign.center,
-                                style: body(11.5, Surfaces.muted(dark))),
-                          ],
-                        )
-                      : Image.file(File(pickedPath!), fit: BoxFit.cover),
                 ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: pickedPath == null,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                    hintText: 'A word or sentence for this tile'),
-              ),
-            ],
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  autofocus: pickedPath == null,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: body(14, Surfaces.bodyText(dark)),
+                  decoration: const InputDecoration(
+                      hintText: 'A word or sentence for this tile'),
+                ),
+                const SizedBox(height: 18),
+                GoldButton(
+                  labelText: 'Save tile',
+                  onPressed: () => Navigator.pop(context, true),
+                ),
+              ],
+            ),
           ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
-            TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Add')),
-          ],
         ),
       ),
     );
 
     if (result == true) {
       await store.addVisionItem(controller.text, imagePath: pickedPath);
+      if (context.mounted) toastSaved(context);
     }
   }
 

@@ -3,6 +3,139 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../theme.dart';
 
+/// Small "Saved." toast — a light, consistent confirmation after any quick
+/// edit across the app, so saving never feels invisible without forcing a
+/// manual save step for every tiny action.
+void toastSaved(BuildContext context, {String label = 'Saved'}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      duration: const Duration(milliseconds: 1100),
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Brand.deep,
+      content: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle, color: Brand.gold, size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.white)),
+        ],
+      ),
+    ));
+}
+
+/// Consistent page header used across the app's secondary screens — a back
+/// button, an icon in a soft color badge, a big title, and an optional
+/// one-line subtitle. Replaces the old plain "back arrow + small label" row
+/// with something that reads as a designed screen rather than a stub.
+class ScreenHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final List<Widget>? actions;
+  const ScreenHeader({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.actions,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
+            ),
+            const Spacer(),
+            if (actions != null) ...actions!,
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Surfaces.accent(dark).withValues(alpha: 0.16),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Surfaces.accent(dark), size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: display(22, Surfaces.heading(dark))),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(subtitle!, style: body(12.5, Surfaces.muted(dark))),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Wraps a screen's body in a gentle fade + rise-in on first appearance —
+/// the small bit of "the app is alive" motion used consistently across
+/// secondary screens instead of content just snapping into place.
+class FadeSlideIn extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  const FadeSlideIn({super.key, required this.child, this.delay = Duration.zero});
+
+  @override
+  State<FadeSlideIn> createState() => _FadeSlideInState();
+}
+
+class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  );
+  late final _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+  late final _slide = Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+      .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(position: _slide, child: widget.child),
+    );
+  }
+}
+
 /// Icon lookup for `kHabitIconNames` — kept alongside the model so a saved
 /// icon name always resolves to something even if the curated set changes.
 const Map<String, IconData> kHabitIcons = {

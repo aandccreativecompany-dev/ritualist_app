@@ -41,10 +41,7 @@ class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
   Future<void> _save() async {
     await store.saveTodaysJournal(
         _achievements.map((c) => c.text).toList(), _gratitude.text);
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Saved.')));
-    }
+    if (mounted) toastSaved(context);
   }
 
   @override
@@ -55,24 +52,19 @@ class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
       body: Container(
         decoration: Surfaces.pageBackground(dark),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          child: FadeSlideIn(
+            child: ListView(
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
-                  ),
-                ],
+              const ScreenHeader(
+                icon: Icons.nights_stay_outlined,
+                title: 'Evening reflection',
+                subtitle: 'Two minutes, then close the day.',
               ),
-              const SizedBox(height: 4),
-              Text('Evening reflection',
-                  style: display(24, Surfaces.heading(dark))),
-              const SizedBox(height: 6),
-              Text('Two minutes, then close the day.',
-                  style: body(13, Surfaces.muted(dark))),
               const SizedBox(height: 22),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(children: [
               ModuleCard(
                 eyebrow: 'What three things did I achieve today?',
                 child: Column(
@@ -130,7 +122,10 @@ class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
                   ),
                 ),
               ),
+                ]),
+              ),
             ],
+          ),
           ),
         ),
       ),

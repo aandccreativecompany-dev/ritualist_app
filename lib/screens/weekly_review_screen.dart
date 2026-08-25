@@ -20,69 +20,70 @@ class WeeklyReviewScreen extends StatelessWidget {
       body: Container(
         decoration: Surfaces.pageBackground(dark),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+          child: FadeSlideIn(
+            child: ListView(
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
             children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
-                  ),
-                ],
+              const ScreenHeader(
+                icon: Icons.insights_outlined,
+                title: 'Weekly momentum',
+                subtitle: 'The last 7 days, today included.',
               ),
-              const SizedBox(height: 4),
-              Text('Weekly momentum', style: display(24, Surfaces.heading(dark))),
-              const SizedBox(height: 6),
-              Text('The last 7 days, today included.',
-                  style: body(13, Surfaces.muted(dark))),
               const SizedBox(height: 22),
-              Row(
-                children: [
-                  Expanded(
-                    child: _Stat(
-                      value: '${m.prioritiesDone}/${m.prioritiesTotal}',
-                      caption: 'priorities finished',
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _Stat(
-                      value: '${m.bestStreak}',
-                      caption: m.bestStreak == 1 ? 'day best streak' : 'day best streak',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              ModuleCard(
-                eyebrow: 'How the week filled in',
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _Bar(
-                      label: 'Priorities completed',
-                      value: priorityRate,
-                      dark: dark,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Stat(
+                            value: '${m.prioritiesDone}/${m.prioritiesTotal}',
+                            caption: 'priorities finished',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _Stat(
+                            value: '${m.bestStreak}',
+                            caption: m.bestStreak == 1 ? 'day best streak' : 'day best streak',
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 14),
-                    _Bar(
-                      label: 'Habit check-ins',
-                      value: habitRate,
-                      dark: dark,
+                    ModuleCard(
+                      eyebrow: 'How the week filled in',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _Bar(
+                            label: 'Priorities completed',
+                            value: priorityRate,
+                            dark: dark,
+                          ),
+                          const SizedBox(height: 14),
+                          _Bar(
+                            label: 'Habit check-ins',
+                            value: habitRate,
+                            dark: dark,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ModuleCard(
+                      eyebrow: 'Worth noticing',
+                      child: Text(
+                        _summaryLine(priorityRate, habitRate, m.bestStreak),
+                        style: body(13.5, Surfaces.bodyText(dark)),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
-              ModuleCard(
-                eyebrow: 'Worth noticing',
-                child: Text(
-                  _summaryLine(priorityRate, habitRate, m.bestStreak),
-                  style: body(13.5, Surfaces.bodyText(dark)),
-                ),
-              ),
             ],
+          ),
           ),
         ),
       ),

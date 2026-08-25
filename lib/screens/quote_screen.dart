@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../store.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 
 /// Full-screen, shareable view of today's mantra (design ref 2j).
 class QuoteScreen extends StatelessWidget {
@@ -21,7 +22,8 @@ class QuoteScreen extends StatelessWidget {
       body: Container(
         decoration: Surfaces.pageBackground(dark),
         child: SafeArea(
-          child: Padding(
+          child: FadeSlideIn(
+            child: Padding(
             padding: const EdgeInsets.fromLTRB(28, 8, 28, 32),
             child: Column(
               children: [
@@ -82,6 +84,7 @@ class QuoteScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
         ),
       ),

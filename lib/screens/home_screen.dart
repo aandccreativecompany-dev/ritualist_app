@@ -27,28 +27,6 @@ const _moods = [
   ('Amazing', '🤩'),
 ];
 
-/// Small "Saved." toast — a light, consistent confirmation after any quick
-/// edit (add/remove/rename a habit, add a priority, pin a vision item…)
-/// so saving never feels invisible, without forcing a manual save step for
-/// every tiny action.
-void toastSaved(BuildContext context) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      duration: const Duration(milliseconds: 1100),
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Brand.deep,
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.check_circle, color: Brand.gold, size: 16),
-          SizedBox(width: 8),
-          Text('Saved', style: TextStyle(color: Colors.white)),
-        ],
-      ),
-    ));
-}
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 

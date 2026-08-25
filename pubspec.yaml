@@ -1,7 +1,7 @@
 name: ritualist
 description: Prakriyā — a daily ritual and manifestation practice app.
 publish_to: 'none'
-version: 0.2.2+4
+version: 0.2.3+5
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

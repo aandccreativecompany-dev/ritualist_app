@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
 
 /// The drag-to-reorder, toggle-to-hide list of home-screen cards. Used both
 /// during onboarding (step 3 of the quiz) and standalone from Settings, where
@@ -22,8 +23,10 @@ class ModulePickerBody extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: modules.length,
-          onReorder: (oldIndex, newIndex) =>
-              store.reorderModule(oldIndex, newIndex),
+          onReorder: (oldIndex, newIndex) async {
+            await store.reorderModule(oldIndex, newIndex);
+            if (context.mounted) toastSaved(context);
+          },
           itemBuilder: (context, i) {
             final module = modules[i];
             return Container(
@@ -48,7 +51,10 @@ class ModulePickerBody extends StatelessWidget {
                   Switch(
                     value: module.enabled,
                     activeTrackColor: Surfaces.accent(dark),
-                    onChanged: (v) => store.setModuleEnabled(module.id, v),
+                    onChanged: (v) async {
+                      await store.setModuleEnabled(module.id, v);
+                      if (context.mounted) toastSaved(context);
+                    },
                   ),
                 ],
               ),
@@ -70,32 +76,22 @@ class ModulePickerScreen extends StatelessWidget {
       body: Container(
         decoration: Surfaces.pageBackground(dark),
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
-                  ),
-                  Expanded(
-                    child: Text('Your daily cards',
-                        style: body(14, Surfaces.heading(dark), weight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  'Drag to reorder, switch off what you don\'t want.',
-                  style: body(12.5, Surfaces.muted(dark)),
+          child: FadeSlideIn(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+              children: [
+                const ScreenHeader(
+                  icon: Icons.view_agenda_outlined,
+                  title: 'Your daily cards',
+                  subtitle: "Drag to reorder, switch off what you don't want.",
                 ),
-              ),
-              const SizedBox(height: 18),
-              const ModulePickerBody(),
-            ],
+                const SizedBox(height: 18),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: ModulePickerBody(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
