@@ -245,7 +245,16 @@ class _SectionPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title.toUpperCase(), style: label(Surfaces.eyebrow(dark))),
+            Row(
+              children: [
+                Text(title.toUpperCase(), style: label(Surfaces.eyebrow(dark))),
+                const Spacer(),
+                Icon(Icons.cloud_done_outlined, size: 13, color: Surfaces.muted(dark)),
+                const SizedBox(width: 4),
+                Text('Saves automatically',
+                    style: body(10, Surfaces.muted(dark), weight: FontWeight.w600)),
+              ],
+            ),
             const SizedBox(height: 18),
             for (var i = 0; i < items.length; i++) ...[
               items[i],
@@ -669,9 +678,12 @@ class _HabitCardState extends State<_HabitCard> {
                     streak > 0 ? '🔥 $streak day streak' : 'Tap to start a streak',
                     style: body(11.5, Surfaces.muted(dark)),
                   ),
+                  const SizedBox(height: 8),
+                  _WeekDots(habit: habit, today: widget.today, color: color),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: _toggle,
               child: AnimatedScale(
@@ -695,6 +707,49 @@ class _HabitCardState extends State<_HabitCard> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A week-at-a-glance strip — filled dot for a day this habit was done,
+/// hollow for a miss, today ringed — the small daily-progress cue several
+/// of the reference trackers use (water glasses, sleep-hour ticks), reworked
+/// here as a compact row that fits inline in the habit card.
+class _WeekDots extends StatelessWidget {
+  final Habit habit;
+  final DateTime today;
+  final Color color;
+  const _WeekDots({required this.habit, required this.today, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        for (var i = 6; i >= 0; i--) ...[
+          Builder(builder: (context) {
+            final day = DateTime(today.year, today.month, today.day)
+                .subtract(Duration(days: i));
+            final done = habit.isDoneOn(day);
+            final isToday = i == 0;
+            return Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: done ? color : Colors.transparent,
+                border: Border.all(
+                  color: done
+                      ? color
+                      : Surfaces.muted(dark).withValues(alpha: isToday ? 0.7 : 0.3),
+                  width: isToday && !done ? 1.6 : 1,
+                ),
+              ),
+            );
+          }),
+          if (i != 0) const SizedBox(width: 4),
+        ],
+      ],
     );
   }
 }
