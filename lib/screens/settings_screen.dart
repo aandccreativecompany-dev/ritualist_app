@@ -87,179 +87,192 @@ class SettingsScreen extends StatelessWidget {
           body: Container(
             decoration: Surfaces.pageBackground(dark),
             child: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.arrow_back,
-                            color: Surfaces.bodyText(dark)),
-                      ),
-                      Text('Settings',
-                          style: body(14, Surfaces.heading(dark),
-                              weight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text('APPEARANCE', style: label(Surfaces.muted(dark))),
-                  const SizedBox(height: 12),
-                  ModuleCard(
-                    child: Column(
-                      children: [
-                        for (final option in const [
-                          ['system', 'Follow the phone'],
-                          ['light', 'Always light'],
-                          ['dark', 'Always dark'],
-                        ])
-                          InkWell(
-                            onTap: () => store.setThemeMode(option[0]),
-                            child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(option[1],
-                                        style: body(
-                                            13.5, Surfaces.bodyText(dark),
-                                            weight: FontWeight.w500)),
+              child: FadeSlideIn(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+                  children: [
+                    const ScreenHeader(
+                      icon: Icons.settings_outlined,
+                      title: 'Settings',
+                    ),
+                    const SizedBox(height: 18),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('APPEARANCE', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              children: [
+                                for (final option in const [
+                                  ['system', 'Follow the phone'],
+                                  ['light', 'Always light'],
+                                  ['dark', 'Always dark'],
+                                ])
+                                  InkWell(
+                                    onTap: () async {
+                                      await store.setThemeMode(option[0]);
+                                      if (context.mounted) toastSaved(context);
+                                    },
+                                    child: Padding(
+                                      padding:
+                                          const EdgeInsets.symmetric(vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(option[1],
+                                                style: body(
+                                                    13.5, Surfaces.bodyText(dark),
+                                                    weight: FontWeight.w500)),
+                                          ),
+                                          if (store.state.themeMode == option[0])
+                                            Icon(Icons.check,
+                                                size: 18,
+                                                color: Surfaces.accent(dark)),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  if (store.state.themeMode == option[0])
-                                    Icon(Icons.check,
-                                        size: 18,
-                                        color: Surfaces.accent(dark)),
-                                ],
-                              ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Text('YOUR RITUAL', style: label(Surfaces.muted(dark))),
-                  const SizedBox(height: 12),
-                  ModuleCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        _NavRow(
-                          icon: Icons.view_agenda_outlined,
-                          title: 'Customize your cards',
-                          subtitle: 'Reorder or hide what shows on Today',
-                          onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const ModulePickerScreen())),
-                        ),
-                        _divider(dark),
-                        _NavRow(
-                          icon: Icons.insights_outlined,
-                          title: 'Weekly momentum review',
-                          subtitle: 'The last 7 days, at a glance',
-                          onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const WeeklyReviewScreen())),
-                        ),
-                        _divider(dark),
-                        _NavRow(
-                          icon: Icons.replay_outlined,
-                          title: 'Retake the setup quiz',
-                          subtitle: 'Reset your preset and card picks',
-                          onTap: () => _retakeQuiz(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Text('JOURNAL LOCK', style: label(Surfaces.muted(dark))),
-                  const SizedBox(height: 12),
-                  ModuleCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Local only — a privacy nudge for your evening reflection, not encryption.',
-                          style: body(12.5, Surfaces.muted(dark)),
-                        ),
-                        const SizedBox(height: 16),
-                        if (store.hasPin) ...[
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text('Unlock with biometrics',
+                          const SizedBox(height: 22),
+                          Text('YOUR RITUAL', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              children: [
+                                _NavRow(
+                                  icon: Icons.view_agenda_outlined,
+                                  title: 'Customize your cards',
+                                  subtitle: 'Reorder or hide what shows on Today',
+                                  onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => const ModulePickerScreen())),
+                                ),
+                                _divider(dark),
+                                _NavRow(
+                                  icon: Icons.insights_outlined,
+                                  title: 'Weekly momentum review',
+                                  subtitle: 'The last 7 days, at a glance',
+                                  onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (_) => const WeeklyReviewScreen())),
+                                ),
+                                _divider(dark),
+                                _NavRow(
+                                  icon: Icons.replay_outlined,
+                                  title: 'Retake the setup quiz',
+                                  subtitle: 'Reset your preset and card picks',
+                                  onTap: () => _retakeQuiz(context),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('JOURNAL LOCK', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Local only — a privacy nudge for your evening reflection, not encryption.',
+                                  style: body(12.5, Surfaces.muted(dark)),
+                                ),
+                                const SizedBox(height: 16),
+                                if (store.hasPin) ...[
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text('Unlock with biometrics',
+                                            style: body(13.5, Surfaces.bodyText(dark),
+                                                weight: FontWeight.w500)),
+                                      ),
+                                      Switch(
+                                        value: store.biometricEnabled,
+                                        activeTrackColor: Surfaces.accent(dark),
+                                        onChanged: (v) async {
+                                          await store.setBiometricEnabled(v);
+                                          if (context.mounted) toastSaved(context);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextButton(
+                                    onPressed: () async {
+                                      await store.clearPin();
+                                      if (context.mounted) {
+                                        toastSaved(context, label: 'PIN removed');
+                                      }
+                                    },
+                                    style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        alignment: Alignment.centerLeft),
+                                    child: Text('Remove PIN lock',
+                                        style: body(13, Colors.redAccent,
+                                            weight: FontWeight.w600)),
+                                  ),
+                                ] else
+                                  GoldButton(
+                                    labelText: 'Set a PIN',
+                                    onPressed: () => Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const LockScreen(mode: LockMode.setup))),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('YOUR DATA', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    'Everything stays on this phone. There is no account and nothing is uploaded, so a lost or wiped phone loses your entries unless you keep a backup.',
+                                    style: body(12.5, Surfaces.muted(dark))),
+                                const SizedBox(height: 16),
+                                GoldButton(
+                                    labelText: 'Copy a backup',
+                                    onPressed: () => _export(context)),
+                                const SizedBox(height: 10),
+                                TextButton(
+                                  onPressed: () => _import(context),
+                                  child: Text('Restore from a backup',
+                                      style: body(13, Surfaces.accent(dark),
+                                          weight: FontWeight.w600)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('ABOUT', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Prakriyā 0.2.2',
                                     style: body(13.5, Surfaces.bodyText(dark),
-                                        weight: FontWeight.w500)),
-                              ),
-                              Switch(
-                                value: store.biometricEnabled,
-                                activeTrackColor: Surfaces.accent(dark),
-                                onChanged: (v) => store.setBiometricEnabled(v),
-                              ),
-                            ],
+                                        weight: FontWeight.w600)),
+                                const SizedBox(height: 6),
+                                Text('A & C Creative Company',
+                                    style: body(12.5, Surfaces.muted(dark))),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 6),
-                          TextButton(
-                            onPressed: () => store.clearPin(),
-                            style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                alignment: Alignment.centerLeft),
-                            child: Text('Remove PIN lock',
-                                style: body(13, Colors.redAccent,
-                                    weight: FontWeight.w600)),
-                          ),
-                        ] else
-                          GoldButton(
-                            labelText: 'Set a PIN',
-                            onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const LockScreen(mode: LockMode.setup))),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  Text('YOUR DATA', style: label(Surfaces.muted(dark))),
-                  const SizedBox(height: 12),
-                  ModuleCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            'Everything stays on this phone. There is no account and nothing is uploaded, so a lost or wiped phone loses your entries unless you keep a backup.',
-                            style: body(12.5, Surfaces.muted(dark))),
-                        const SizedBox(height: 16),
-                        GoldButton(
-                            labelText: 'Copy a backup',
-                            onPressed: () => _export(context)),
-                        const SizedBox(height: 10),
-                        TextButton(
-                          onPressed: () => _import(context),
-                          child: Text('Restore from a backup',
-                              style: body(13, Surfaces.accent(dark),
-                                  weight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  Text('ABOUT', style: label(Surfaces.muted(dark))),
-                  const SizedBox(height: 12),
-                  ModuleCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Prakriyā 0.2.0',
-                            style: body(13.5, Surfaces.bodyText(dark),
-                                weight: FontWeight.w600)),
-                        const SizedBox(height: 6),
-                        Text('A&C Creative Company',
-                            style: body(12.5, Surfaces.muted(dark))),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

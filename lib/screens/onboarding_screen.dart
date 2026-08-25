@@ -49,10 +49,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _toggleFocus(String id) {
+    // Any number of these can apply at once — there were only ever 4 on
+    // offer, so capping at 2 just blocked people from picking what was
+    // actually true for them.
     setState(() {
       if (_focus.contains(id)) {
         _focus.remove(id);
-      } else if (_focus.length < 2) {
+      } else {
         _focus.add(id);
       }
     });

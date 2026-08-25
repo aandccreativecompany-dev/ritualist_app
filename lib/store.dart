@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mantras.dart';
 import 'models.dart';
 import 'notifications.dart';
+import 'tips.dart';
 
 const _storageKey = 'ritualist_state_v1';
 
@@ -98,21 +99,33 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  /// Looked up by id rather than trusting the caller's object reference —
+  /// keeps add/remove/edit correct even if a widget is holding a stale
+  /// instance from a previous rebuild.
+  Habit? _findHabit(String id) {
+    for (final h in _state.habits) {
+      if (h.id == id) return h;
+    }
+    return null;
+  }
+
   Future<void> removeHabit(Habit habit) async {
-    _state.habits.remove(habit);
+    _state.habits.removeWhere((h) => h.id == habit.id);
     await _commit();
   }
 
   Future<void> renameHabit(Habit habit, String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
-    habit.name = trimmed;
+    final target = _findHabit(habit.id) ?? habit;
+    target.name = trimmed;
     await _commit();
   }
 
   Future<void> setHabitStyle(Habit habit, {int? iconIndex, int? colorIndex}) async {
-    if (iconIndex != null) habit.iconIndex = iconIndex;
-    if (colorIndex != null) habit.colorIndex = colorIndex;
+    final target = _findHabit(habit.id) ?? habit;
+    if (iconIndex != null) target.iconIndex = iconIndex;
+    if (colorIndex != null) target.colorIndex = colorIndex;
     await _commit();
   }
 
@@ -132,6 +145,42 @@ class Store extends ChangeNotifier {
   Mantra get mantraEntryOfTheDay => mantras[_mantraIndex.abs()];
 
   String get mantraOfTheDay => mantraEntryOfTheDay.text;
+
+  // ---- Productivity tip ----
+
+  String get tipOfTheDay {
+    final dayNumber = DateTime.now().difference(DateTime(2026, 1, 1)).inDays;
+    final index = (dayNumber + _state.mantraSeed) % productivityTips.length;
+    return productivityTips[index.abs()];
+  }
+
+  // ---- Mood check-in / evening prompt ----
+
+  String? get todaysMood => _state.moodByDay[dayKey(DateTime.now())];
+
+  bool get shouldShowMoodPrompt =>
+      onboardingComplete &&
+      _state.lastMoodPromptDay != dayKey(DateTime.now());
+
+  Future<void> recordMoodPromptShown() async {
+    _state.lastMoodPromptDay = dayKey(DateTime.now());
+    await _commit();
+  }
+
+  Future<void> setTodaysMood(String mood) async {
+    _state.moodByDay[dayKey(DateTime.now())] = mood;
+    await recordMoodPromptShown();
+  }
+
+  bool get shouldShowEveningPrompt =>
+      onboardingComplete &&
+      DateTime.now().hour >= 19 &&
+      _state.lastEveningPromptDay != dayKey(DateTime.now());
+
+  Future<void> recordEveningPromptShown() async {
+    _state.lastEveningPromptDay = dayKey(DateTime.now());
+    await _commit();
+  }
 
   // ---- Theme ----
 

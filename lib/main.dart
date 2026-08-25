@@ -51,6 +51,15 @@ class _Root extends StatefulWidget {
 
 class _RootState extends State<_Root> with WidgetsBindingObserver {
   late bool _locked;
+  DateTime? _pausedAt;
+
+  // A brief trip to the background — the system photo picker, the share
+  // sheet, a permission dialog, pulling down the notification shade — all
+  // pause the app the same way a real backgrounding does. Relocking on
+  // every one of those reads as broken (mid-task, suddenly asked for a
+  // PIN again), so only relock once the app has actually been away for a
+  // while.
+  static const _relockGrace = Duration(seconds: 45);
 
   @override
   void initState() {
@@ -70,10 +79,16 @@ class _RootState extends State<_Root> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed &&
-        store.hasPin &&
-        store.onboardingComplete) {
-      setState(() => _locked = true);
+    if (!store.hasPin || !store.onboardingComplete) return;
+    if (state == AppLifecycleState.paused) {
+      _pausedAt ??= DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      final pausedAt = _pausedAt;
+      _pausedAt = null;
+      if (pausedAt != null &&
+          DateTime.now().difference(pausedAt) >= _relockGrace) {
+        setState(() => _locked = true);
+      }
     }
   }
 

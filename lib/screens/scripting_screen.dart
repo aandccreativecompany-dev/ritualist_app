@@ -22,77 +22,93 @@ class ScriptingScreen extends StatelessWidget {
           body: Container(
             decoration: Surfaces.pageBackground(dark),
             child: SafeArea(
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.arrow_back,
-                              color: Surfaces.bodyText(dark)),
-                        ),
-                        Expanded(
-                          child: Text('Scripting',
-                              style: body(14, Surfaces.heading(dark),
-                                  weight: FontWeight.w600)),
-                        ),
+              child: FadeSlideIn(
+                child: Column(
+                  children: [
+                    ScreenHeader(
+                      icon: Icons.auto_awesome,
+                      title: 'Scripting',
+                      subtitle: 'Write the outcome as if it already happened.',
+                      actions: [
                         IconButton(
                           onPressed: () => _editScript(context, null),
-                          icon: Icon(Icons.add, color: Surfaces.accent(dark)),
+                          icon: Icon(Icons.add_circle_outline, color: Surfaces.accent(dark)),
                         ),
                       ],
                     ),
-                  ),
-                  Expanded(
-                    child: store.scripts.isEmpty
-                        ? _Empty(onCreate: () => _editScript(context, null))
-                        : ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                            children: [
-                              Text(
-                                'Write the outcome you want as if it already happened. Be specific — how it feels, what changed.',
-                                style: body(12.5, Surfaces.muted(dark)),
-                              ),
-                              const SizedBox(height: 18),
-                              for (final script in store.scripts)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 14),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(20),
-                                    onTap: () => _editScript(context, script),
-                                    child: ModuleCard(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            script.title.isEmpty
-                                                ? 'Untitled'
-                                                : script.title,
-                                            style: display(
-                                                16, Surfaces.heading(dark)),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: store.scripts.isEmpty
+                          ? _Empty(onCreate: () => _editScript(context, null))
+                          : ListView(
+                              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                              children: [
+                                for (var i = 0; i < store.scripts.length; i++)
+                                  TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0, end: 1),
+                                    duration: Duration(milliseconds: 260 + i * 50),
+                                    curve: Curves.easeOutCubic,
+                                    builder: (context, t, child) => Transform.translate(
+                                      offset: Offset(0, (1 - t.clamp(0, 1)) * 12),
+                                      child: Opacity(opacity: t.clamp(0, 1), child: child),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(bottom: 14),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(20),
+                                        onTap: () => _editScript(context, store.scripts[i]),
+                                        child: ModuleCard(
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                width: 36,
+                                                height: 36,
+                                                decoration: BoxDecoration(
+                                                  color: Surfaces.accent(dark)
+                                                      .withValues(alpha: 0.16),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(Icons.auto_awesome,
+                                                    color: Surfaces.accent(dark), size: 17),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      store.scripts[i].title.isEmpty
+                                                          ? 'Untitled'
+                                                          : store.scripts[i].title,
+                                                      style: display(
+                                                          16, Surfaces.heading(dark)),
+                                                    ),
+                                                    if (store.scripts[i].body.isNotEmpty) ...[
+                                                      const SizedBox(height: 6),
+                                                      Text(
+                                                        store.scripts[i].body,
+                                                        maxLines: 3,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: body(
+                                                            13, Surfaces.bodyText(dark)),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          if (script.body.isNotEmpty) ...[
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              script.body,
-                                              maxLines: 3,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: body(
-                                                  13, Surfaces.bodyText(dark)),
-                                            ),
-                                          ],
-                                        ],
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          ),
-                  ),
-                ],
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -109,55 +125,63 @@ class ScriptingScreen extends StatelessWidget {
     final result = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: dark ? const Color(0xFF1B0F33) : Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      backgroundColor: Colors.transparent,
       builder: (context) => Padding(
         padding: EdgeInsets.fromLTRB(
             20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(script == null ? 'New script' : 'Edit script',
-                style: display(18, Surfaces.heading(dark))),
-            const SizedBox(height: 16),
-            TextField(
-              controller: titleCtrl,
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              style: body(15, Surfaces.bodyText(dark), weight: FontWeight.w600),
-              decoration: const InputDecoration(hintText: 'What outcome?'),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: bodyCtrl,
-              maxLines: 5,
-              textCapitalization: TextCapitalization.sentences,
-              style: body(14, Surfaces.bodyText(dark)),
-              decoration: const InputDecoration(
-                  hintText: 'Write it as if it already happened…'),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (script != null)
-                  TextButton(
-                    onPressed: () async {
-                      await store.removeScript(script);
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    child: Text('Delete',
-                        style: body(13, Colors.redAccent, weight: FontWeight.w600)),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          decoration: BoxDecoration(
+            color: Surfaces.card(dark),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(script == null ? 'New script' : 'Edit script',
+                  style: display(18, Surfaces.heading(dark))),
+              const SizedBox(height: 16),
+              TextField(
+                controller: titleCtrl,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                style: body(15, Surfaces.bodyText(dark), weight: FontWeight.w600),
+                decoration: const InputDecoration(hintText: 'What outcome?'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: bodyCtrl,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                style: body(14, Surfaces.bodyText(dark)),
+                decoration: const InputDecoration(
+                    hintText: 'Write it as if it already happened…'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (script != null)
+                    TextButton(
+                      onPressed: () async {
+                        await store.removeScript(script);
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          toastSaved(context, label: 'Removed');
+                        }
+                      },
+                      child: Text('Delete',
+                          style: body(13, Colors.redAccent, weight: FontWeight.w600)),
+                    ),
+                  const Spacer(),
+                  GoldButton(
+                    labelText: 'Save',
+                    onPressed: () => Navigator.pop(context, 'save'),
                   ),
-                const Spacer(),
-                GoldButton(
-                  labelText: 'Save',
-                  onPressed: () => Navigator.pop(context, 'save'),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -168,6 +192,7 @@ class ScriptingScreen extends StatelessWidget {
       } else {
         await store.updateScript(script, titleCtrl.text, bodyCtrl.text);
       }
+      if (context.mounted) toastSaved(context);
     }
   }
 }

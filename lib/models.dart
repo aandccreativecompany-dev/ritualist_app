@@ -36,18 +36,30 @@ const List<String> kHabitIconNames = [
   'volunteer_activism', // kindness/giving
 ];
 
+/// Monotonically increasing so two habits created in the same microsecond
+/// still get distinct ids.
+int _habitIdSeq = 0;
+String _newHabitId() =>
+    '${DateTime.now().microsecondsSinceEpoch}-${_habitIdSeq++}';
+
 class Habit {
+  /// Stable identity, independent of object reference — list keys and
+  /// add/remove/edit lookups use this instead of instance equality, so they
+  /// keep working correctly across rebuilds and JSON round-trips.
+  final String id;
   String name;
   List<String> completedDays;
   int iconIndex;
   int colorIndex;
 
   Habit({
+    String? id,
     required this.name,
     List<String>? completedDays,
     this.iconIndex = 0,
     this.colorIndex = 0,
-  }) : completedDays = completedDays ?? <String>[];
+  })  : id = id ?? _newHabitId(),
+        completedDays = completedDays ?? <String>[];
 
   bool isDoneOn(DateTime date) => completedDays.contains(dayKey(date));
 
@@ -82,6 +94,7 @@ class Habit {
   }
 
   Map<String, dynamic> toJson() => {
+        'id': id,
         'name': name,
         'completedDays': completedDays,
         'iconIndex': iconIndex,
@@ -89,6 +102,7 @@ class Habit {
       };
 
   static Habit fromJson(Map<String, dynamic> json) => Habit(
+        id: json['id'] as String?,
         name: (json['name'] ?? '') as String,
         completedDays: ((json['completedDays'] ?? <dynamic>[]) as List<dynamic>)
             .map((dynamic e) => e.toString())
@@ -215,6 +229,7 @@ const kAllModuleIds = [
   'mantra',
   'priorities',
   'habits',
+  'tips',
   'scripting',
   'eveningReflection',
   'visionBoard',
@@ -225,11 +240,18 @@ const kModuleTitles = {
   'mantra': 'Mantra of the day',
   'priorities': 'Top 3 today',
   'habits': 'Habits',
+  'tips': 'Productivity tip',
   'scripting': 'Scripting',
   'eveningReflection': 'Evening reflection',
   'visionBoard': 'Vision board',
   'reminders': 'Daily reminders',
 };
+
+/// Which section of the two-card home ("Productivity" / "Outcome
+/// engineering") each module lives in. `mantra` isn't listed — it sits
+/// above both as a standalone banner, not inside either section.
+const kProductivityModuleIds = ['priorities', 'habits', 'tips', 'reminders'];
+const kOutcomeModuleIds = ['scripting', 'eveningReflection', 'visionBoard'];
 
 /// Onboarding presets — set by the quiz, changeable any time from settings.
 const kPresetFocus = 'focus';
@@ -269,6 +291,15 @@ class AppState {
   String? pinHash;
   bool biometricEnabled;
 
+  /// Day (`dayKey` string) the morning mood check-in was last shown, so it
+  /// asks at most once per day. `moodByDay` holds what was picked.
+  String? lastMoodPromptDay;
+  Map<String, String> moodByDay;
+
+  /// Day the evening reflection popup was last shown/dismissed, so it also
+  /// asks at most once per day rather than nagging every time home opens.
+  String? lastEveningPromptDay;
+
   AppState({
     required this.tasksByDay,
     required this.habits,
@@ -287,6 +318,9 @@ class AppState {
     required this.visionItems,
     required this.pinHash,
     required this.biometricEnabled,
+    required this.lastMoodPromptDay,
+    required this.moodByDay,
+    required this.lastEveningPromptDay,
   });
 
   static AppState initial() => AppState(
@@ -330,6 +364,9 @@ class AppState {
         visionItems: <VisionItem>[],
         pinHash: null,
         biometricEnabled: false,
+        lastMoodPromptDay: null,
+        moodByDay: <String, String>{},
+        lastEveningPromptDay: null,
       );
 
   Map<String, dynamic> toJson() => {
@@ -352,6 +389,9 @@ class AppState {
         'visionItems': visionItems.map((v) => v.toJson()).toList(),
         'pinHash': pinHash,
         'biometricEnabled': biometricEnabled,
+        'lastMoodPromptDay': lastMoodPromptDay,
+        'moodByDay': moodByDay,
+        'lastEveningPromptDay': lastEveningPromptDay,
       };
 
   static AppState fromJson(Map<String, dynamic> json) {
@@ -458,6 +498,16 @@ class AppState {
     if (json['pinHash'] is String) state.pinHash = json['pinHash'] as String;
     if (json['biometricEnabled'] is bool) {
       state.biometricEnabled = json['biometricEnabled'] as bool;
+    }
+    if (json['lastMoodPromptDay'] is String) {
+      state.lastMoodPromptDay = json['lastMoodPromptDay'] as String;
+    }
+    final rawMood = json['moodByDay'];
+    if (rawMood is Map) {
+      state.moodByDay = rawMood.map((k, v) => MapEntry(k.toString(), v.toString()));
+    }
+    if (json['lastEveningPromptDay'] is String) {
+      state.lastEveningPromptDay = json['lastEveningPromptDay'] as String;
     }
 
     return state;
