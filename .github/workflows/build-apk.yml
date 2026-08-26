@@ -36,6 +36,17 @@ jobs:
       - name: Apply Firebase config
         run: cp android_overrides/google-services.json android/app/google-services.json
 
+      # The home-screen widget's native provider — `flutter create` never
+      # generates this, so it's copied in fresh every run, same idea as the
+      # manifest and Firebase config above.
+      - name: Add the home screen widget (native provider)
+        run: |
+          mkdir -p android/app/src/main/kotlin/ai/aandccreative/ritualist
+          cp android_overrides/widget/HabitsWidgetProvider.kt android/app/src/main/kotlin/ai/aandccreative/ritualist/HabitsWidgetProvider.kt
+          mkdir -p android/app/src/main/res/xml android/app/src/main/res/layout
+          cp android_overrides/widget/habits_widget_info.xml android/app/src/main/res/xml/habits_widget_info.xml
+          cp android_overrides/widget/habits_widget.xml android/app/src/main/res/layout/habits_widget.xml
+
       - name: Set SDK levels and enable core library desugaring
         run: |
           GRADLE_FILE=android/app/build.gradle.kts

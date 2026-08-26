@@ -7,6 +7,7 @@ import 'screens/lock_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/auth_service.dart';
 import 'services/cloud_sync.dart';
+import 'services/home_widget_service.dart';
 import 'store.dart';
 import 'theme.dart';
 
@@ -14,6 +15,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Notifications.instance.init();
   await store.load();
+  HomeWidgetService.instance.wire();
   // Firebase reads its config from android/app/google-services.json (baked
   // in at build time) — no explicit FirebaseOptions needed on Android. If
   // it's ever missing (a local dev build without the file), sign-in/sync
