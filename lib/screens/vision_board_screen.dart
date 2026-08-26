@@ -163,22 +163,32 @@ class VisionBoardScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        builder: (context, setState) {
+          final keyboard = MediaQuery.of(context).viewInsets.bottom;
+          return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, keyboard + 24),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height - keyboard - 80),
+            child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             decoration: BoxDecoration(
-              color: Surfaces.card(dark),
+              // Opaque — see HabitEditorSheet's note on Surfaces.sheet.
+              color: Surfaces.sheet(dark),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: SingleChildScrollView(
-              child: Column(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('New tile', style: display(18, Surfaces.heading(dark))),
                 const SizedBox(height: 16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                 InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () async {
@@ -218,16 +228,21 @@ class VisionBoardScreen extends StatelessWidget {
                   decoration: const InputDecoration(
                       hintText: 'A word or sentence for this tile'),
                 ),
-                const SizedBox(height: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 GoldButton(
                   labelText: 'Save tile',
                   onPressed: () => Navigator.pop(context, true),
                 ),
               ],
-              ),
+            ),
             ),
           ),
-        ),
+          );
+        },
       ),
     );
 
@@ -425,21 +440,31 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      padding: EdgeInsets.fromLTRB(20, 20, 20, keyboard + 20),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height - keyboard - 80),
+        child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         decoration: BoxDecoration(
-          color: Surfaces.card(dark),
+          // Opaque — see HabitEditorSheet's note on Surfaces.sheet.
+          color: Surfaces.sheet(dark),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Customize tile', style: display(18, Surfaces.heading(dark))),
-              const SizedBox(height: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Customize tile', style: display(18, Surfaces.heading(dark))),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
               if (widget.item.imagePath != null) ...[
                 Text('DRAG TO REPOSITION · PINCH TO ZOOM',
                     style: label(Surfaces.eyebrow(dark))),
@@ -519,10 +544,14 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
                     ),
                 ],
               ),
-              const SizedBox(height: 20),
-              GoldButton(labelText: 'Save changes', onPressed: _save),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GoldButton(labelText: 'Save changes', onPressed: _save),
+          ],
+        ),
         ),
       ),
     );

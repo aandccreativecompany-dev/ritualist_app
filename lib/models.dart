@@ -411,6 +411,8 @@ const kAllModuleIds = [
   'reminders',
   'financeGoals',
   'healthGoals',
+  'mindsetGoals',
+  'relationshipsGoals',
 ];
 
 const kModuleTitles = {
@@ -425,6 +427,8 @@ const kModuleTitles = {
   'reminders': 'Daily reminders',
   'financeGoals': 'Finance & money goals',
   'healthGoals': 'Health & body',
+  'mindsetGoals': 'Mindset & growth',
+  'relationshipsGoals': 'Relationships & connection',
 };
 
 /// The five habits every fresh install starts with — still fully editable
@@ -465,6 +469,8 @@ const kProductivityModuleIds = ['priorities', 'habits', 'tips', 'reminders'];
 const kOutcomeModuleIds = ['scripting', 'eveningReflection', 'visionBoard', 'mindMap'];
 const kFinanceModuleIds = ['financeGoals'];
 const kHealthModuleIds = ['healthGoals'];
+const kMindsetModuleIds = ['mindsetGoals'];
+const kRelationshipsModuleIds = ['relationshipsGoals'];
 
 /// Onboarding presets — set by the quiz, changeable any time from settings.
 const kPresetFocus = 'focus';
@@ -529,10 +535,13 @@ class AppState {
   /// informational (shown as "Currently: <name>" in the picker).
   String? visionBoardLayoutName;
 
-  /// Finance & Money and Health & Body are simple goal checklists, same
-  /// shape as weekly/monthly goals, each its own swipeable home card.
+  /// Finance & Money, Health & Body, Mindset & Growth and Relationships &
+  /// Connection are simple goal checklists, same shape as weekly/monthly
+  /// goals, each its own swipeable home card.
   List<Task> financeGoals;
   List<Task> healthGoals;
+  List<Task> mindsetGoals;
+  List<Task> relationshipsGoals;
 
   /// Free-text notes the user can add to the organized mind map, one per
   /// period tab ('day' | 'week' | 'month').
@@ -542,6 +551,12 @@ class AppState {
   bool widgetShowHabits;
   bool widgetShowPriorities;
   bool widgetShowMantra;
+
+  /// Which specific habits appear in the widget's checklist — empty means
+  /// "all of them" (the widget itself still caps at 5 for space). Lets
+  /// someone with a long habit list pick just the ones they want glanceable
+  /// on the home screen instead of always getting the first five.
+  List<String> widgetHabitIds;
 
   /// Whether the one-time "swipe for more" hint on the home screen has
   /// already been shown.
@@ -575,10 +590,13 @@ class AppState {
     this.visionBoardLayoutName,
     required this.financeGoals,
     required this.healthGoals,
+    required this.mindsetGoals,
+    required this.relationshipsGoals,
     required this.mindMapNotes,
     required this.widgetShowHabits,
     required this.widgetShowPriorities,
     required this.widgetShowMantra,
+    required this.widgetHabitIds,
     required this.hasSeenSwipeHint,
   });
 
@@ -629,10 +647,13 @@ class AppState {
         visionBoardLayoutName: null,
         financeGoals: <Task>[],
         healthGoals: <Task>[],
+        mindsetGoals: <Task>[],
+        relationshipsGoals: <Task>[],
         mindMapNotes: <String, String>{},
         widgetShowHabits: true,
         widgetShowPriorities: true,
         widgetShowMantra: true,
+        widgetHabitIds: <String>[],
         hasSeenSwipeHint: false,
       );
 
@@ -666,10 +687,13 @@ class AppState {
         'visionBoardLayoutName': visionBoardLayoutName,
         'financeGoals': financeGoals.map((t) => t.toJson()).toList(),
         'healthGoals': healthGoals.map((t) => t.toJson()).toList(),
+        'mindsetGoals': mindsetGoals.map((t) => t.toJson()).toList(),
+        'relationshipsGoals': relationshipsGoals.map((t) => t.toJson()).toList(),
         'mindMapNotes': mindMapNotes,
         'widgetShowHabits': widgetShowHabits,
         'widgetShowPriorities': widgetShowPriorities,
         'widgetShowMantra': widgetShowMantra,
+        'widgetHabitIds': widgetHabitIds,
         'hasSeenSwipeHint': hasSeenSwipeHint,
       };
 
@@ -820,6 +844,16 @@ class AppState {
       state.healthGoals =
           rawHealth.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
     }
+    final rawMindset = json['mindsetGoals'];
+    if (rawMindset is List) {
+      state.mindsetGoals =
+          rawMindset.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
+    final rawRelationships = json['relationshipsGoals'];
+    if (rawRelationships is List) {
+      state.relationshipsGoals =
+          rawRelationships.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
     final rawMindMap = json['mindMapNotes'];
     if (rawMindMap is Map) {
       state.mindMapNotes = rawMindMap.map((k, v) => MapEntry(k.toString(), v.toString()));
@@ -832,6 +866,10 @@ class AppState {
     }
     if (json['widgetShowMantra'] is bool) {
       state.widgetShowMantra = json['widgetShowMantra'] as bool;
+    }
+    final rawWidgetHabitIds = json['widgetHabitIds'];
+    if (rawWidgetHabitIds is List) {
+      state.widgetHabitIds = rawWidgetHabitIds.map((e) => e.toString()).toList();
     }
     if (json['hasSeenSwipeHint'] is bool) {
       state.hasSeenSwipeHint = json['hasSeenSwipeHint'] as bool;

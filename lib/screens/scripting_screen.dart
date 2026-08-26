@@ -133,66 +133,92 @@ class ScriptingScreen extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-          decoration: BoxDecoration(
-            color: Surfaces.card(dark),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(script == null ? 'New script' : 'Edit script',
-                  style: display(18, Surfaces.heading(dark))),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleCtrl,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                style: body(15, Surfaces.bodyText(dark), weight: FontWeight.w600),
-                decoration: const InputDecoration(hintText: 'What outcome?'),
+      builder: (context) {
+        final keyboard = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, keyboard + 20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height - keyboard - 80),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              decoration: BoxDecoration(
+                // Opaque — see HabitEditorSheet's note on Surfaces.sheet.
+                color: Surfaces.sheet(dark),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: bodyCtrl,
-                maxLines: 5,
-                textCapitalization: TextCapitalization.sentences,
-                style: body(14, Surfaces.bodyText(dark)),
-                decoration: const InputDecoration(
-                    hintText: 'Write it as if it already happened…'),
-              ),
-              const SizedBox(height: 16),
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (script != null)
-                    TextButton(
-                      onPressed: () async {
-                        await store.removeScript(script);
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          toastSaved(context, label: 'Removed');
-                        }
-                      },
-                      child: Text('Delete',
-                          style: body(13, Colors.redAccent, weight: FontWeight.w600)),
+                  Text(script == null ? 'New script' : 'Edit script',
+                      style: display(18, Surfaces.heading(dark))),
+                  const SizedBox(height: 16),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextField(
+                            controller: titleCtrl,
+                            autofocus: true,
+                            textCapitalization: TextCapitalization.sentences,
+                            style: body(15, Surfaces.bodyText(dark),
+                                weight: FontWeight.w600),
+                            decoration:
+                                const InputDecoration(hintText: 'What outcome?'),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: bodyCtrl,
+                            maxLines: 5,
+                            minLines: 3,
+                            textCapitalization: TextCapitalization.sentences,
+                            style: body(14, Surfaces.bodyText(dark)),
+                            decoration: const InputDecoration(
+                                hintText: 'Write it as if it already happened…'),
+                          ),
+                        ],
+                      ),
                     ),
-                  const Spacer(),
-                  GoldButton(
-                    labelText: 'Save',
-                    onPressed: () => Navigator.pop(context, 'save'),
+                  ),
+                  const SizedBox(height: 14),
+                  // Pinned outside the scroll area, on purpose — this is the
+                  // save button users reported not being able to find; it now
+                  // always stays visible above the keyboard instead of
+                  // requiring a scroll past a 5-line text field to find it.
+                  Row(
+                    children: [
+                      if (script != null)
+                        TextButton(
+                          onPressed: () async {
+                            await store.removeScript(script);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              toastSaved(context, label: 'Removed');
+                            }
+                          },
+                          child: Text('Delete',
+                              style: body(13, Colors.redAccent,
+                                  weight: FontWeight.w600)),
+                        ),
+                      const Spacer(),
+                      SizedBox(
+                        width: script != null ? 140 : double.infinity,
+                        child: GoldButton(
+                          labelText: 'Save',
+                          onPressed: () => Navigator.pop(context, 'save'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     if (result == 'save') {

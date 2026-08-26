@@ -335,23 +335,35 @@ class _HabitEditorSheetState extends State<HabitEditorSheet> {
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final keyboard = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-        decoration: BoxDecoration(
-          color: Surfaces.card(dark),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: keyboard),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height - keyboard - 60),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+          decoration: BoxDecoration(
+            // Opaque — a bottom sheet floats over whatever screen is behind
+            // it, and Surfaces.card's near-transparent dark-mode fill let
+            // that content bleed through and made this sheet's own text
+            // unreadable.
+            color: Surfaces.sheet(dark),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.initialName.isEmpty ? 'New habit' : 'Edit habit',
-                style: display(18, Surfaces.heading(dark))),
-            const SizedBox(height: 16),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.initialName.isEmpty ? 'New habit' : 'Edit habit',
+                  style: display(18, Surfaces.heading(dark))),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
             TextField(
               controller: _controller,
               autofocus: true,
@@ -421,15 +433,19 @@ class _HabitEditorSheetState extends State<HabitEditorSheet> {
                   ),
               ],
             ),
-            const SizedBox(height: 22),
-            GoldButton(
-              labelText: widget.initialName.isEmpty ? 'Add habit' : 'Save',
-              onPressed: () {
-                if (_controller.text.trim().isEmpty) return;
-                Navigator.pop(context, (_controller.text, _icon, _color));
-              },
-            ),
-          ],
+                  ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              GoldButton(
+                labelText: widget.initialName.isEmpty ? 'Add habit' : 'Save',
+                onPressed: () {
+                  if (_controller.text.trim().isEmpty) return;
+                  Navigator.pop(context, (_controller.text, _icon, _color));
+                },
+              ),
+            ],
           ),
         ),
       ),

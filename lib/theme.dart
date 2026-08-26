@@ -56,6 +56,12 @@ class Surfaces {
   static Color card(bool dark) =>
       dark ? Colors.white.withValues(alpha: 0.04) : Colors.white;
 
+  /// A fully opaque surface for anything that floats above other content —
+  /// modal bottom sheets, dialogs — where [card]'s near-transparent dark-mode
+  /// fill let whatever's underneath bleed through and made the sheet's own
+  /// text unreadable.
+  static Color sheet(bool dark) => dark ? Brand.base : Colors.white;
+
   static Color cardBorder(bool dark) => dark
       ? Brand.gold.withValues(alpha: 0.18)
       : Brand.base.withValues(alpha: 0.10);
