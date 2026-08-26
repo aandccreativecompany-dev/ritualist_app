@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/auth_service.dart';
+import '../services/home_widget_service.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'feedback_screen.dart';
 import 'lock_screen.dart';
 import 'module_picker_screen.dart';
 import 'weekly_review_screen.dart';
@@ -286,7 +288,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   value: store.widgetShowMantra,
                                   onChanged: (v) => store.setWidgetShowMantra(v),
                                 ),
+                                if (store.widgetShowHabits && store.habits.isNotEmpty) ...[
+                                  _divider(dark),
+                                  const SizedBox(height: 4),
+                                  Text('WHICH HABITS SHOW',
+                                      style: label(Surfaces.eyebrow(dark))),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Pick specific habits, or leave all selected — the widget shows up to 5.',
+                                    style: body(11.5, Surfaces.muted(dark)),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final h in store.habits)
+                                        InkWell(
+                                          borderRadius: BorderRadius.circular(20),
+                                          onTap: () async {
+                                            await store.toggleWidgetHabit(h.id);
+                                            if (context.mounted) toastSaved(context);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 7),
+                                            decoration: BoxDecoration(
+                                              color: store.widgetHabitSelected(h.id)
+                                                  ? Surfaces.accent(dark)
+                                                      .withValues(alpha: 0.16)
+                                                  : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(
+                                                color: store.widgetHabitSelected(h.id)
+                                                    ? Surfaces.accent(dark)
+                                                    : Surfaces.accentBorder(dark),
+                                              ),
+                                            ),
+                                            child: Text(h.name,
+                                                style: body(
+                                                    11.5,
+                                                    store.widgetHabitSelected(h.id)
+                                                        ? Surfaces.accent(dark)
+                                                        : Surfaces.muted(dark),
+                                                    weight: FontWeight.w600)),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                                const SizedBox(height: 14),
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    await HomeWidgetService.instance.forceRefresh();
+                                    if (context.mounted) {
+                                      toastSaved(context, label: 'Widget refreshed');
+                                    }
+                                  },
+                                  style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      alignment: Alignment.centerLeft),
+                                  icon: Icon(Icons.refresh,
+                                      size: 16, color: Surfaces.accent(dark)),
+                                  label: Text('Refresh widget now',
+                                      style: body(13, Surfaces.accent(dark),
+                                          weight: FontWeight.w600)),
+                                ),
                               ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('FEEDBACK', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            padding: EdgeInsets.zero,
+                            child: _NavRow(
+                              icon: Icons.forum_outlined,
+                              title: 'Send feedback or a fix request',
+                              subtitle: 'Goes straight to the team\'s inbox',
+                              onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const FeedbackScreen())),
                             ),
                           ),
                           const SizedBox(height: 22),
@@ -391,7 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.7',
+                                Text('Prakriyā 0.2.8',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),

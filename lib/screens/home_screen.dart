@@ -112,6 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final id in kHealthModuleIds)
             if (visible.contains(id)) _itemFor(id),
         ];
+        final mindsetItems = [
+          for (final id in kMindsetModuleIds)
+            if (visible.contains(id)) _itemFor(id),
+        ];
+        final relationshipsItems = [
+          for (final id in kRelationshipsModuleIds)
+            if (visible.contains(id)) _itemFor(id),
+        ];
         final pages = [
           if (productivityItems.isNotEmpty)
             _SectionPage(title: 'Productivity', items: productivityItems),
@@ -121,6 +129,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _SectionPage(title: 'Finance & money', items: financeItems),
           if (healthItems.isNotEmpty)
             _SectionPage(title: 'Health & body', items: healthItems),
+          if (mindsetItems.isNotEmpty)
+            _SectionPage(title: 'Mindset & growth', items: mindsetItems),
+          if (relationshipsItems.isNotEmpty)
+            _SectionPage(
+                title: 'Relationships & connection', items: relationshipsItems),
         ];
 
         return Scaffold(
@@ -263,6 +276,10 @@ class _HomeScreenState extends State<HomeScreen> {
         return const _FinanceGoalsContent();
       case 'healthGoals':
         return const _HealthGoalsContent();
+      case 'mindsetGoals':
+        return const _MindsetGoalsContent();
+      case 'relationshipsGoals':
+        return const _RelationshipsGoalsContent();
       default:
         return const SizedBox.shrink();
     }
@@ -970,210 +987,187 @@ class _SwipeHintState extends State<_SwipeHint> with SingleTickerProviderStateMi
 /// Simple checklist for money-related intentions — savings targets, debt
 /// payoff steps, budget checkpoints — same interaction as weekly/monthly
 /// goals, its own swipeable home card.
-class _FinanceGoalsContent extends StatefulWidget {
+/// A generic goal checklist — add, check off, remove, all with a save
+/// confirmation — reused by Finance & money, Health & body, Mindset &
+/// growth, and Relationships & connection so those four cards share one
+/// implementation instead of four near-identical copies.
+class _GoalListContent extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String hint;
+  final String emptyText;
+  final List<Task> Function() goals;
+  final Future<void> Function(String title) onAdd;
+  final Future<void> Function(int index) onToggle;
+  final Future<void> Function(int index) onRemove;
+
+  const _GoalListContent({
+    required this.icon,
+    required this.title,
+    required this.hint,
+    required this.emptyText,
+    required this.goals,
+    required this.onAdd,
+    required this.onToggle,
+    required this.onRemove,
+  });
+
+  @override
+  State<_GoalListContent> createState() => _GoalListContentState();
+}
+
+class _GoalListContentState extends State<_GoalListContent> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_controller.text.trim().isEmpty) return;
+    await widget.onAdd(_controller.text);
+    _controller.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final goals = widget.goals();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ItemHeader(icon: widget.icon, title: widget.title),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                onSubmitted: (_) => _add(),
+                textCapitalization: TextCapitalization.sentences,
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: widget.hint,
+                  hintStyle: body(13, Surfaces.muted(dark)),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _add,
+              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
+            ),
+          ],
+        ),
+        if (goals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(widget.emptyText, style: body(13, Surfaces.muted(dark))),
+          ),
+        for (var i = 0; i < goals.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(
+              children: [
+                CheckSquare(
+                  checked: goals[i].done,
+                  onTap: () async {
+                    await widget.onToggle(i);
+                    if (context.mounted) toastSaved(context);
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goals[i].title,
+                    style: body(13.5,
+                            goals[i].done ? Surfaces.muted(dark) : Surfaces.bodyText(dark),
+                            weight: FontWeight.w500)
+                        .copyWith(
+                            decoration:
+                                goals[i].done ? TextDecoration.lineThrough : TextDecoration.none),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async {
+                    await widget.onRemove(i);
+                    if (context.mounted) toastSaved(context, label: 'Removed');
+                  },
+                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _FinanceGoalsContent extends StatelessWidget {
   const _FinanceGoalsContent();
-
   @override
-  State<_FinanceGoalsContent> createState() => _FinanceGoalsContentState();
+  Widget build(BuildContext context) => _GoalListContent(
+        icon: Icons.savings_outlined,
+        title: 'Finance & money goals',
+        hint: 'e.g. Save \$500 this month',
+        emptyText: 'Nothing set yet — add a money goal above.',
+        goals: () => store.financeGoals,
+        onAdd: store.addFinanceGoal,
+        onToggle: store.toggleFinanceGoal,
+        onRemove: store.removeFinanceGoal,
+      );
 }
 
-class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _add() async {
-    if (_controller.text.trim().isEmpty) return;
-    await store.addFinanceGoal(_controller.text);
-    _controller.clear();
-    if (mounted) {
-      FocusScope.of(context).unfocus();
-      toastSaved(context);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final goals = store.financeGoals;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _ItemHeader(icon: Icons.savings_outlined, title: 'Finance & money goals'),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                onSubmitted: (_) => _add(),
-                textCapitalization: TextCapitalization.sentences,
-                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'e.g. Save \$500 this month',
-                  hintStyle: body(13, Surfaces.muted(dark)),
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: _add,
-              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
-            ),
-          ],
-        ),
-        if (goals.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text('Nothing set yet — add a money goal above.',
-                style: body(13, Surfaces.muted(dark))),
-          ),
-        for (var i = 0; i < goals.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Row(
-              children: [
-                CheckSquare(
-                  checked: goals[i].done,
-                  onTap: () async {
-                    await store.toggleFinanceGoal(i);
-                    if (context.mounted) toastSaved(context);
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    goals[i].title,
-                    style: body(13.5,
-                            goals[i].done ? Surfaces.muted(dark) : Surfaces.bodyText(dark),
-                            weight: FontWeight.w500)
-                        .copyWith(
-                            decoration:
-                                goals[i].done ? TextDecoration.lineThrough : TextDecoration.none),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () async {
-                    await store.removeFinanceGoal(i);
-                    if (context.mounted) toastSaved(context, label: 'Removed');
-                  },
-                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Simple checklist for physical wellbeing goals — workouts, sleep targets,
-/// water intake, appointments — same interaction as Finance & money goals.
-class _HealthGoalsContent extends StatefulWidget {
+class _HealthGoalsContent extends StatelessWidget {
   const _HealthGoalsContent();
-
   @override
-  State<_HealthGoalsContent> createState() => _HealthGoalsContentState();
+  Widget build(BuildContext context) => _GoalListContent(
+        icon: Icons.favorite_border,
+        title: 'Health & body',
+        hint: 'e.g. Drink 8 glasses of water',
+        emptyText: 'Nothing set yet — add a health goal above.',
+        goals: () => store.healthGoals,
+        onAdd: store.addHealthGoal,
+        onToggle: store.toggleHealthGoal,
+        onRemove: store.removeHealthGoal,
+      );
 }
 
-class _HealthGoalsContentState extends State<_HealthGoalsContent> {
-  final _controller = TextEditingController();
-
+class _MindsetGoalsContent extends StatelessWidget {
+  const _MindsetGoalsContent();
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) => _GoalListContent(
+        icon: Icons.psychology_outlined,
+        title: 'Mindset & growth',
+        hint: 'e.g. Reframe one limiting belief',
+        emptyText: 'Nothing set yet — add a mindset goal above.',
+        goals: () => store.mindsetGoals,
+        onAdd: store.addMindsetGoal,
+        onToggle: store.toggleMindsetGoal,
+        onRemove: store.removeMindsetGoal,
+      );
+}
 
-  Future<void> _add() async {
-    if (_controller.text.trim().isEmpty) return;
-    await store.addHealthGoal(_controller.text);
-    _controller.clear();
-    if (mounted) {
-      FocusScope.of(context).unfocus();
-      toastSaved(context);
-    }
-  }
-
+class _RelationshipsGoalsContent extends StatelessWidget {
+  const _RelationshipsGoalsContent();
   @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final goals = store.healthGoals;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _ItemHeader(icon: Icons.favorite_border, title: 'Health & body'),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                onSubmitted: (_) => _add(),
-                textCapitalization: TextCapitalization.sentences,
-                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
-                decoration: InputDecoration(
-                  isDense: true,
-                  hintText: 'e.g. Drink 8 glasses of water',
-                  hintStyle: body(13, Surfaces.muted(dark)),
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: _add,
-              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
-            ),
-          ],
-        ),
-        if (goals.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text('Nothing set yet — add a health goal above.',
-                style: body(13, Surfaces.muted(dark))),
-          ),
-        for (var i = 0; i < goals.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(top: 10),
-            child: Row(
-              children: [
-                CheckSquare(
-                  checked: goals[i].done,
-                  onTap: () async {
-                    await store.toggleHealthGoal(i);
-                    if (context.mounted) toastSaved(context);
-                  },
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    goals[i].title,
-                    style: body(13.5,
-                            goals[i].done ? Surfaces.muted(dark) : Surfaces.bodyText(dark),
-                            weight: FontWeight.w500)
-                        .copyWith(
-                            decoration:
-                                goals[i].done ? TextDecoration.lineThrough : TextDecoration.none),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () async {
-                    await store.removeHealthGoal(i);
-                    if (context.mounted) toastSaved(context, label: 'Removed');
-                  },
-                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => _GoalListContent(
+        icon: Icons.diversity_1_outlined,
+        title: 'Relationships & connection',
+        hint: 'e.g. Call someone you miss',
+        emptyText: 'Nothing set yet — add a connection goal above.',
+        goals: () => store.relationshipsGoals,
+        onAdd: store.addRelationshipsGoal,
+        onToggle: store.toggleRelationshipsGoal,
+        onRemove: store.removeRelationshipsGoal,
+      );
 }
 
 class _ReminderItem extends StatelessWidget {
@@ -1218,7 +1212,7 @@ class _MoodDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
-      backgroundColor: Surfaces.card(dark),
+      backgroundColor: Surfaces.sheet(dark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
@@ -1315,7 +1309,7 @@ class _EveningPromptDialogState extends State<_EveningPromptDialog> {
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Dialog(
-      backgroundColor: Surfaces.card(dark),
+      backgroundColor: Surfaces.sheet(dark),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(22, 24, 22, 18),

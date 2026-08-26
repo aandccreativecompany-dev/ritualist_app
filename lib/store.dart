@@ -480,6 +480,49 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  // ---- Mindset & Growth / Relationships & Connection goals ----
+
+  List<Task> get mindsetGoals => _state.mindsetGoals;
+  List<Task> get relationshipsGoals => _state.relationshipsGoals;
+
+  Future<void> addMindsetGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.mindsetGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleMindsetGoal(int index) async {
+    if (index < 0 || index >= _state.mindsetGoals.length) return;
+    _state.mindsetGoals[index].done = !_state.mindsetGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeMindsetGoal(int index) async {
+    if (index < 0 || index >= _state.mindsetGoals.length) return;
+    _state.mindsetGoals.removeAt(index);
+    await _commit();
+  }
+
+  Future<void> addRelationshipsGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.relationshipsGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleRelationshipsGoal(int index) async {
+    if (index < 0 || index >= _state.relationshipsGoals.length) return;
+    _state.relationshipsGoals[index].done = !_state.relationshipsGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeRelationshipsGoal(int index) async {
+    if (index < 0 || index >= _state.relationshipsGoals.length) return;
+    _state.relationshipsGoals.removeAt(index);
+    await _commit();
+  }
+
   // ---- Organized mind map ----
 
   /// Auto-computed performance snapshot for 'day' | 'week' | 'month'.
@@ -547,6 +590,22 @@ class Store extends ChangeNotifier {
     _state.widgetShowMantra = value;
     await _commit();
   }
+
+  /// Empty means "all habits" — the widget itself still caps at 5 for
+  /// space, but this lets someone with a longer list choose which ones.
+  List<String> get widgetHabitIds => _state.widgetHabitIds;
+
+  Future<void> toggleWidgetHabit(String habitId) async {
+    if (_state.widgetHabitIds.contains(habitId)) {
+      _state.widgetHabitIds.remove(habitId);
+    } else {
+      _state.widgetHabitIds.add(habitId);
+    }
+    await _commit();
+  }
+
+  bool widgetHabitSelected(String habitId) =>
+      _state.widgetHabitIds.isEmpty || _state.widgetHabitIds.contains(habitId);
 
   // ---- Home screen swipe hint ----
 

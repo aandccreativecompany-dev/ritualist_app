@@ -27,13 +27,19 @@ class HomeWidgetService {
     _push();
   }
 
+  /// Manual "update now" — used by the "Refresh widget now" button in
+  /// Settings so a change doesn't wait for the next automatic tick.
+  Future<void> forceRefresh() => _push();
+
   Future<void> _push() async {
     try {
       if (store.widgetShowHabits) {
         final today = DateTime.now();
+        final selected = store.habits
+            .where((h) => store.widgetHabitSelected(h.id))
+            .take(5);
         final habitsJson = jsonEncode([
-          for (final h in store.habits.take(5))
-            {'name': h.name, 'done': h.isDoneOn(today)},
+          for (final h in selected) {'name': h.name, 'done': h.isDoneOn(today)},
         ]);
         await HomeWidget.saveWidgetData<String>('widget_habits', habitsJson);
       } else {
