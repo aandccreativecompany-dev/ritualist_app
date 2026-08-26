@@ -258,6 +258,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 22),
+                          Text('HOME SCREEN WIDGET', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Add the Prakriyā widget to your Android home screen, then choose what shows on it.',
+                                  style: body(12.5, Surfaces.muted(dark)),
+                                ),
+                                const SizedBox(height: 14),
+                                _WidgetToggleRow(
+                                  label: "Today's habits checklist",
+                                  value: store.widgetShowHabits,
+                                  onChanged: (v) => store.setWidgetShowHabits(v),
+                                ),
+                                _divider(dark),
+                                _WidgetToggleRow(
+                                  label: 'Top to-do / priority',
+                                  value: store.widgetShowPriorities,
+                                  onChanged: (v) => store.setWidgetShowPriorities(v),
+                                ),
+                                _divider(dark),
+                                _WidgetToggleRow(
+                                  label: "Today's mantra",
+                                  value: store.widgetShowMantra,
+                                  onChanged: (v) => store.setWidgetShowMantra(v),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
                           Text('ACCOUNT', style: label(Surfaces.muted(dark))),
                           const SizedBox(height: 12),
                           ModuleCard(
@@ -359,7 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.4',
+                                Text('Prakriyā 0.2.7',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),
@@ -378,6 +410,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _WidgetToggleRow extends StatelessWidget {
+  final String label;
+  final bool value;
+  final Future<void> Function(bool) onChanged;
+  const _WidgetToggleRow({required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(label,
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500)),
+          ),
+          Switch(
+            value: value,
+            activeTrackColor: Surfaces.accent(dark),
+            onChanged: (v) async {
+              await onChanged(v);
+              if (context.mounted) toastSaved(context);
+            },
+          ),
+        ],
+      ),
     );
   }
 }

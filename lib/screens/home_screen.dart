@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import 'evening_reflection_screen.dart';
 import 'habit_detail_screen.dart';
+import 'mind_map_screen.dart';
 import 'monthly_goals_screen.dart';
 import 'quote_screen.dart';
 import 'reminders_screen.dart';
@@ -40,6 +41,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _pageController = PageController();
   int _page = 0;
+  bool _hintDismissed = false;
   late final String _mascotGreeting = kMascotGreetings[
       DateTime.now().millisecondsSinceEpoch % kMascotGreetings.length];
 
@@ -47,6 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDailyPrompts());
+    Future.delayed(const Duration(seconds: 5), _dismissHint);
+  }
+
+  void _dismissHint() {
+    if (_hintDismissed || !mounted) return;
+    setState(() => _hintDismissed = true);
+    store.markSwipeHintSeen();
   }
 
   Future<void> _refresh() async {
@@ -95,11 +104,23 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final id in kOutcomeModuleIds)
             if (visible.contains(id)) _itemFor(id),
         ];
+        final financeItems = [
+          for (final id in kFinanceModuleIds)
+            if (visible.contains(id)) _itemFor(id),
+        ];
+        final healthItems = [
+          for (final id in kHealthModuleIds)
+            if (visible.contains(id)) _itemFor(id),
+        ];
         final pages = [
           if (productivityItems.isNotEmpty)
             _SectionPage(title: 'Productivity', items: productivityItems),
           if (outcomeItems.isNotEmpty)
             _SectionPage(title: 'Outcome engineering', items: outcomeItems),
+          if (financeItems.isNotEmpty)
+            _SectionPage(title: 'Finance & money', items: financeItems),
+          if (healthItems.isNotEmpty)
+            _SectionPage(title: 'Health & body', items: healthItems),
         ];
 
         return Scaffold(
@@ -136,7 +157,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     return PageView.builder(
                                       controller: _pageController,
                                       itemCount: pages.length,
-                                      onPageChanged: (i) => setState(() => _page = i),
+                                      onPageChanged: (i) {
+                                        setState(() => _page = i);
+                                        _dismissHint();
+                                      },
                                       itemBuilder: (context, i) {
                                         var scale = 1.0;
                                         if (_pageController.position.haveDimensions) {
@@ -187,15 +211,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 6),
                     ],
                   ),
-                  Positioned(
-                    top: 4,
-                    left: 0,
-                    right: 0,
-                    child: GreetingMascot(
-                      avatarGender: store.avatarGender,
-                      greeting: _mascotGreeting,
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: const Alignment(0, -0.05),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 118,
+                          child: GreetingMascot(
+                            avatarGender: store.avatarGender,
+                            greeting: _mascotGreeting,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
+                  if (pages.length > 1 && !store.hasSeenSwipeHint && !_hintDismissed)
+                    Positioned(
+                      right: 30,
+                      bottom: 70,
+                      child: IgnorePointer(child: _SwipeHint(dark: dark)),
+                    ),
                 ],
               ),
             ),
@@ -221,6 +257,12 @@ class _HomeScreenState extends State<HomeScreen> {
         return const _ScriptingItem();
       case 'visionBoard':
         return const _VisionBoardItem();
+      case 'mindMap':
+        return const _MindMapItem();
+      case 'financeGoals':
+        return const _FinanceGoalsContent();
+      case 'healthGoals':
+        return const _HealthGoalsContent();
       default:
         return const SizedBox.shrink();
     }
@@ -834,6 +876,302 @@ class _VisionBoardItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MindMapItem extends StatelessWidget {
+  const _MindMapItem();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const MindMapScreen())),
+      child: _ItemHeader(
+        icon: Icons.account_tree_outlined,
+        title: 'Organized mind map',
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Day · week · month',
+                style: body(12, Surfaces.muted(dark))),
+            const SizedBox(width: 6),
+            Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A one-time "swipe for more" nudge — a hand icon that drifts left/right
+/// and fades, so first-time users notice the home cards are swipeable
+/// instead of assuming Productivity is the whole app.
+class _SwipeHint extends StatefulWidget {
+  final bool dark;
+  const _SwipeHint({required this.dark});
+
+  @override
+  State<_SwipeHint> createState() => _SwipeHintState();
+}
+
+class _SwipeHintState extends State<_SwipeHint> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        return Opacity(
+          opacity: 0.55 + (t * 0.35),
+          child: Transform.translate(offset: Offset(-10 + (t * 14), 0), child: child),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Surfaces.accent(widget.dark).withValues(alpha: 0.85),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.swipe, color: Brand.deep, size: 15),
+            const SizedBox(width: 5),
+            Text('Swipe for more',
+                style: body(11, Brand.deep, weight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Simple checklist for money-related intentions — savings targets, debt
+/// payoff steps, budget checkpoints — same interaction as weekly/monthly
+/// goals, its own swipeable home card.
+class _FinanceGoalsContent extends StatefulWidget {
+  const _FinanceGoalsContent();
+
+  @override
+  State<_FinanceGoalsContent> createState() => _FinanceGoalsContentState();
+}
+
+class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_controller.text.trim().isEmpty) return;
+    await store.addFinanceGoal(_controller.text);
+    _controller.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final goals = store.financeGoals;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _ItemHeader(icon: Icons.savings_outlined, title: 'Finance & money goals'),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                onSubmitted: (_) => _add(),
+                textCapitalization: TextCapitalization.sentences,
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'e.g. Save \$500 this month',
+                  hintStyle: body(13, Surfaces.muted(dark)),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _add,
+              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
+            ),
+          ],
+        ),
+        if (goals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text('Nothing set yet — add a money goal above.',
+                style: body(13, Surfaces.muted(dark))),
+          ),
+        for (var i = 0; i < goals.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(
+              children: [
+                CheckSquare(
+                  checked: goals[i].done,
+                  onTap: () async {
+                    await store.toggleFinanceGoal(i);
+                    if (context.mounted) toastSaved(context);
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goals[i].title,
+                    style: body(13.5,
+                            goals[i].done ? Surfaces.muted(dark) : Surfaces.bodyText(dark),
+                            weight: FontWeight.w500)
+                        .copyWith(
+                            decoration:
+                                goals[i].done ? TextDecoration.lineThrough : TextDecoration.none),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async {
+                    await store.removeFinanceGoal(i);
+                    if (context.mounted) toastSaved(context, label: 'Removed');
+                  },
+                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Simple checklist for physical wellbeing goals — workouts, sleep targets,
+/// water intake, appointments — same interaction as Finance & money goals.
+class _HealthGoalsContent extends StatefulWidget {
+  const _HealthGoalsContent();
+
+  @override
+  State<_HealthGoalsContent> createState() => _HealthGoalsContentState();
+}
+
+class _HealthGoalsContentState extends State<_HealthGoalsContent> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_controller.text.trim().isEmpty) return;
+    await store.addHealthGoal(_controller.text);
+    _controller.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final goals = store.healthGoals;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _ItemHeader(icon: Icons.favorite_border, title: 'Health & body'),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                onSubmitted: (_) => _add(),
+                textCapitalization: TextCapitalization.sentences,
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'e.g. Drink 8 glasses of water',
+                  hintStyle: body(13, Surfaces.muted(dark)),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _add,
+              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
+            ),
+          ],
+        ),
+        if (goals.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text('Nothing set yet — add a health goal above.',
+                style: body(13, Surfaces.muted(dark))),
+          ),
+        for (var i = 0; i < goals.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: Row(
+              children: [
+                CheckSquare(
+                  checked: goals[i].done,
+                  onTap: () async {
+                    await store.toggleHealthGoal(i);
+                    if (context.mounted) toastSaved(context);
+                  },
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goals[i].title,
+                    style: body(13.5,
+                            goals[i].done ? Surfaces.muted(dark) : Surfaces.bodyText(dark),
+                            weight: FontWeight.w500)
+                        .copyWith(
+                            decoration:
+                                goals[i].done ? TextDecoration.lineThrough : TextDecoration.none),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async {
+                    await store.removeHealthGoal(i);
+                    if (context.mounted) toastSaved(context, label: 'Removed');
+                  },
+                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

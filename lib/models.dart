@@ -143,13 +143,25 @@ class Script {
   String title;
   String body;
 
-  Script({required this.title, required this.body});
+  /// When this script was first saved — shown on its card so it's obvious
+  /// at a glance that saving actually happened, not just a passing toast.
+  DateTime createdAt;
 
-  Map<String, dynamic> toJson() => {'title': title, 'body': body};
+  Script({required this.title, required this.body, DateTime? createdAt})
+      : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'body': body,
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   static Script fromJson(Map<String, dynamic> json) => Script(
         title: (json['title'] ?? '') as String,
         body: (json['body'] ?? '') as String,
+        createdAt: json['createdAt'] is String
+            ? DateTime.tryParse(json['createdAt'] as String)
+            : null,
       );
 }
 
@@ -197,17 +209,179 @@ class VisionItem {
   int colorIndex;
   String? imagePath;
 
-  VisionItem({required this.caption, this.colorIndex = 0, this.imagePath});
+  /// Per-tile shape — one of [kVisionShapes]. Empty string means "use the
+  /// board's default shape" (back-compat with boards saved before every tile
+  /// could have its own shape).
+  String shape;
 
-  Map<String, dynamic> toJson() =>
-      {'caption': caption, 'colorIndex': colorIndex, 'imagePath': imagePath};
+  /// How many grid cells this tile spans, out of the masonry grid's fixed
+  /// column count — lets tiles be small, wide, tall, or large instead of
+  /// uniform squares.
+  int spanX;
+  int spanY;
+
+  /// Where the image is centred inside its tile (0..1 fractional alignment)
+  /// and how far it's zoomed in — set by dragging/pinching in the tile editor
+  /// so a photo can be recomposed after the tile's shape or size changes.
+  double imageOffsetX;
+  double imageOffsetY;
+  double imageZoom;
+
+  VisionItem({
+    required this.caption,
+    this.colorIndex = 0,
+    this.imagePath,
+    this.shape = '',
+    this.spanX = 1,
+    this.spanY = 1,
+    this.imageOffsetX = 0.5,
+    this.imageOffsetY = 0.5,
+    this.imageZoom = 1.0,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'caption': caption,
+        'colorIndex': colorIndex,
+        'imagePath': imagePath,
+        'shape': shape,
+        'spanX': spanX,
+        'spanY': spanY,
+        'imageOffsetX': imageOffsetX,
+        'imageOffsetY': imageOffsetY,
+        'imageZoom': imageZoom,
+      };
 
   static VisionItem fromJson(Map<String, dynamic> json) => VisionItem(
         caption: (json['caption'] ?? '') as String,
         colorIndex: (json['colorIndex'] ?? 0) as int,
         imagePath: json['imagePath'] as String?,
+        shape: (json['shape'] ?? '') as String,
+        spanX: (json['spanX'] ?? 1) as int,
+        spanY: (json['spanY'] ?? 1) as int,
+        imageOffsetX: ((json['imageOffsetX'] ?? 0.5) as num).toDouble(),
+        imageOffsetY: ((json['imageOffsetY'] ?? 0.5) as num).toDouble(),
+        imageZoom: ((json['imageZoom'] ?? 1.0) as num).toDouble(),
       );
 }
+
+/// One curated arrangement of tile shapes/sizes a user can apply to their
+/// vision board in one tap, grouped into [kVisionLayoutCategories].
+class VisionLayoutSpec {
+  final String name;
+  final String category;
+  final List<(String shape, int spanX, int spanY)> slots;
+  const VisionLayoutSpec({required this.name, required this.category, required this.slots});
+}
+
+/// ~25 layouts across 5 categories, each a short recipe of (shape, spanX,
+/// spanY) slots. Applying one assigns its slots to the user's existing tiles
+/// in order (cycling if there are more tiles than slots).
+const kVisionLayoutCategories = [
+  'Classic Grid',
+  'Photo Collage',
+  'Mosaic',
+  'Minimal',
+  'Bold & Playful',
+];
+
+const List<VisionLayoutSpec> kVisionLayouts = [
+  // Classic Grid — even, uniform, calm.
+  VisionLayoutSpec(name: 'Even Squares', category: 'Classic Grid', slots: [
+    ('square', 1, 1), ('square', 1, 1), ('square', 1, 1), ('square', 1, 1),
+    ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Rounded Rows', category: 'Classic Grid', slots: [
+    ('roundedRect', 2, 1), ('roundedRect', 2, 1), ('roundedRect', 2, 1),
+  ]),
+  VisionLayoutSpec(name: 'Circle Grid', category: 'Classic Grid', slots: [
+    ('circle', 1, 1), ('circle', 1, 1), ('circle', 1, 1), ('circle', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Two Columns', category: 'Classic Grid', slots: [
+    ('square', 1, 1), ('square', 1, 1), ('roundedRect', 2, 1),
+    ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Wide Banner', category: 'Classic Grid', slots: [
+    ('roundedRect', 2, 1), ('square', 1, 1), ('square', 1, 1),
+    ('square', 1, 1), ('square', 1, 1),
+  ]),
+  // Photo Collage — one hero tile plus scattered smaller ones.
+  VisionLayoutSpec(name: 'Hero + Grid', category: 'Photo Collage', slots: [
+    ('roundedRect', 2, 2), ('square', 1, 1), ('square', 1, 1),
+    ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Corner Focus', category: 'Photo Collage', slots: [
+    ('square', 1, 1), ('roundedRect', 2, 2), ('square', 1, 1),
+    ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Center Stage', category: 'Photo Collage', slots: [
+    ('circle', 1, 1), ('roundedRect', 2, 2), ('circle', 1, 1),
+    ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Story Wall', category: 'Photo Collage', slots: [
+    ('roundedRect', 1, 2), ('square', 1, 1), ('square', 1, 1),
+    ('roundedRect', 1, 2), ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Scrapbook', category: 'Photo Collage', slots: [
+    ('star', 1, 1), ('square', 1, 1), ('roundedRect', 2, 1),
+    ('circle', 1, 1), ('square', 1, 1),
+  ]),
+  // Mosaic — varied spans, denser, more textured.
+  VisionLayoutSpec(name: 'Brick Mosaic', category: 'Mosaic', slots: [
+    ('square', 1, 1), ('square', 1, 1), ('roundedRect', 2, 1),
+    ('roundedRect', 2, 1), ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Staircase', category: 'Mosaic', slots: [
+    ('square', 1, 1), ('roundedRect', 1, 2), ('square', 1, 1),
+    ('roundedRect', 1, 2), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Puzzle', category: 'Mosaic', slots: [
+    ('hexagon', 1, 1), ('hexagon', 1, 1), ('roundedRect', 2, 1),
+    ('hexagon', 1, 1), ('hexagon', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Uneven Rows', category: 'Mosaic', slots: [
+    ('roundedRect', 2, 1), ('square', 1, 1), ('square', 1, 1),
+    ('square', 1, 1), ('roundedRect', 2, 1),
+  ]),
+  VisionLayoutSpec(name: 'Cluster', category: 'Mosaic', slots: [
+    ('circle', 1, 1), ('square', 1, 1), ('circle', 1, 1),
+    ('roundedRect', 2, 1), ('circle', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Diamond Cluster', category: 'Mosaic', slots: [
+    ('diamond', 1, 1), ('diamond', 1, 1), ('roundedRect', 2, 1),
+    ('diamond', 1, 1),
+  ]),
+  // Minimal — a few large, breathing tiles.
+  VisionLayoutSpec(name: 'One Big Focus', category: 'Minimal', slots: [
+    ('roundedRect', 2, 2),
+  ]),
+  VisionLayoutSpec(name: 'Two Pillars', category: 'Minimal', slots: [
+    ('roundedRect', 1, 2), ('roundedRect', 1, 2),
+  ]),
+  VisionLayoutSpec(name: 'Simple Trio', category: 'Minimal', slots: [
+    ('square', 1, 1), ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Wide & Clean', category: 'Minimal', slots: [
+    ('roundedRect', 2, 1), ('roundedRect', 2, 1),
+  ]),
+  VisionLayoutSpec(name: 'Single Circle Focus', category: 'Minimal', slots: [
+    ('circle', 2, 2),
+  ]),
+  // Bold & Playful — stars, hearts, diamonds, mixed shapes.
+  VisionLayoutSpec(name: 'Star Power', category: 'Bold & Playful', slots: [
+    ('star', 1, 1), ('star', 1, 1), ('roundedRect', 2, 1), ('star', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Heart of It', category: 'Bold & Playful', slots: [
+    ('heart', 2, 2), ('square', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Mixed Shapes', category: 'Bold & Playful', slots: [
+    ('star', 1, 1), ('circle', 1, 1), ('heart', 1, 1),
+    ('diamond', 1, 1), ('hexagon', 1, 1), ('square', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Celebration', category: 'Bold & Playful', slots: [
+    ('star', 1, 1), ('heart', 1, 1), ('roundedRect', 2, 1),
+    ('star', 1, 1), ('heart', 1, 1),
+  ]),
+];
 
 /// Visibility + order of one home-screen card. Order in the list is display order.
 class ModuleConfig {
@@ -233,7 +407,10 @@ const kAllModuleIds = [
   'scripting',
   'eveningReflection',
   'visionBoard',
+  'mindMap',
   'reminders',
+  'financeGoals',
+  'healthGoals',
 ];
 
 const kModuleTitles = {
@@ -244,7 +421,10 @@ const kModuleTitles = {
   'scripting': 'Scripting',
   'eveningReflection': 'Evening reflection',
   'visionBoard': 'Vision board',
+  'mindMap': 'Organized mind map',
   'reminders': 'Daily reminders',
+  'financeGoals': 'Finance & money goals',
+  'healthGoals': 'Health & body',
 };
 
 /// The five habits every fresh install starts with — still fully editable
@@ -257,14 +437,34 @@ List<Habit> defaultHabits() => [
       Habit(name: 'Learn something new', iconIndex: 2, colorIndex: 4),
     ];
 
-/// Vision board tile shapes the user can switch between.
-const kVisionShapes = ['square', 'circle', 'star'];
+/// Vision board tile shapes the user can switch between — either as the
+/// board-wide default or per individual tile.
+const kVisionShapes = [
+  'square',
+  'circle',
+  'star',
+  'heart',
+  'hexagon',
+  'diamond',
+  'roundedRect',
+];
 
-/// Which section of the two-card home ("Productivity" / "Outcome
-/// engineering") each module lives in. `mantra` isn't listed — it sits
-/// above both as a standalone banner, not inside either section.
+const kVisionShapeLabels = {
+  'square': 'Square',
+  'circle': 'Circle',
+  'star': 'Star',
+  'heart': 'Heart',
+  'hexagon': 'Hexagon',
+  'diamond': 'Diamond',
+  'roundedRect': 'Wide',
+};
+
+/// Which section of the swipeable home each module lives in. `mantra` isn't
+/// listed — it sits above every section as a standalone banner.
 const kProductivityModuleIds = ['priorities', 'habits', 'tips', 'reminders'];
-const kOutcomeModuleIds = ['scripting', 'eveningReflection', 'visionBoard'];
+const kOutcomeModuleIds = ['scripting', 'eveningReflection', 'visionBoard', 'mindMap'];
+const kFinanceModuleIds = ['financeGoals'];
+const kHealthModuleIds = ['healthGoals'];
 
 /// Onboarding presets — set by the quiz, changeable any time from settings.
 const kPresetFocus = 'focus';
@@ -321,8 +521,31 @@ class AppState {
   /// Which cartoon character greets the user on open, chosen during setup.
   String avatarGender;
 
-  /// Vision board tile shape: 'square' | 'circle' | 'star'.
+  /// Vision board's default tile shape — used for any tile that hasn't set
+  /// its own individual shape.
   String visionBoardShape;
+
+  /// Name of the layout last applied from the 25-template gallery, purely
+  /// informational (shown as "Currently: <name>" in the picker).
+  String? visionBoardLayoutName;
+
+  /// Finance & Money and Health & Body are simple goal checklists, same
+  /// shape as weekly/monthly goals, each its own swipeable home card.
+  List<Task> financeGoals;
+  List<Task> healthGoals;
+
+  /// Free-text notes the user can add to the organized mind map, one per
+  /// period tab ('day' | 'week' | 'month').
+  Map<String, String> mindMapNotes;
+
+  /// Which content shows in the Android home-screen widget.
+  bool widgetShowHabits;
+  bool widgetShowPriorities;
+  bool widgetShowMantra;
+
+  /// Whether the one-time "swipe for more" hint on the home screen has
+  /// already been shown.
+  bool hasSeenSwipeHint;
 
   AppState({
     required this.tasksByDay,
@@ -349,6 +572,14 @@ class AppState {
     required this.monthlyGoals,
     required this.avatarGender,
     required this.visionBoardShape,
+    this.visionBoardLayoutName,
+    required this.financeGoals,
+    required this.healthGoals,
+    required this.mindMapNotes,
+    required this.widgetShowHabits,
+    required this.widgetShowPriorities,
+    required this.widgetShowMantra,
+    required this.hasSeenSwipeHint,
   });
 
   static AppState initial() => AppState(
@@ -395,6 +626,14 @@ class AppState {
         monthlyGoals: <Task>[],
         avatarGender: 'girl',
         visionBoardShape: 'square',
+        visionBoardLayoutName: null,
+        financeGoals: <Task>[],
+        healthGoals: <Task>[],
+        mindMapNotes: <String, String>{},
+        widgetShowHabits: true,
+        widgetShowPriorities: true,
+        widgetShowMantra: true,
+        hasSeenSwipeHint: false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -424,6 +663,14 @@ class AppState {
         'monthlyGoals': monthlyGoals.map((t) => t.toJson()).toList(),
         'avatarGender': avatarGender,
         'visionBoardShape': visionBoardShape,
+        'visionBoardLayoutName': visionBoardLayoutName,
+        'financeGoals': financeGoals.map((t) => t.toJson()).toList(),
+        'healthGoals': healthGoals.map((t) => t.toJson()).toList(),
+        'mindMapNotes': mindMapNotes,
+        'widgetShowHabits': widgetShowHabits,
+        'widgetShowPriorities': widgetShowPriorities,
+        'widgetShowMantra': widgetShowMantra,
+        'hasSeenSwipeHint': hasSeenSwipeHint,
       };
 
   static AppState fromJson(Map<String, dynamic> json) {
@@ -558,6 +805,36 @@ class AppState {
     if (json['visionBoardShape'] is String &&
         kVisionShapes.contains(json['visionBoardShape'])) {
       state.visionBoardShape = json['visionBoardShape'] as String;
+    }
+    if (json['visionBoardLayoutName'] is String) {
+      state.visionBoardLayoutName = json['visionBoardLayoutName'] as String;
+    }
+
+    final rawFinance = json['financeGoals'];
+    if (rawFinance is List) {
+      state.financeGoals =
+          rawFinance.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
+    final rawHealth = json['healthGoals'];
+    if (rawHealth is List) {
+      state.healthGoals =
+          rawHealth.whereType<Map<String, dynamic>>().map(Task.fromJson).toList();
+    }
+    final rawMindMap = json['mindMapNotes'];
+    if (rawMindMap is Map) {
+      state.mindMapNotes = rawMindMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+    }
+    if (json['widgetShowHabits'] is bool) {
+      state.widgetShowHabits = json['widgetShowHabits'] as bool;
+    }
+    if (json['widgetShowPriorities'] is bool) {
+      state.widgetShowPriorities = json['widgetShowPriorities'] as bool;
+    }
+    if (json['widgetShowMantra'] is bool) {
+      state.widgetShowMantra = json['widgetShowMantra'] as bool;
+    }
+    if (json['hasSeenSwipeHint'] is bool) {
+      state.hasSeenSwipeHint = json['hasSeenSwipeHint'] as bool;
     }
 
     return state;

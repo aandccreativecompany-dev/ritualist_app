@@ -49,6 +49,20 @@
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
             android:exported="false" />
+
+        <!-- Home-screen widget (Settings > Home screen widget chooses its
+             content). Data is pushed by lib/services/home_widget_service.dart
+             via the home_widget plugin. -->
+        <receiver
+            android:name="ai.aandccreative.ritualist.HabitsWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habits_widget_info" />
+        </receiver>
     </application>
 
     <queries>

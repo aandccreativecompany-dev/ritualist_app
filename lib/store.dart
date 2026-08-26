@@ -358,6 +358,42 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  /// Updates one tile's own shape/size/image framing — the per-tile
+  /// customization that replaced the old board-wide-only shape setting.
+  Future<void> updateVisionItemStyle(
+    VisionItem item, {
+    String? shape,
+    int? spanX,
+    int? spanY,
+    double? imageOffsetX,
+    double? imageOffsetY,
+    double? imageZoom,
+  }) async {
+    if (shape != null) item.shape = shape;
+    if (spanX != null) item.spanX = spanX.clamp(1, 2);
+    if (spanY != null) item.spanY = spanY.clamp(1, 2);
+    if (imageOffsetX != null) item.imageOffsetX = imageOffsetX.clamp(0.0, 1.0);
+    if (imageOffsetY != null) item.imageOffsetY = imageOffsetY.clamp(0.0, 1.0);
+    if (imageZoom != null) item.imageZoom = imageZoom.clamp(1.0, 2.5);
+    await _commit();
+  }
+
+  /// Applies a curated layout's shape/size recipe to the existing tiles, in
+  /// order, cycling the recipe if there are more tiles than slots.
+  Future<void> applyVisionLayout(VisionLayoutSpec layout) async {
+    if (_state.visionItems.isEmpty || layout.slots.isEmpty) return;
+    for (var i = 0; i < _state.visionItems.length; i++) {
+      final slot = layout.slots[i % layout.slots.length];
+      _state.visionItems[i].shape = slot.$1;
+      _state.visionItems[i].spanX = slot.$2;
+      _state.visionItems[i].spanY = slot.$3;
+    }
+    _state.visionBoardLayoutName = layout.name;
+    await _commit();
+  }
+
+  String? get visionBoardLayoutName => _state.visionBoardLayoutName;
+
   // ---- Weekly / monthly goals ----
 
   List<Task> get weeklyGoals => _state.weeklyGoals;
@@ -398,6 +434,127 @@ class Store extends ChangeNotifier {
   Future<void> removeMonthlyGoal(int index) async {
     if (index < 0 || index >= _state.monthlyGoals.length) return;
     _state.monthlyGoals.removeAt(index);
+    await _commit();
+  }
+
+  // ---- Finance & Money goals / Health & Body goals ----
+
+  List<Task> get financeGoals => _state.financeGoals;
+  List<Task> get healthGoals => _state.healthGoals;
+
+  Future<void> addFinanceGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.financeGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleFinanceGoal(int index) async {
+    if (index < 0 || index >= _state.financeGoals.length) return;
+    _state.financeGoals[index].done = !_state.financeGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeFinanceGoal(int index) async {
+    if (index < 0 || index >= _state.financeGoals.length) return;
+    _state.financeGoals.removeAt(index);
+    await _commit();
+  }
+
+  Future<void> addHealthGoal(String title) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.healthGoals.insert(0, Task(title: trimmed));
+    await _commit();
+  }
+
+  Future<void> toggleHealthGoal(int index) async {
+    if (index < 0 || index >= _state.healthGoals.length) return;
+    _state.healthGoals[index].done = !_state.healthGoals[index].done;
+    await _commit();
+  }
+
+  Future<void> removeHealthGoal(int index) async {
+    if (index < 0 || index >= _state.healthGoals.length) return;
+    _state.healthGoals.removeAt(index);
+    await _commit();
+  }
+
+  // ---- Organized mind map ----
+
+  /// Auto-computed performance snapshot for 'day' | 'week' | 'month'.
+  ({int habitsDone, int habitsTotal, int prioritiesDone, int prioritiesTotal,
+      String? mood, bool journaled, int scriptsCount})
+      mindMapSnapshot(String period) {
+    final today = DateTime.now();
+    final days = period == 'day' ? 1 : (period == 'week' ? 7 : 30);
+    var prioritiesDone = 0, prioritiesTotal = 0, habitsDone = 0;
+    String? lastMood;
+    var journaled = false;
+    for (var i = 0; i < days; i++) {
+      final day = DateTime(today.year, today.month, today.day)
+          .subtract(Duration(days: i));
+      final tasks = tasksFor(day);
+      prioritiesTotal += tasks.length;
+      prioritiesDone += tasks.where((t) => t.done).length;
+      for (final habit in _state.habits) {
+        if (habit.isDoneOn(day)) habitsDone++;
+      }
+      if (i == 0) {
+        lastMood = _state.moodByDay[dayKey(day)];
+        journaled = !journalFor(day).isEmpty;
+      }
+    }
+    return (
+      habitsDone: habitsDone,
+      habitsTotal: _state.habits.length * days,
+      prioritiesDone: prioritiesDone,
+      prioritiesTotal: prioritiesTotal,
+      mood: lastMood,
+      journaled: journaled,
+      scriptsCount: _state.scripts.length,
+    );
+  }
+
+  String mindMapNoteFor(String period) => _state.mindMapNotes[period] ?? '';
+
+  Future<void> setMindMapNote(String period, String text) async {
+    if (text.trim().isEmpty) {
+      _state.mindMapNotes.remove(period);
+    } else {
+      _state.mindMapNotes[period] = text;
+    }
+    await _commit();
+  }
+
+  // ---- Home screen widget preferences ----
+
+  bool get widgetShowHabits => _state.widgetShowHabits;
+  bool get widgetShowPriorities => _state.widgetShowPriorities;
+  bool get widgetShowMantra => _state.widgetShowMantra;
+
+  Future<void> setWidgetShowHabits(bool value) async {
+    _state.widgetShowHabits = value;
+    await _commit();
+  }
+
+  Future<void> setWidgetShowPriorities(bool value) async {
+    _state.widgetShowPriorities = value;
+    await _commit();
+  }
+
+  Future<void> setWidgetShowMantra(bool value) async {
+    _state.widgetShowMantra = value;
+    await _commit();
+  }
+
+  // ---- Home screen swipe hint ----
+
+  bool get hasSeenSwipeHint => _state.hasSeenSwipeHint;
+
+  Future<void> markSwipeHintSeen() async {
+    if (_state.hasSeenSwipeHint) return;
+    _state.hasSeenSwipeHint = true;
     await _commit();
   }
 

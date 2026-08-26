@@ -149,7 +149,13 @@ class _EveningReflectionScreenState extends State<EveningReflectionScreen> {
           ],
         ),
       );
-      if (remove == true) await store.clearPin();
+      if (remove == true) {
+        await store.clearPin();
+        if (mounted) {
+          setState(() {});
+          toastSaved(context, label: 'Lock removed');
+        }
+      }
     } else {
       await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const LockScreen(mode: LockMode.setup)));
