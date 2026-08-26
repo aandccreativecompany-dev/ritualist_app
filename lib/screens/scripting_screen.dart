@@ -85,6 +85,13 @@ class ScriptingScreen extends StatelessWidget {
                                                       style: display(
                                                           16, Surfaces.heading(dark)),
                                                     ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      _formatWhen(store.scripts[i].createdAt),
+                                                      style: body(11,
+                                                          Surfaces.accent(dark),
+                                                          weight: FontWeight.w600),
+                                                    ),
                                                     if (store.scripts[i].body.isNotEmpty) ...[
                                                       const SizedBox(height: 6),
                                                       Text(
@@ -194,9 +201,21 @@ class ScriptingScreen extends StatelessWidget {
       } else {
         await store.updateScript(script, titleCtrl.text, bodyCtrl.text);
       }
-      if (context.mounted) toastSaved(context);
+      if (context.mounted) toastSaved(context, label: 'Saved — see it above');
     }
   }
+}
+
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+String _formatWhen(DateTime dt) {
+  final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+  final minute = dt.minute.toString().padLeft(2, '0');
+  final ampm = dt.hour >= 12 ? 'PM' : 'AM';
+  return '${_months[dt.month - 1]} ${dt.day} · $hour12:$minute $ampm';
 }
 
 class _Empty extends StatelessWidget {

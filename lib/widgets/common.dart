@@ -522,12 +522,19 @@ class _GreetingMascotState extends State<GreetingMascot>
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                             decoration: BoxDecoration(
-                              color: Surfaces.card(dark),
+                              // A solid fill regardless of theme, rather than the
+                              // page's near-transparent card token — the bubble
+                              // needs to read clearly against whatever's behind
+                              // it (a busy dark gradient in dark mode included).
+                              color: dark ? Brand.violet : Colors.white,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Surfaces.cardBorder(dark)),
+                              border: Border.all(
+                                  color: dark
+                                      ? Brand.gold.withValues(alpha: 0.4)
+                                      : Brand.base.withValues(alpha: 0.10)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.18),
+                                  color: Colors.black.withValues(alpha: 0.22),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -536,13 +543,13 @@ class _GreetingMascotState extends State<GreetingMascot>
                             child: Text(
                               widget.greeting,
                               textAlign: TextAlign.center,
-                              style: body(11.5, Surfaces.bodyText(dark),
-                                  weight: FontWeight.w600),
+                              style: body(11.5, dark ? Colors.white : Brand.base,
+                                  weight: FontWeight.w700),
                             ),
                           ),
                           const SizedBox(height: 2),
                           Icon(Icons.arrow_drop_down,
-                              color: Surfaces.card(dark), size: 20),
+                              color: dark ? Brand.violet : Colors.white, size: 20),
                         ],
                       ),
                     ),

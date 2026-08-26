@@ -187,13 +187,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 6),
                     ],
                   ),
-                  Positioned(
-                    top: 4,
-                    left: 0,
-                    right: 0,
-                    child: GreetingMascot(
-                      avatarGender: store.avatarGender,
-                      greeting: _mascotGreeting,
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Align(
+                        alignment: const Alignment(0, -0.05),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 118,
+                          child: GreetingMascot(
+                            avatarGender: store.avatarGender,
+                            greeting: _mascotGreeting,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],

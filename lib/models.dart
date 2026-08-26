@@ -143,13 +143,25 @@ class Script {
   String title;
   String body;
 
-  Script({required this.title, required this.body});
+  /// When this script was first saved — shown on its card so it's obvious
+  /// at a glance that saving actually happened, not just a passing toast.
+  DateTime createdAt;
 
-  Map<String, dynamic> toJson() => {'title': title, 'body': body};
+  Script({required this.title, required this.body, DateTime? createdAt})
+      : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'body': body,
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   static Script fromJson(Map<String, dynamic> json) => Script(
         title: (json['title'] ?? '') as String,
         body: (json['body'] ?? '') as String,
+        createdAt: json['createdAt'] is String
+            ? DateTime.tryParse(json['createdAt'] as String)
+            : null,
       );
 }
 
