@@ -19,7 +19,7 @@ class OnboardingScreen extends StatefulWidget {
 
 const _focusOptions = [
   ('doing', 'Getting things done', 'Top 3, habits, focus'),
-  ('outcome', 'Engineering an outcome', 'Scripting, vision board'),
+  ('outcome', 'Engineering an outcome', 'Journaling, vision board'),
   ('consistent', 'Staying consistent', 'Streaks, gentle reminders'),
   ('steady', 'Feeling steadier', 'Mood, gratitude, reflection'),
 ];

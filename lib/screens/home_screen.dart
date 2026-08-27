@@ -820,7 +820,7 @@ class _ScriptingItem extends StatelessWidget {
           .push(MaterialPageRoute(builder: (_) => const ScriptingScreen())),
       child: _ItemHeader(
         icon: Icons.auto_awesome,
-        title: 'Scripting',
+        title: 'Journaling (Brain Dump)',
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1110,49 +1110,595 @@ class _GoalListContentState extends State<_GoalListContent> {
   }
 }
 
-class _FinanceGoalsContent extends StatelessWidget {
+class _FinanceGoalsContent extends StatefulWidget {
   const _FinanceGoalsContent();
   @override
-  Widget build(BuildContext context) => _GoalListContent(
-        icon: Icons.savings_outlined,
-        title: 'Finance & money goals',
-        hint: 'e.g. Save \$500 this month',
-        emptyText: 'Nothing set yet — add a money goal above.',
-        goals: () => store.financeGoals,
-        onAdd: store.addFinanceGoal,
-        onToggle: store.toggleFinanceGoal,
-        onRemove: store.removeFinanceGoal,
-      );
+  State<_FinanceGoalsContent> createState() => _FinanceGoalsContentState();
 }
+
+class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
+  final _dreamCtrl = TextEditingController();
+  final _amountCtrl = TextEditingController();
+  final _monthsCtrl = TextEditingController(text: '12');
+  final _incomeCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (store.financeBudgetIncome != null) {
+      _incomeCtrl.text = store.financeBudgetIncome!.toStringAsFixed(0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _dreamCtrl.dispose();
+    _amountCtrl.dispose();
+    _monthsCtrl.dispose();
+    _incomeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createRoadmap() async {
+    final amount = double.tryParse(_amountCtrl.text.trim());
+    final months = int.tryParse(_monthsCtrl.text.trim()) ?? 12;
+    if (_dreamCtrl.text.trim().isEmpty || amount == null || amount <= 0 || months <= 0) return;
+    await store.setFinanceRoadmap(_dreamCtrl.text, amount, months);
+    _dreamCtrl.clear();
+    _amountCtrl.clear();
+    _monthsCtrl.text = '12';
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      toastSaved(context);
+    }
+  }
+
+  void _applyIncome() {
+    final income = double.tryParse(_incomeCtrl.text.trim());
+    if (income == null || income < 0) return;
+    store.setFinanceBudgetIncome(income);
+    setState(() {});
+    FocusScope.of(context).unfocus();
+    toastSaved(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final roadmap = store.financeRoadmap;
+    final income = store.financeBudgetIncome;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ItemHeader(icon: Icons.savings_outlined, title: 'Finance & money goals'),
+        const SizedBox(height: 16),
+
+        // ---- Goal Roadmap: Dream Goal -> 12-Month Goal -> Monthly Milestones ----
+        Text('GOAL ROADMAP', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 10),
+        if (roadmap == null) ...[
+          TextField(
+            controller: _dreamCtrl,
+            textCapitalization: TextCapitalization.sentences,
+            style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: 'Your dream goal — e.g. Down payment on a home',
+              hintStyle: body(12.5, Surfaces.muted(dark)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _amountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixText: '\$ ',
+                    hintText: 'Target amount',
+                    hintStyle: body(12.5, Surfaces.muted(dark)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  controller: _monthsCtrl,
+                  keyboardType: TextInputType.number,
+                  style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: 'Months',
+                    hintStyle: body(12.5, Surfaces.muted(dark)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GoldButton(labelText: 'Create roadmap', onPressed: _createRoadmap),
+        ] else ...[
+          Text(roadmap.dreamGoal,
+              style: display(15, Surfaces.heading(dark))),
+          const SizedBox(height: 4),
+          Text(
+            '\$${roadmap.savedSoFar.toStringAsFixed(0)} of \$${roadmap.targetAmount.toStringAsFixed(0)} · \$${roadmap.perMonth.toStringAsFixed(0)}/month for ${roadmap.months} months',
+            style: body(12, Surfaces.muted(dark)),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < roadmap.months; i++)
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () async {
+                    await store.toggleRoadmapMonth(i);
+                    setState(() {});
+                  },
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: roadmap.monthsDone[i]
+                          ? Surfaces.accent(dark)
+                          : Surfaces.accent(dark).withValues(alpha: 0.1),
+                      border: Border.all(color: Surfaces.accent(dark), width: 1.2),
+                    ),
+                    child: Text('${i + 1}',
+                        style: body(12,
+                            roadmap.monthsDone[i] ? Brand.base : Surfaces.accent(dark),
+                            weight: FontWeight.w700)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          TextButton(
+            onPressed: () async {
+              await store.clearFinanceRoadmap();
+              setState(() {});
+            },
+            child: Text('Start a new roadmap',
+                style: body(12, Surfaces.muted(dark), weight: FontWeight.w600)),
+          ),
+        ],
+
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+
+        // ---- 50/30/20 budget calculator ----
+        Text('50/30/20 BUDGET CALCULATOR', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _incomeCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onSubmitted: (_) => _applyIncome(),
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixText: '\$ ',
+                  hintText: 'Monthly income',
+                  hintStyle: body(12.5, Surfaces.muted(dark)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GoldButton(labelText: 'Split it', onPressed: _applyIncome),
+          ],
+        ),
+        if (income != null) ...[
+          const SizedBox(height: 12),
+          _BudgetRow(label: 'Needs (50%)', amount: income * 0.5, dark: dark),
+          const SizedBox(height: 6),
+          _BudgetRow(label: 'Wants (30%)', amount: income * 0.3, dark: dark),
+          const SizedBox(height: 6),
+          _BudgetRow(label: 'Savings & debt (20%)', amount: income * 0.2, dark: dark),
+        ],
+
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+
+        _GoalListContent(
+          icon: Icons.checklist_outlined,
+          title: 'Other money goals',
+          hint: 'e.g. Save \$500 this month',
+          emptyText: 'Nothing set yet — add a money goal above.',
+          goals: () => store.financeGoals,
+          onAdd: store.addFinanceGoal,
+          onToggle: store.toggleFinanceGoal,
+          onRemove: store.removeFinanceGoal,
+        ),
+      ],
+    );
+  }
+}
+
+class _BudgetRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  final bool dark;
+  const _BudgetRow({required this.label, required this.amount, required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+            child: Text(label,
+                style: body(13, Surfaces.bodyText(dark), weight: FontWeight.w500))),
+        Text('\$${amount.toStringAsFixed(0)}',
+            style: body(13, Surfaces.accent(dark), weight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
+/// Suggested daily habits for major body systems — tap to add straight to
+/// the Health & Body goal list below; still fully editable/deletable there.
+const kHealthBodySuggestions = [
+  'Daily walking (heart)',
+  'Quality sleep (brain)',
+  'Deep breathing exercises (lungs)',
+  'Weight-bearing exercise (bones)',
+  'Drink water regularly (blood)',
+  'Daily sunscreen (skin)',
+  'Quality sleep (immune system)',
+  'Limit processed foods (liver)',
+  'Eat probiotics (gut)',
+  'Floss daily (teeth)',
+  'Natural daylight exposure (eyes)',
+  'Regular hand-washing (hands)',
+  'Strength training twice a week (muscles)',
+  'Meditation (nervous system)',
+  'Consistent sleep-wake cycle (hormones)',
+  'Learn something new (memory)',
+];
 
 class _HealthGoalsContent extends StatelessWidget {
   const _HealthGoalsContent();
+
   @override
-  Widget build(BuildContext context) => _GoalListContent(
-        icon: Icons.favorite_border,
-        title: 'Health & body',
-        hint: 'e.g. Drink 8 glasses of water',
-        emptyText: 'Nothing set yet — add a health goal above.',
-        goals: () => store.healthGoals,
-        onAdd: store.addHealthGoal,
-        onToggle: store.toggleHealthGoal,
-        onRemove: store.removeHealthGoal,
-      );
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ItemHeader(icon: Icons.favorite_border, title: 'Health & body'),
+        const SizedBox(height: 14),
+        Text('TAP TO ADD', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final suggestion in kHealthBodySuggestions)
+              InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () async {
+                  final already =
+                      store.healthGoals.any((t) => t.title == suggestion);
+                  if (already) return;
+                  await store.addHealthGoal(suggestion);
+                  if (context.mounted) toastSaved(context);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Surfaces.accentBorder(dark)),
+                  ),
+                  child: Text(suggestion,
+                      style: body(11.5, Surfaces.muted(dark), weight: FontWeight.w600)),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+        _GoalListContent(
+          icon: Icons.checklist_outlined,
+          title: 'Your health goals',
+          hint: 'e.g. Drink 8 glasses of water',
+          emptyText: 'Nothing set yet — tap a suggestion above or add your own.',
+          goals: () => store.healthGoals,
+          onAdd: store.addHealthGoal,
+          onToggle: store.toggleHealthGoal,
+          onRemove: store.removeHealthGoal,
+        ),
+      ],
+    );
+  }
 }
 
-class _MindsetGoalsContent extends StatelessWidget {
+class _MindsetGoalsContent extends StatefulWidget {
   const _MindsetGoalsContent();
   @override
-  Widget build(BuildContext context) => _GoalListContent(
-        icon: Icons.psychology_outlined,
-        title: 'Mindset & growth',
-        hint: 'e.g. Reframe one limiting belief',
-        emptyText: 'Nothing set yet — add a mindset goal above.',
-        goals: () => store.mindsetGoals,
-        onAdd: store.addMindsetGoal,
-        onToggle: store.toggleMindsetGoal,
-        onRemove: store.removeMindsetGoal,
-      );
+  State<_MindsetGoalsContent> createState() => _MindsetGoalsContentState();
+}
+
+class _MindsetGoalsContentState extends State<_MindsetGoalsContent> {
+  final _negativeCtrl = TextEditingController();
+  final _positiveCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _negativeCtrl.dispose();
+    _positiveCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addReframe() async {
+    await store.addCustomReframe(_negativeCtrl.text, _positiveCtrl.text);
+    _negativeCtrl.clear();
+    _positiveCtrl.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      setState(() {});
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ItemHeader(icon: Icons.psychology_outlined, title: 'Mindset & growth'),
+        const SizedBox(height: 16),
+
+        // ---- Thought reframe ----
+        Text('CHANGE YOUR WORDS, CHANGE YOUR MINDSET',
+            style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 10),
+        for (final pair in kReframePairs)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ReframeRow(negative: pair.$1, positive: pair.$2, dark: dark),
+          ),
+        for (var i = 0; i < store.customReframes.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _ReframeRow(
+                    negative: store.customReframes[i].negative,
+                    positive: store.customReframes[i].positive,
+                    dark: dark,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async {
+                    await store.removeCustomReframe(i);
+                    setState(() {});
+                  },
+                  icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _negativeCtrl,
+          textCapitalization: TextCapitalization.sentences,
+          style: body(13, Surfaces.bodyText(dark), weight: FontWeight.w500),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'A thought you keep having…',
+            hintStyle: body(12.5, Surfaces.muted(dark)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _positiveCtrl,
+                textCapitalization: TextCapitalization.sentences,
+                style: body(13, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Reframe it as…',
+                  hintStyle: body(12.5, Surfaces.muted(dark)),
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: _addReframe,
+              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark), size: 28),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+
+        // ---- Stress bucket ----
+        Text('STRESS BUCKET — TODAY', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 4),
+        Text('What\'s filling it, and what\'s emptying it?',
+            style: body(12, Surfaces.muted(dark))),
+        const SizedBox(height: 10),
+        Text('FILLS IT UP', style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final item in kStressFillItems)
+              _ToggleChip(
+                label: item,
+                selected: store.todaysStressFills.contains(item),
+                dark: dark,
+                onTap: () async {
+                  await store.toggleStressFill(item);
+                  setState(() {});
+                },
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text('EMPTIES IT', style: body(11, Surfaces.muted(dark), weight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final item in kStressEmptyItems)
+              _ToggleChip(
+                label: item,
+                selected: store.todaysStressEmpties.contains(item),
+                dark: dark,
+                onTap: () async {
+                  await store.toggleStressEmpty(item);
+                  setState(() {});
+                },
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+
+        // ---- Daily DOSE ----
+        Text('GET YOUR DAILY DOSE', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 10),
+        for (final category in kDoseCategories)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${category.$1} · ${category.$2}',
+                    style: body(12, Surfaces.accent(dark), weight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final activity in category.$3)
+                      _ToggleChip(
+                        label: activity,
+                        selected: store.todaysDose.contains(activity),
+                        dark: dark,
+                        onTap: () async {
+                          await store.toggleDoseActivity(activity);
+                          setState(() {});
+                        },
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 4),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+
+        _GoalListContent(
+          icon: Icons.checklist_outlined,
+          title: 'Other mindset goals',
+          hint: 'e.g. Reframe one limiting belief',
+          emptyText: 'Nothing set yet — add a mindset goal above.',
+          goals: () => store.mindsetGoals,
+          onAdd: store.addMindsetGoal,
+          onToggle: store.toggleMindsetGoal,
+          onRemove: store.removeMindsetGoal,
+        ),
+      ],
+    );
+  }
+}
+
+class _ReframeRow extends StatelessWidget {
+  final String negative;
+  final String positive;
+  final bool dark;
+  const _ReframeRow({required this.negative, required this.positive, required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Surfaces.accent(dark).withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Surfaces.accentBorder(dark)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(negative,
+              style: body(12, Surfaces.muted(dark), weight: FontWeight.w500)
+                  .copyWith(decoration: TextDecoration.lineThrough)),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.arrow_forward, size: 13, color: Surfaces.accent(dark)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(positive,
+                    style: body(13, Surfaces.accent(dark), weight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _ToggleChip(
+      {required this.label, required this.selected, required this.dark, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? Surfaces.accent(dark).withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? Surfaces.accent(dark) : Surfaces.accentBorder(dark),
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Text(label,
+            style: body(11.5, selected ? Surfaces.accent(dark) : Surfaces.muted(dark),
+                weight: FontWeight.w600)),
+      ),
+    );
+  }
 }
 
 class _RelationshipsGoalsContent extends StatelessWidget {

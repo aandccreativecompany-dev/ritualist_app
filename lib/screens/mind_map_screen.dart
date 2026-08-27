@@ -179,7 +179,7 @@ class _MindMapTab extends StatelessWidget {
       ),
       _BranchData(
         icon: Icons.auto_awesome,
-        label: 'Scripting',
+        label: 'Journaling',
         value: '${snap.scriptsCount} total',
         color: Brand.gold,
       ),

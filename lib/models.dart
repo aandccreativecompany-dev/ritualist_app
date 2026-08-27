@@ -138,32 +138,138 @@ class ReminderSetting {
       {'id': id, 'enabled': enabled, 'hour': hour, 'minute': minute};
 }
 
-/// One entry in the outcome-engineering (scripting) list.
+/// One entry in the Journaling (Brain Dump) list — either a manifestation
+/// script (write the outcome as if it already happened) or a free-form
+/// brain dump. [mode] is 'manifest' or 'dump'; unknown/legacy values are
+/// treated as 'manifest' so entries saved before this field existed still
+/// display correctly.
 class Script {
   String title;
   String body;
+  String mode;
 
   /// When this script was first saved — shown on its card so it's obvious
   /// at a glance that saving actually happened, not just a passing toast.
   DateTime createdAt;
 
-  Script({required this.title, required this.body, DateTime? createdAt})
-      : createdAt = createdAt ?? DateTime.now();
+  Script({
+    required this.title,
+    required this.body,
+    this.mode = 'manifest',
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
         'title': title,
         'body': body,
+        'mode': mode,
         'createdAt': createdAt.toIso8601String(),
       };
 
   static Script fromJson(Map<String, dynamic> json) => Script(
         title: (json['title'] ?? '') as String,
         body: (json['body'] ?? '') as String,
+        mode: (json['mode'] ?? 'manifest') as String,
         createdAt: json['createdAt'] is String
             ? DateTime.tryParse(json['createdAt'] as String)
             : null,
       );
 }
+
+/// A finance "Goal Roadmap": one dream goal broken into monthly milestones,
+/// each a simple checkbox — matches the Dream Goal → 12-Month Goal →
+/// Monthly Milestones flow from the reference roadmap graphic.
+class FinanceRoadmap {
+  String dreamGoal;
+  double targetAmount;
+  int months;
+  List<bool> monthsDone;
+
+  FinanceRoadmap({
+    required this.dreamGoal,
+    required this.targetAmount,
+    required this.months,
+    List<bool>? monthsDone,
+  }) : monthsDone = monthsDone ?? List<bool>.filled(months, false);
+
+  double get perMonth => months == 0 ? 0 : targetAmount / months;
+  int get monthsCompleted => monthsDone.where((d) => d).length;
+  double get savedSoFar => perMonth * monthsCompleted;
+
+  Map<String, dynamic> toJson() => {
+        'dreamGoal': dreamGoal,
+        'targetAmount': targetAmount,
+        'months': months,
+        'monthsDone': monthsDone,
+      };
+
+  static FinanceRoadmap fromJson(Map<String, dynamic> json) {
+    final months = (json['months'] ?? 12) as int;
+    final rawDone = json['monthsDone'];
+    final done = rawDone is List
+        ? rawDone.map((e) => e == true).toList()
+        : List<bool>.filled(months, false);
+    while (done.length < months) {
+      done.add(false);
+    }
+    return FinanceRoadmap(
+      dreamGoal: (json['dreamGoal'] ?? '') as String,
+      targetAmount: (json['targetAmount'] as num?)?.toDouble() ?? 0,
+      months: months,
+      monthsDone: done,
+    );
+  }
+}
+
+/// A user-written "instead of / try" pair for the Thought Reframe tool —
+/// supplements the built-in reference pairs shown alongside it.
+class Reframe {
+  String negative;
+  String positive;
+  Reframe({required this.negative, required this.positive});
+
+  Map<String, dynamic> toJson() => {'negative': negative, 'positive': positive};
+
+  static Reframe fromJson(Map<String, dynamic> json) => Reframe(
+        negative: (json['negative'] ?? '') as String,
+        positive: (json['positive'] ?? '') as String,
+      );
+}
+
+/// Reference "instead of / try" pairs for the Thought Reframe tool.
+const kReframePairs = [
+  ('I don’t want to make a mistake.', 'Mistakes help me learn and grow.'),
+  ('I can’t do it.', 'I will keep trying.'),
+  ('I give up.', 'I believe in me.'),
+  ('They are better at it than me.', 'What can I learn from them?'),
+  ('This is too hard.', 'With more practice it will get easier.'),
+];
+
+/// Stress Bucket reference items — what fills it vs. what empties it.
+const kStressFillItems = [
+  'Worries',
+  'Too much work',
+  'Lack of sleep',
+  'Overthinking',
+  'Pressure & expectations',
+];
+const kStressEmptyItems = [
+  'Talking about it',
+  'Taking breaks',
+  'Listening to music',
+  'Exercise',
+  'Spending time with loved ones',
+  'Doing things you enjoy',
+];
+
+/// Daily DOSE reference activities, grouped by the "feel-good" chemical
+/// each one nudges — dopamine, oxytocin, serotonin, endorphins.
+const kDoseCategories = [
+  ('Dopamine', 'The reward chemical', ['Create something', 'Achieve a goal', 'Finish a task']),
+  ('Oxytocin', 'The love hormone', ['Socialize', 'Hug a family member or pet', 'Help others']),
+  ('Serotonin', 'The mood stabiliser', ['Get out in sunlight', 'Try mindfulness', 'Try meditation']),
+  ('Endorphins', 'The pain killer', ['Exercise', 'Listen to music', 'Watch a movie', 'Have a laugh']),
+];
 
 /// One day's evening reflection.
 class JournalEntry {
@@ -420,7 +526,7 @@ const kModuleTitles = {
   'priorities': 'Goals & to-dos',
   'habits': 'Habits',
   'tips': 'Productivity tip',
-  'scripting': 'Scripting',
+  'scripting': 'Journaling (Brain Dump)',
   'eveningReflection': 'Evening reflection',
   'visionBoard': 'Vision board',
   'mindMap': 'Organized mind map',
@@ -562,6 +668,20 @@ class AppState {
   /// already been shown.
   bool hasSeenSwipeHint;
 
+  /// Finance & Money's Goal Roadmap tool (dream goal → monthly milestones)
+  /// and the last income entered into the 50/30/20 budget calculator —
+  /// null/none until the user sets one up.
+  FinanceRoadmap? financeRoadmap;
+  double? financeBudgetIncome;
+
+  /// Mindset & Growth tools: user-written reframe pairs (supplementing the
+  /// built-in reference list), and per-day logs for the Stress Bucket and
+  /// Daily DOSE checklists, keyed by `dayKey` date string.
+  List<Reframe> customReframes;
+  Map<String, List<String>> stressBucketFills;
+  Map<String, List<String>> stressBucketEmpties;
+  Map<String, List<String>> doseByDay;
+
   AppState({
     required this.tasksByDay,
     required this.habits,
@@ -598,6 +718,12 @@ class AppState {
     required this.widgetShowMantra,
     required this.widgetHabitIds,
     required this.hasSeenSwipeHint,
+    this.financeRoadmap,
+    this.financeBudgetIncome,
+    required this.customReframes,
+    required this.stressBucketFills,
+    required this.stressBucketEmpties,
+    required this.doseByDay,
   });
 
   static AppState initial() => AppState(
@@ -655,6 +781,12 @@ class AppState {
         widgetShowMantra: true,
         widgetHabitIds: <String>[],
         hasSeenSwipeHint: false,
+        financeRoadmap: null,
+        financeBudgetIncome: null,
+        customReframes: <Reframe>[],
+        stressBucketFills: <String, List<String>>{},
+        stressBucketEmpties: <String, List<String>>{},
+        doseByDay: <String, List<String>>{},
       );
 
   Map<String, dynamic> toJson() => {
@@ -695,6 +827,12 @@ class AppState {
         'widgetShowMantra': widgetShowMantra,
         'widgetHabitIds': widgetHabitIds,
         'hasSeenSwipeHint': hasSeenSwipeHint,
+        'financeRoadmap': financeRoadmap?.toJson(),
+        'financeBudgetIncome': financeBudgetIncome,
+        'customReframes': customReframes.map((r) => r.toJson()).toList(),
+        'stressBucketFills': stressBucketFills,
+        'stressBucketEmpties': stressBucketEmpties,
+        'doseByDay': doseByDay,
       };
 
   static AppState fromJson(Map<String, dynamic> json) {
@@ -873,6 +1011,36 @@ class AppState {
     }
     if (json['hasSeenSwipeHint'] is bool) {
       state.hasSeenSwipeHint = json['hasSeenSwipeHint'] as bool;
+    }
+
+    final rawRoadmap = json['financeRoadmap'];
+    if (rawRoadmap is Map<String, dynamic>) {
+      state.financeRoadmap = FinanceRoadmap.fromJson(rawRoadmap);
+    }
+    if (json['financeBudgetIncome'] is num) {
+      state.financeBudgetIncome = (json['financeBudgetIncome'] as num).toDouble();
+    }
+    final rawReframes = json['customReframes'];
+    if (rawReframes is List) {
+      state.customReframes = rawReframes
+          .whereType<Map<String, dynamic>>()
+          .map(Reframe.fromJson)
+          .toList();
+    }
+    final rawFills = json['stressBucketFills'];
+    if (rawFills is Map) {
+      state.stressBucketFills = rawFills.map((k, v) =>
+          MapEntry(k.toString(), (v is List) ? v.map((e) => e.toString()).toList() : <String>[]));
+    }
+    final rawEmpties = json['stressBucketEmpties'];
+    if (rawEmpties is Map) {
+      state.stressBucketEmpties = rawEmpties.map((k, v) =>
+          MapEntry(k.toString(), (v is List) ? v.map((e) => e.toString()).toList() : <String>[]));
+    }
+    final rawDose = json['doseByDay'];
+    if (rawDose is Map) {
+      state.doseByDay = rawDose.map((k, v) =>
+          MapEntry(k.toString(), (v is List) ? v.map((e) => e.toString()).toList() : <String>[]));
     }
 
     return state;
