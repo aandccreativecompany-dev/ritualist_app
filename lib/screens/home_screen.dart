@@ -1946,6 +1946,11 @@ class _Footer extends StatelessWidget {
             icon: Icons.play_circle_outline,
             onTap: () => _open('https://www.youtube.com/@aandccreativecompany'),
           ),
+          const SizedBox(width: 8),
+          _SocialIcon(
+            icon: Icons.language,
+            onTap: () => _open('https://aandccreativecompany.netlify.app/'),
+          ),
         ],
       ),
     );
