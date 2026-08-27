@@ -170,6 +170,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           const SizedBox(height: 22),
+                          Text('APP THEME COLOR', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pick the accent color used for icons, highlights and buttons throughout the app.',
+                                  style: body(12, Surfaces.muted(dark)),
+                                ),
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 14,
+                                  runSpacing: 14,
+                                  children: [
+                                    for (final palette in kAccentPalettes)
+                                      _ThemeColorSwatch(
+                                        palette: palette,
+                                        selected: store.themeAccentId == palette.id,
+                                        dark: dark,
+                                        onTap: () async {
+                                          await store.setThemeAccent(palette.id);
+                                          if (context.mounted) toastSaved(context);
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
                           Text('YOUR RITUAL', style: label(Surfaces.muted(dark))),
                           const SizedBox(height: 12),
                           ModuleCard(
@@ -472,7 +503,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.10',
+                                Text('Prakriyā 0.2.11',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),
@@ -571,6 +602,59 @@ class _NavRow extends StatelessWidget {
             Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ThemeColorSwatch extends StatelessWidget {
+  final AccentPalette palette;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _ThemeColorSwatch({
+    required this.palette,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final swatchColor = dark ? palette.dark : palette.light;
+    return InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: swatchColor,
+              border: Border.all(
+                color: selected ? Surfaces.heading(dark) : Colors.transparent,
+                width: 2.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: swatchColor.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: selected
+                ? Icon(Icons.check,
+                    color: dark ? Brand.base : Colors.white, size: 20)
+                : null,
+          ),
+          const SizedBox(height: 6),
+          Text(palette.label, style: body(10.5, Surfaces.muted(dark), weight: FontWeight.w600)),
+        ],
       ),
     );
   }

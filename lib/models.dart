@@ -1,5 +1,7 @@
 // Plain data models. Everything serialises to JSON and lives on the device.
 
+import 'theme.dart' show kAccentPalettes;
+
 String dayKey(DateTime date) {
   final m = date.month.toString().padLeft(2, '0');
   final d = date.day.toString().padLeft(2, '0');
@@ -602,6 +604,10 @@ class AppState {
   String themeMode;
   bool skipWeekends;
 
+  /// Which of [kAccentPalettes] (theme.dart) the user picked for the app's
+  /// accent color — 'gold' is the original look and stays the default.
+  String themeAccentId;
+
   bool onboardingComplete;
   String userName;
   List<String> focusAreas;
@@ -669,10 +675,14 @@ class AppState {
   bool hasSeenSwipeHint;
 
   /// Finance & Money's Goal Roadmap tool (dream goal → monthly milestones)
-  /// and the last income entered into the 50/30/20 budget calculator —
-  /// null/none until the user sets one up.
+  /// and the last income entered into the budget calculator — null/none
+  /// until the user sets one up. The split defaults to the classic 50/30/20
+  /// but the user can drag it to whatever they like, adding up to 100.
   FinanceRoadmap? financeRoadmap;
   double? financeBudgetIncome;
+  double financeBudgetNeedsPct;
+  double financeBudgetWantsPct;
+  double financeBudgetSavingsPct;
 
   /// Mindset & Growth tools: user-written reframe pairs (supplementing the
   /// built-in reference list), and per-day logs for the Stress Bucket and
@@ -688,6 +698,7 @@ class AppState {
     required this.reminders,
     required this.mantraSeed,
     required this.themeMode,
+    this.themeAccentId = 'gold',
     required this.skipWeekends,
     required this.onboardingComplete,
     required this.userName,
@@ -720,6 +731,9 @@ class AppState {
     required this.hasSeenSwipeHint,
     this.financeRoadmap,
     this.financeBudgetIncome,
+    this.financeBudgetNeedsPct = 50,
+    this.financeBudgetWantsPct = 30,
+    this.financeBudgetSavingsPct = 20,
     required this.customReframes,
     required this.stressBucketFills,
     required this.stressBucketEmpties,
@@ -796,6 +810,7 @@ class AppState {
         'reminders': reminders.map((r) => r.toJson()).toList(),
         'mantraSeed': mantraSeed,
         'themeMode': themeMode,
+        'themeAccentId': themeAccentId,
         'skipWeekends': skipWeekends,
         'onboardingComplete': onboardingComplete,
         'userName': userName,
@@ -829,6 +844,9 @@ class AppState {
         'hasSeenSwipeHint': hasSeenSwipeHint,
         'financeRoadmap': financeRoadmap?.toJson(),
         'financeBudgetIncome': financeBudgetIncome,
+        'financeBudgetNeedsPct': financeBudgetNeedsPct,
+        'financeBudgetWantsPct': financeBudgetWantsPct,
+        'financeBudgetSavingsPct': financeBudgetSavingsPct,
         'customReframes': customReframes.map((r) => r.toJson()).toList(),
         'stressBucketFills': stressBucketFills,
         'stressBucketEmpties': stressBucketEmpties,
@@ -877,6 +895,10 @@ class AppState {
     if (json['mantraSeed'] is int) state.mantraSeed = json['mantraSeed'] as int;
     if (json['themeMode'] is String) {
       state.themeMode = json['themeMode'] as String;
+    }
+    if (json['themeAccentId'] is String &&
+        kAccentPalettes.any((p) => p.id == json['themeAccentId'])) {
+      state.themeAccentId = json['themeAccentId'] as String;
     }
     if (json['skipWeekends'] is bool) {
       state.skipWeekends = json['skipWeekends'] as bool;
@@ -1019,6 +1041,15 @@ class AppState {
     }
     if (json['financeBudgetIncome'] is num) {
       state.financeBudgetIncome = (json['financeBudgetIncome'] as num).toDouble();
+    }
+    if (json['financeBudgetNeedsPct'] is num) {
+      state.financeBudgetNeedsPct = (json['financeBudgetNeedsPct'] as num).toDouble();
+    }
+    if (json['financeBudgetWantsPct'] is num) {
+      state.financeBudgetWantsPct = (json['financeBudgetWantsPct'] as num).toDouble();
+    }
+    if (json['financeBudgetSavingsPct'] is num) {
+      state.financeBudgetSavingsPct = (json['financeBudgetSavingsPct'] as num).toDouble();
     }
     final rawReframes = json['customReframes'];
     if (rawReframes is List) {
