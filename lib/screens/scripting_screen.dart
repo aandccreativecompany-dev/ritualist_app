@@ -161,49 +161,58 @@ class ScriptingScreen extends StatelessWidget {
                   children: [
                     Text(script == null ? 'New entry' : 'Edit entry',
                         style: display(18, Surfaces.heading(dark))),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final entry in const [
-                          MapEntry('manifest', 'Manifestation script'),
-                          MapEntry('dump', 'Free brain dump'),
-                        ])
-                          InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () => setSheetState(() => mode = entry.key),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: mode == entry.key
-                                    ? Surfaces.accent(dark).withValues(alpha: 0.16)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: mode == entry.key
-                                      ? Surfaces.accent(dark)
-                                      : Surfaces.accentBorder(dark),
-                                  width: mode == entry.key ? 1.4 : 1,
-                                ),
-                              ),
-                              child: Text(entry.value,
-                                  style: body(11.5,
-                                      mode == entry.key
-                                          ? Surfaces.accent(dark)
-                                          : Surfaces.muted(dark),
-                                      weight: FontWeight.w600)),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
+                    // Everything scrollable — including the mode chips — so
+                    // that on a short/keyboard-heavy screen it's this area
+                    // that shrinks and scrolls, never the Save button below
+                    // it. A previous cut of this sheet put the chips outside
+                    // the scroll area as fixed-height content; combined with
+                    // a tall keyboard that could push the Save row's laid-out
+                    // position below the visible viewport, hidden behind the
+                    // keyboard even though it "existed" in the layout. Save
+                    // now has nothing but this one Flexible above it.
                     Flexible(
                       child: SingleChildScrollView(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                for (final entry in const [
+                                  MapEntry('manifest', 'Manifestation script'),
+                                  MapEntry('dump', 'Free brain dump'),
+                                ])
+                                  InkWell(
+                                    borderRadius: BorderRadius.circular(20),
+                                    onTap: () => setSheetState(() => mode = entry.key),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 7),
+                                      decoration: BoxDecoration(
+                                        color: mode == entry.key
+                                            ? Surfaces.accent(dark).withValues(alpha: 0.16)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: mode == entry.key
+                                              ? Surfaces.accent(dark)
+                                              : Surfaces.accentBorder(dark),
+                                          width: mode == entry.key ? 1.4 : 1,
+                                        ),
+                                      ),
+                                      child: Text(entry.value,
+                                          style: body(11.5,
+                                              mode == entry.key
+                                                  ? Surfaces.accent(dark)
+                                                  : Surfaces.muted(dark),
+                                              weight: FontWeight.w600)),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
                             TextField(
                               controller: titleCtrl,
                               autofocus: true,
