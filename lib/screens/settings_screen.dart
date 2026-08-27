@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../services/auth_service.dart';
 import '../services/home_widget_service.dart';
@@ -195,6 +196,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           if (context.mounted) toastSaved(context);
                                         },
                                       ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('TEXT STYLE', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Choose the reading font and text size used across the app.',
+                                  style: body(12, Surfaces.muted(dark)),
+                                ),
+                                const SizedBox(height: 14),
+                                Text('FONT', style: label(Surfaces.eyebrow(dark))),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    for (final font in kFontFamilies)
+                                      _FontChip(
+                                        label: font.label,
+                                        googleFontsFamily: font.googleFontsFamily,
+                                        selected: store.fontFamilyId == font.id,
+                                        dark: dark,
+                                        onTap: () async {
+                                          await store.setFontFamilyChoice(font.id);
+                                          if (context.mounted) toastSaved(context);
+                                        },
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 18),
+                                Text('TEXT SIZE', style: label(Surfaces.eyebrow(dark))),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    for (final scale in kFontScales) ...[
+                                      Expanded(
+                                        child: _FontSizeOption(
+                                          scaleLabel: scale.label,
+                                          selected: store.fontScaleId == scale.id,
+                                          dark: dark,
+                                          onTap: () async {
+                                            await store.setFontScaleChoice(scale.id);
+                                            if (context.mounted) toastSaved(context);
+                                          },
+                                        ),
+                                      ),
+                                      if (scale.id != kFontScales.last.id)
+                                        const SizedBox(width: 10),
+                                    ],
                                   ],
                                 ),
                               ],
@@ -503,7 +560,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.11',
+                                Text('Prakriyā 0.2.12',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),
@@ -655,6 +712,94 @@ class _ThemeColorSwatch extends StatelessWidget {
           const SizedBox(height: 6),
           Text(palette.label, style: body(10.5, Surfaces.muted(dark), weight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+}
+
+/// A font-family option rendered IN that font, so the pick is a preview.
+class _FontChip extends StatelessWidget {
+  final String label;
+  final String googleFontsFamily;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _FontChip({
+    required this.label,
+    required this.googleFontsFamily,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? Surfaces.accent(dark).withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? Surfaces.accent(dark) : Surfaces.accentBorder(dark),
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.getFont(googleFontsFamily,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Surfaces.accent(dark) : Surfaces.bodyText(dark)),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.check, size: 14, color: Surfaces.accent(dark)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the three text-size presets (Small / Default / Large).
+class _FontSizeOption extends StatelessWidget {
+  final String scaleLabel;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _FontSizeOption({
+    required this.scaleLabel,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? Surfaces.accent(dark).withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? Surfaces.accent(dark) : Surfaces.accentBorder(dark),
+            width: selected ? 1.4 : 1,
+          ),
+        ),
+        child: Text(scaleLabel,
+            style: body(13, selected ? Surfaces.accent(dark) : Surfaces.bodyText(dark),
+                weight: FontWeight.w700)),
       ),
     );
   }

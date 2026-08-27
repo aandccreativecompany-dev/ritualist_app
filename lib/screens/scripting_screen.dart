@@ -130,162 +130,172 @@ class ScriptingScreen extends StatelessWidget {
   }
 
   Future<void> _editScript(BuildContext context, Script? script) async {
-    final titleCtrl = TextEditingController(text: script?.title ?? '');
-    final bodyCtrl = TextEditingController(text: script?.body ?? '');
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    var mode = script?.mode ?? 'manifest';
+    // A FULL SCREEN, not a bottom sheet — deliberately. Earlier builds kept
+    // this a modal sheet and tried to keep the Save button above a
+    // variable-height on-screen keyboard via ConstrainedBox/Flexible height
+    // math; that math kept losing the fight on some devices/keyboards, and
+    // the Save button ended up laid out behind the keyboard, invisible. A
+    // full screen with Save/Delete pinned in the AppBar sidesteps the whole
+    // problem: the AppBar never resizes for the keyboard, so those actions
+    // are always on screen, full stop — no height math to get wrong.
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => _ScriptEditorScreen(script: script)),
+    );
+  }
+}
 
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(builder: (context, setSheetState) {
-          final keyboard = MediaQuery.of(context).viewInsets.bottom;
-          final isDump = mode == 'dump';
-          return Padding(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, keyboard + 20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height - keyboard - 80),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                decoration: BoxDecoration(
-                  // Opaque — see HabitEditorSheet's note on Surfaces.sheet.
-                  color: Surfaces.sheet(dark),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+class _ScriptEditorScreen extends StatefulWidget {
+  final Script? script;
+  const _ScriptEditorScreen({this.script});
+
+  @override
+  State<_ScriptEditorScreen> createState() => _ScriptEditorScreenState();
+}
+
+class _ScriptEditorScreenState extends State<_ScriptEditorScreen> {
+  late final _titleCtrl = TextEditingController(text: widget.script?.title ?? '');
+  late final _bodyCtrl = TextEditingController(text: widget.script?.body ?? '');
+  late String _mode = widget.script?.mode ?? 'manifest';
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final script = widget.script;
+    if (script == null) {
+      await store.addScript(_titleCtrl.text, _bodyCtrl.text, mode: _mode);
+    } else {
+      await store.updateScript(script, _titleCtrl.text, _bodyCtrl.text, mode: _mode);
+    }
+    if (mounted) {
+      Navigator.pop(context);
+      toastSaved(context, label: 'Saved — see it above');
+    }
+  }
+
+  Future<void> _delete() async {
+    final script = widget.script;
+    if (script == null) return;
+    await store.removeScript(script);
+    if (mounted) {
+      Navigator.pop(context);
+      toastSaved(context, label: 'Removed');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final isDump = _mode == 'dump';
+    return Scaffold(
+      backgroundColor: dark ? Brand.deep : Brand.cream,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Surfaces.heading(dark)),
+        title: Text(widget.script == null ? 'New entry' : 'Edit entry',
+            style: display(17, Surfaces.heading(dark))),
+        // Save/Delete live here, in the AppBar — this row never moves and is
+        // never covered by the keyboard, on any device.
+        actions: [
+          if (widget.script != null)
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: _delete,
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            ),
+          IconButton(
+            tooltip: 'Save',
+            onPressed: _save,
+            icon: Icon(Icons.check_circle, color: Surfaces.accent(dark), size: 28),
+          ),
+          const SizedBox(width: 6),
+        ],
+      ),
+      body: Container(
+        decoration: Surfaces.pageBackground(dark),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
                   children: [
-                    Text(script == null ? 'New entry' : 'Edit entry',
-                        style: display(18, Surfaces.heading(dark))),
-                    const SizedBox(height: 10),
-                    // Everything scrollable — including the mode chips — so
-                    // that on a short/keyboard-heavy screen it's this area
-                    // that shrinks and scrolls, never the Save button below
-                    // it. A previous cut of this sheet put the chips outside
-                    // the scroll area as fixed-height content; combined with
-                    // a tall keyboard that could push the Save row's laid-out
-                    // position below the visible viewport, hidden behind the
-                    // keyboard even though it "existed" in the layout. Save
-                    // now has nothing but this one Flexible above it.
-                    Flexible(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                for (final entry in const [
-                                  MapEntry('manifest', 'Manifestation script'),
-                                  MapEntry('dump', 'Free brain dump'),
-                                ])
-                                  InkWell(
-                                    borderRadius: BorderRadius.circular(20),
-                                    onTap: () => setSheetState(() => mode = entry.key),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        color: mode == entry.key
-                                            ? Surfaces.accent(dark).withValues(alpha: 0.16)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: mode == entry.key
-                                              ? Surfaces.accent(dark)
-                                              : Surfaces.accentBorder(dark),
-                                          width: mode == entry.key ? 1.4 : 1,
-                                        ),
-                                      ),
-                                      child: Text(entry.value,
-                                          style: body(11.5,
-                                              mode == entry.key
-                                                  ? Surfaces.accent(dark)
-                                                  : Surfaces.muted(dark),
-                                              weight: FontWeight.w600)),
-                                    ),
-                                  ),
-                              ],
+                    for (final entry in const [
+                      MapEntry('manifest', 'Manifestation script'),
+                      MapEntry('dump', 'Free brain dump'),
+                    ])
+                      InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => setState(() => _mode = entry.key),
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: _mode == entry.key
+                                ? Surfaces.accent(dark).withValues(alpha: 0.16)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _mode == entry.key
+                                  ? Surfaces.accent(dark)
+                                  : Surfaces.accentBorder(dark),
+                              width: _mode == entry.key ? 1.4 : 1,
                             ),
-                            const SizedBox(height: 14),
-                            TextField(
-                              controller: titleCtrl,
-                              autofocus: true,
-                              textCapitalization: TextCapitalization.sentences,
-                              style: body(15, Surfaces.bodyText(dark),
-                                  weight: FontWeight.w600),
-                              decoration: InputDecoration(
-                                  hintText:
-                                      isDump ? 'Give it a quick title (optional)' : 'What outcome?'),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: bodyCtrl,
-                              maxLines: 5,
-                              minLines: 3,
-                              textCapitalization: TextCapitalization.sentences,
-                              style: body(14, Surfaces.bodyText(dark)),
-                              decoration: InputDecoration(
-                                  hintText: isDump
-                                      ? 'Just let it out — no structure needed…'
-                                      : 'Write it as if it already happened…'),
-                            ),
-                          ],
+                          ),
+                          child: Text(entry.value,
+                              style: body(11.5,
+                                  _mode == entry.key
+                                      ? Surfaces.accent(dark)
+                                      : Surfaces.muted(dark),
+                                  weight: FontWeight.w600)),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    // Pinned outside the scroll area, on purpose — this is the
-                    // save button users reported not being able to find; it now
-                    // always stays visible above the keyboard instead of
-                    // requiring a scroll past a 5-line text field to find it.
-                    Row(
-                      children: [
-                        if (script != null)
-                          TextButton(
-                            onPressed: () async {
-                              await store.removeScript(script);
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                toastSaved(context, label: 'Removed');
-                              }
-                            },
-                            child: Text('Delete',
-                                style: body(13, Colors.redAccent,
-                                    weight: FontWeight.w600)),
-                          ),
-                        const Spacer(),
-                        SizedBox(
-                          width: script != null ? 140 : double.infinity,
-                          child: GoldButton(
-                            labelText: 'Save',
-                            onPressed: () => Navigator.pop(context, 'save'),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _titleCtrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: body(15, Surfaces.bodyText(dark), weight: FontWeight.w600),
+                  decoration: InputDecoration(
+                      hintText:
+                          isDump ? 'Give it a quick title (optional)' : 'What outcome?'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _bodyCtrl,
+                  maxLines: null,
+                  minLines: 8,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: body(14, Surfaces.bodyText(dark)),
+                  decoration: InputDecoration(
+                      hintText: isDump
+                          ? 'Just let it out — no structure needed…'
+                          : 'Write it as if it already happened…'),
+                ),
+                const SizedBox(height: 24),
+                // A second, always-reachable Save action at the bottom of the
+                // scroll content too — belt-and-suspenders alongside the
+                // AppBar one, per the explicit ask for a visible save/edit/
+                // delete button with an icon.
+                GoldButton(
+                  labelText: widget.script == null ? 'Save entry' : 'Save changes',
+                  onPressed: _save,
+                ),
+              ],
             ),
-          );
-        });
-      },
+          ),
+        ),
+      ),
     );
-
-    if (result == 'save') {
-      if (script == null) {
-        await store.addScript(titleCtrl.text, bodyCtrl.text, mode: mode);
-      } else {
-        await store.updateScript(script, titleCtrl.text, bodyCtrl.text, mode: mode);
-      }
-      if (context.mounted) toastSaved(context, label: 'Saved — see it above');
-    }
   }
 }
 

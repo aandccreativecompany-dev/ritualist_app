@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mantras.dart';
 import 'models.dart';
 import 'notifications.dart';
-import 'theme.dart' show setAccentId;
+import 'theme.dart' show setAccentId, setFontFamily, setFontScale;
 import 'tips.dart';
 
 const _storageKey = 'ritualist_state_v1';
@@ -35,6 +35,8 @@ class Store extends ChangeNotifier {
       }
     }
     setAccentId(_state.themeAccentId);
+    setFontFamily(_state.fontFamilyId);
+    setFontScale(_state.fontScaleId);
     ready = true;
     notifyListeners();
     await rescheduleReminders();
@@ -224,6 +226,24 @@ class Store extends ChangeNotifier {
   Future<void> setThemeAccent(String id) async {
     _state.themeAccentId = id;
     setAccentId(id);
+    await _commit();
+  }
+
+  /// Which reading font (theme.dart's kFontFamilies) is active for body text.
+  String get fontFamilyId => _state.fontFamilyId;
+
+  Future<void> setFontFamilyChoice(String id) async {
+    _state.fontFamilyId = id;
+    setFontFamily(id);
+    await _commit();
+  }
+
+  /// Which text size scale (theme.dart's kFontScales) is active.
+  String get fontScaleId => _state.fontScaleId;
+
+  Future<void> setFontScaleChoice(String id) async {
+    _state.fontScaleId = id;
+    setFontScale(id);
     await _commit();
   }
 
