@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mantras.dart';
 import 'models.dart';
 import 'notifications.dart';
+import 'theme.dart' show setAccentId;
 import 'tips.dart';
 
 const _storageKey = 'ritualist_state_v1';
@@ -33,6 +34,7 @@ class Store extends ChangeNotifier {
         _state = AppState.initial();
       }
     }
+    setAccentId(_state.themeAccentId);
     ready = true;
     notifyListeners();
     await rescheduleReminders();
@@ -216,6 +218,15 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  /// Which accent palette (theme.dart's kAccentPalettes) is active.
+  String get themeAccentId => _state.themeAccentId;
+
+  Future<void> setThemeAccent(String id) async {
+    _state.themeAccentId = id;
+    setAccentId(id);
+    await _commit();
+  }
+
   // ---- Reminders ----
 
   Future<void> setReminderEnabled(ReminderSetting reminder, bool value) async {
@@ -349,6 +360,27 @@ class Store extends ChangeNotifier {
 
   Future<void> setFinanceBudgetIncome(double income) async {
     _state.financeBudgetIncome = income;
+    await _commit();
+  }
+
+  double get financeBudgetNeedsPct => _state.financeBudgetNeedsPct;
+  double get financeBudgetWantsPct => _state.financeBudgetWantsPct;
+  double get financeBudgetSavingsPct => _state.financeBudgetSavingsPct;
+
+  /// Sets all three budget split percentages at once — callers are
+  /// responsible for keeping them summing to ~100, which the slider UI does
+  /// by redistributing the other two whenever one moves.
+  Future<void> setFinanceBudgetSplit(double needs, double wants, double savings) async {
+    _state.financeBudgetNeedsPct = needs;
+    _state.financeBudgetWantsPct = wants;
+    _state.financeBudgetSavingsPct = savings;
+    await _commit();
+  }
+
+  Future<void> resetFinanceBudgetSplit() async {
+    _state.financeBudgetNeedsPct = 50;
+    _state.financeBudgetWantsPct = 30;
+    _state.financeBudgetSavingsPct = 20;
     await _commit();
   }
 

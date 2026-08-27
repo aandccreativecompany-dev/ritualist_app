@@ -17,6 +17,96 @@ class Brand {
   static const mutedLight = Color(0xFF9C93AE);
 }
 
+/// One selectable app accent color — swaps in for the gold used everywhere
+/// an "accent" surface is requested (icons, chips, highlights, the primary
+/// button color's glow). [dark]/[light] are the two brightness variants,
+/// [pale] is the soft tint used for accent text on a dark background, and
+/// [deep] is the darker variant used for eyebrow labels on a light
+/// background — mirrors the roles Brand.gold's four shades already played.
+class AccentPalette {
+  final String id;
+  final String label;
+  final Color dark;
+  final Color light;
+  final Color pale;
+  final Color deep;
+  const AccentPalette({
+    required this.id,
+    required this.label,
+    required this.dark,
+    required this.light,
+    required this.pale,
+    required this.deep,
+  });
+}
+
+const kAccentPalettes = [
+  AccentPalette(
+    id: 'gold',
+    label: 'Gold',
+    dark: Brand.gold,
+    light: Brand.goldLight,
+    pale: Brand.goldPale,
+    deep: Brand.goldDeep,
+  ),
+  AccentPalette(
+    id: 'rose',
+    label: 'Rose',
+    dark: Color(0xFFF08BA0),
+    light: Color(0xFFD9536F),
+    pale: Color(0xFFFBD9E1),
+    deep: Color(0xFFB23A54),
+  ),
+  AccentPalette(
+    id: 'amethyst',
+    label: 'Amethyst',
+    dark: Color(0xFFC79BF0),
+    light: Color(0xFF9B5DE5),
+    pale: Color(0xFFE9D9FB),
+    deep: Color(0xFF6E31B0),
+  ),
+  AccentPalette(
+    id: 'emerald',
+    label: 'Emerald',
+    dark: Color(0xFF6FDCA8),
+    light: Color(0xFF23A870),
+    pale: Color(0xFFCFF7E4),
+    deep: Color(0xFF17754D),
+  ),
+  AccentPalette(
+    id: 'sky',
+    label: 'Sky',
+    dark: Color(0xFF7FC8F8),
+    light: Color(0xFF2E9BE6),
+    pale: Color(0xFFD6EEFD),
+    deep: Color(0xFF1B6FA8),
+  ),
+  AccentPalette(
+    id: 'coral',
+    label: 'Coral',
+    dark: Color(0xFFFF9770),
+    light: Color(0xFFF06A3F),
+    pale: Color(0xFFFFDECE),
+    deep: Color(0xFFB8481F),
+  ),
+];
+
+/// The currently selected accent, module-level so [Surfaces] (a pure,
+/// no-context helper used everywhere) can read it without needing access
+/// to the store — store.dart calls [setAccentId] whenever the user changes
+/// it in Settings, then notifies listeners so every AnimatedBuilder(store)
+/// screen repaints with the new colors.
+String _accentId = 'gold';
+
+void setAccentId(String id) {
+  if (kAccentPalettes.any((p) => p.id == id)) _accentId = id;
+}
+
+String get currentAccentId => _accentId;
+
+AccentPalette get currentAccent =>
+    kAccentPalettes.firstWhere((p) => p.id == _accentId, orElse: () => kAccentPalettes.first);
+
 TextStyle display(double size, Color color) =>
     GoogleFonts.archivoBlack(fontSize: size, color: color, height: 1.25);
 
@@ -37,7 +127,7 @@ ThemeData buildTheme(Brightness brightness) {
   final scheme = ColorScheme.fromSeed(
     seedColor: Brand.violet,
     brightness: brightness,
-    primary: dark ? Brand.gold : Brand.goldLight,
+    primary: dark ? currentAccent.dark : currentAccent.light,
     surface: dark ? Brand.base : Brand.cream,
   );
   return ThemeData(
@@ -63,22 +153,22 @@ class Surfaces {
   static Color sheet(bool dark) => dark ? Brand.base : Colors.white;
 
   static Color cardBorder(bool dark) => dark
-      ? Brand.gold.withValues(alpha: 0.18)
+      ? currentAccent.dark.withValues(alpha: 0.18)
       : Brand.base.withValues(alpha: 0.10);
 
   static Color accentCard(bool dark) =>
-      dark ? Brand.gold.withValues(alpha: 0.07) : Brand.creamCard;
+      dark ? currentAccent.dark.withValues(alpha: 0.07) : Brand.creamCard;
 
   static Color accentBorder(bool dark) => dark
-      ? Brand.gold.withValues(alpha: 0.28)
-      : Brand.goldLight.withValues(alpha: 0.42);
+      ? currentAccent.dark.withValues(alpha: 0.28)
+      : currentAccent.light.withValues(alpha: 0.42);
 
-  static Color accent(bool dark) => dark ? Brand.gold : Brand.goldLight;
-  static Color accentText(bool dark) => dark ? Brand.goldPale : Brand.base;
+  static Color accent(bool dark) => dark ? currentAccent.dark : currentAccent.light;
+  static Color accentText(bool dark) => dark ? currentAccent.pale : Brand.base;
   static Color heading(bool dark) => dark ? Colors.white : Brand.base;
   static Color bodyText(bool dark) => dark ? Brand.bodyDark : Brand.base;
   static Color muted(bool dark) => dark ? Brand.mutedDark : Brand.mutedLight;
-  static Color eyebrow(bool dark) => dark ? Brand.gold : Brand.goldDeep;
+  static Color eyebrow(bool dark) => dark ? currentAccent.dark : currentAccent.deep;
 
   static BoxDecoration pageBackground(bool dark) {
     if (!dark) return const BoxDecoration(color: Brand.cream);

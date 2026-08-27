@@ -1121,6 +1121,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
   final _amountCtrl = TextEditingController();
   final _monthsCtrl = TextEditingController(text: '12');
   final _incomeCtrl = TextEditingController();
+  bool _editingRoadmap = false;
 
   @override
   void initState() {
@@ -1139,6 +1140,14 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
     super.dispose();
   }
 
+  void _startEditingRoadmap() {
+    final roadmap = store.financeRoadmap;
+    _dreamCtrl.text = roadmap?.dreamGoal ?? '';
+    _amountCtrl.text = roadmap == null ? '' : roadmap.targetAmount.toStringAsFixed(0);
+    _monthsCtrl.text = roadmap == null ? '12' : roadmap.months.toString();
+    setState(() => _editingRoadmap = true);
+  }
+
   Future<void> _createRoadmap() async {
     final amount = double.tryParse(_amountCtrl.text.trim());
     final months = int.tryParse(_monthsCtrl.text.trim()) ?? 12;
@@ -1149,6 +1158,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
     _monthsCtrl.text = '12';
     if (mounted) {
       FocusScope.of(context).unfocus();
+      setState(() => _editingRoadmap = false);
       toastSaved(context);
     }
   }
@@ -1162,11 +1172,71 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
     toastSaved(context);
   }
 
+  Future<void> _adjustSplit({required String moved, required double value}) async {
+    // Move the dragged slider to `value`, then redistribute the remaining
+    // budget proportionally across the other two so all three keep summing
+    // to 100 — e.g. dragging Needs up shrinks Wants and Savings together,
+    // in whatever ratio they already had to each other.
+    var needs = store.financeBudgetNeedsPct;
+    var wants = store.financeBudgetWantsPct;
+    var savings = store.financeBudgetSavingsPct;
+
+    double a, b;
+    switch (moved) {
+      case 'needs':
+        needs = value;
+        a = wants;
+        b = savings;
+        final remaining = 100 - needs;
+        final otherSum = a + b;
+        if (otherSum <= 0) {
+          wants = remaining / 2;
+          savings = remaining / 2;
+        } else {
+          wants = remaining * (a / otherSum);
+          savings = remaining * (b / otherSum);
+        }
+        break;
+      case 'wants':
+        wants = value;
+        a = needs;
+        b = savings;
+        final remaining = 100 - wants;
+        final otherSum = a + b;
+        if (otherSum <= 0) {
+          needs = remaining / 2;
+          savings = remaining / 2;
+        } else {
+          needs = remaining * (a / otherSum);
+          savings = remaining * (b / otherSum);
+        }
+        break;
+      default:
+        savings = value;
+        a = needs;
+        b = wants;
+        final remaining = 100 - savings;
+        final otherSum = a + b;
+        if (otherSum <= 0) {
+          needs = remaining / 2;
+          wants = remaining / 2;
+        } else {
+          needs = remaining * (a / otherSum);
+          wants = remaining * (b / otherSum);
+        }
+    }
+    await store.setFinanceBudgetSplit(needs, wants, savings);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final roadmap = store.financeRoadmap;
     final income = store.financeBudgetIncome;
+    final needsPct = store.financeBudgetNeedsPct;
+    final wantsPct = store.financeBudgetWantsPct;
+    final savingsPct = store.financeBudgetSavingsPct;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1177,7 +1247,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
         // ---- Goal Roadmap: Dream Goal -> 12-Month Goal -> Monthly Milestones ----
         Text('GOAL ROADMAP', style: label(Surfaces.eyebrow(dark))),
         const SizedBox(height: 10),
-        if (roadmap == null) ...[
+        if (roadmap == null || _editingRoadmap) ...[
           TextField(
             controller: _dreamCtrl,
             textCapitalization: TextCapitalization.sentences,
@@ -1198,7 +1268,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
                   style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
                   decoration: InputDecoration(
                     isDense: true,
-                    prefixText: '\$ ',
+                    prefixText: '₹ ',
                     hintText: 'Target amount',
                     hintStyle: body(12.5, Surfaces.muted(dark)),
                   ),
@@ -1221,16 +1291,57 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
             ],
           ),
           const SizedBox(height: 10),
-          GoldButton(labelText: 'Create roadmap', onPressed: _createRoadmap),
+          Row(
+            children: [
+              Expanded(
+                child: GoldButton(
+                    labelText: roadmap == null ? 'Create roadmap' : 'Save changes',
+                    onPressed: _createRoadmap),
+              ),
+              if (roadmap != null) ...[
+                const SizedBox(width: 10),
+                TextButton(
+                  onPressed: () => setState(() => _editingRoadmap = false),
+                  child: Text('Cancel',
+                      style: body(12.5, Surfaces.muted(dark), weight: FontWeight.w600)),
+                ),
+              ],
+            ],
+          ),
         ] else ...[
-          Text(roadmap.dreamGoal,
-              style: display(15, Surfaces.heading(dark))),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(roadmap.dreamGoal, style: display(15, Surfaces.heading(dark))),
+              ),
+              IconButton(
+                onPressed: _startEditingRoadmap,
+                icon: Icon(Icons.edit_outlined, size: 18, color: Surfaces.muted(dark)),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
           Text(
-            '\$${roadmap.savedSoFar.toStringAsFixed(0)} of \$${roadmap.targetAmount.toStringAsFixed(0)} · \$${roadmap.perMonth.toStringAsFixed(0)}/month for ${roadmap.months} months',
+            '₹${roadmap.savedSoFar.toStringAsFixed(0)} of ₹${roadmap.targetAmount.toStringAsFixed(0)} · ₹${roadmap.perMonth.toStringAsFixed(0)}/month for ${roadmap.months} months',
             style: body(12, Surfaces.muted(dark)),
           ),
           const SizedBox(height: 10),
+          _ProgressBar(
+            progress: roadmap.targetAmount == 0
+                ? 0
+                : (roadmap.savedSoFar / roadmap.targetAmount).clamp(0, 1).toDouble(),
+            dark: dark,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            roadmap.targetAmount == 0
+                ? '0% there'
+                : '${((roadmap.savedSoFar / roadmap.targetAmount) * 100).clamp(0, 100).toStringAsFixed(0)}% there — keep going!',
+            style: body(11.5, Surfaces.accent(dark), weight: FontWeight.w700),
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1249,14 +1360,15 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: roadmap.monthsDone[i]
-                          ? Surfaces.accent(dark)
-                          : Surfaces.accent(dark).withValues(alpha: 0.1),
-                      border: Border.all(color: Surfaces.accent(dark), width: 1.2),
+                          ? _milestoneColor(i, roadmap.months)
+                          : _milestoneColor(i, roadmap.months).withValues(alpha: 0.12),
+                      border: Border.all(color: _milestoneColor(i, roadmap.months), width: 1.2),
                     ),
-                    child: Text('${i + 1}',
-                        style: body(12,
-                            roadmap.monthsDone[i] ? Brand.base : Surfaces.accent(dark),
-                            weight: FontWeight.w700)),
+                    child: roadmap.monthsDone[i]
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
+                        : Text('${i + 1}',
+                            style: body(12, _milestoneColor(i, roadmap.months),
+                                weight: FontWeight.w700)),
                   ),
                 ),
             ],
@@ -1267,7 +1379,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
               await store.clearFinanceRoadmap();
               setState(() {});
             },
-            child: Text('Start a new roadmap',
+            child: Text('Clear and start a new roadmap',
                 style: body(12, Surfaces.muted(dark), weight: FontWeight.w600)),
           ),
         ],
@@ -1276,9 +1388,23 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
         Divider(height: 1, color: Surfaces.cardBorder(dark)),
         const SizedBox(height: 18),
 
-        // ---- 50/30/20 budget calculator ----
-        Text('50/30/20 BUDGET CALCULATOR', style: label(Surfaces.eyebrow(dark))),
-        const SizedBox(height: 10),
+        // ---- Budget calculator, split adjustable by the user ----
+        Row(
+          children: [
+            Expanded(
+              child: Text('BUDGET CALCULATOR', style: label(Surfaces.eyebrow(dark))),
+            ),
+            TextButton(
+              onPressed: () async {
+                await store.resetFinanceBudgetSplit();
+                setState(() {});
+              },
+              child: Text('Reset to 50/30/20',
+                  style: body(11, Surfaces.muted(dark), weight: FontWeight.w600)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         Row(
           children: [
             Expanded(
@@ -1289,7 +1415,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
                 style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
                 decoration: InputDecoration(
                   isDense: true,
-                  prefixText: '\$ ',
+                  prefixText: '₹ ',
                   hintText: 'Monthly income',
                   hintStyle: body(12.5, Surfaces.muted(dark)),
                 ),
@@ -1299,14 +1425,35 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
             GoldButton(labelText: 'Split it', onPressed: _applyIncome),
           ],
         ),
-        if (income != null) ...[
-          const SizedBox(height: 12),
-          _BudgetRow(label: 'Needs (50%)', amount: income * 0.5, dark: dark),
-          const SizedBox(height: 6),
-          _BudgetRow(label: 'Wants (30%)', amount: income * 0.3, dark: dark),
-          const SizedBox(height: 6),
-          _BudgetRow(label: 'Savings & debt (20%)', amount: income * 0.2, dark: dark),
-        ],
+        const SizedBox(height: 14),
+        _BudgetSliderRow(
+          label: 'Needs',
+          color: const Color(0xFF6FDCA8),
+          pct: needsPct,
+          amount: income == null ? null : income * needsPct / 100,
+          dark: dark,
+          onChanged: (v) => _adjustSplit(moved: 'needs', value: v),
+        ),
+        const SizedBox(height: 10),
+        _BudgetSliderRow(
+          label: 'Wants',
+          color: const Color(0xFF7FC8F8),
+          pct: wantsPct,
+          amount: income == null ? null : income * wantsPct / 100,
+          dark: dark,
+          onChanged: (v) => _adjustSplit(moved: 'wants', value: v),
+        ),
+        const SizedBox(height: 10),
+        _BudgetSliderRow(
+          label: 'Savings & debt',
+          color: const Color(0xFFF08BA0),
+          pct: savingsPct,
+          amount: income == null ? null : income * savingsPct / 100,
+          dark: dark,
+          onChanged: (v) => _adjustSplit(moved: 'savings', value: v),
+        ),
+        const SizedBox(height: 14),
+        _BudgetStackedBar(needsPct: needsPct, wantsPct: wantsPct, savingsPct: savingsPct),
 
         const SizedBox(height: 18),
         Divider(height: 1, color: Surfaces.cardBorder(dark)),
@@ -1315,7 +1462,7 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
         _GoalListContent(
           icon: Icons.checklist_outlined,
           title: 'Other money goals',
-          hint: 'e.g. Save \$500 this month',
+          hint: 'e.g. Save ₹500 this month',
           emptyText: 'Nothing set yet — add a money goal above.',
           goals: () => store.financeGoals,
           onAdd: store.addFinanceGoal,
@@ -1327,84 +1474,210 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
   }
 }
 
-class _BudgetRow extends StatelessWidget {
-  final String label;
-  final double amount;
+/// Cycles a small, cheerful palette across roadmap milestones so the whole
+/// row reads as playful progress rather than a plain numbered list.
+Color _milestoneColor(int index, int total) {
+  const palette = [
+    Color(0xFFF2B93B),
+    Color(0xFF6FDCA8),
+    Color(0xFF7FC8F8),
+    Color(0xFFF08BA0),
+    Color(0xFFC79BF0),
+    Color(0xFFFF9770),
+  ];
+  return palette[index % palette.length];
+}
+
+class _ProgressBar extends StatelessWidget {
+  final double progress;
   final bool dark;
-  const _BudgetRow({required this.label, required this.amount, required this.dark});
+  const _ProgressBar({required this.progress, required this.dark});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: progress),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, _) => Stack(
+          children: [
+            Container(height: 14, color: Surfaces.accent(dark).withValues(alpha: 0.12)),
+            FractionallySizedBox(
+              widthFactor: value.clamp(0, 1),
+              child: Container(
+                height: 14,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6FDCA8), Color(0xFFF2B93B)],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetSliderRow extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double pct;
+  final double? amount;
+  final bool dark;
+  final ValueChanged<double> onChanged;
+  const _BudgetSliderRow({
+    required this.label,
+    required this.color,
+    required this.pct,
+    required this.amount,
+    required this.dark,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-            child: Text(label,
-                style: body(13, Surfaces.bodyText(dark), weight: FontWeight.w500))),
-        Text('\$${amount.toStringAsFixed(0)}',
-            style: body(13, Surfaces.accent(dark), weight: FontWeight.w700)),
+        Row(
+          children: [
+            Container(
+                width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('$label (${pct.round()}%)',
+                  style: body(13, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+            ),
+            if (amount != null)
+              Text('₹${amount!.toStringAsFixed(0)}',
+                  style: body(13, color, weight: FontWeight.w700)),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: color,
+            thumbColor: color,
+            inactiveTrackColor: color.withValues(alpha: 0.15),
+            overlayColor: color.withValues(alpha: 0.15),
+            trackHeight: 4,
+          ),
+          child: Slider(
+            value: pct.clamp(0, 100),
+            min: 0,
+            max: 100,
+            onChanged: onChanged,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// Suggested daily habits for major body systems — tap to add straight to
-/// the Health & Body goal list below; still fully editable/deletable there.
+class _BudgetStackedBar extends StatelessWidget {
+  final double needsPct;
+  final double wantsPct;
+  final double savingsPct;
+  const _BudgetStackedBar(
+      {required this.needsPct, required this.wantsPct, required this.savingsPct});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        height: 18,
+        child: Row(
+          children: [
+            Expanded(
+                flex: (needsPct * 10).round().clamp(1, 1000),
+                child: Container(color: const Color(0xFF6FDCA8))),
+            Expanded(
+                flex: (wantsPct * 10).round().clamp(1, 1000),
+                child: Container(color: const Color(0xFF7FC8F8))),
+            Expanded(
+                flex: (savingsPct * 10).round().clamp(1, 1000),
+                child: Container(color: const Color(0xFFF08BA0))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One suggested daily habit for a body system — tap to add/remove straight
+/// from the Health & Body goal list below; still fully editable there too.
+/// Carries its own icon + color so the chip row reads as colorful and
+/// "alive" rather than a flat list of plain-text pills.
+class HealthSuggestion {
+  final String title;
+  final IconData icon;
+  final Color color;
+  const HealthSuggestion(this.title, this.icon, this.color);
+}
+
 const kHealthBodySuggestions = [
-  'Daily walking (heart)',
-  'Quality sleep (brain)',
-  'Deep breathing exercises (lungs)',
-  'Weight-bearing exercise (bones)',
-  'Drink water regularly (blood)',
-  'Daily sunscreen (skin)',
-  'Quality sleep (immune system)',
-  'Limit processed foods (liver)',
-  'Eat probiotics (gut)',
-  'Floss daily (teeth)',
-  'Natural daylight exposure (eyes)',
-  'Regular hand-washing (hands)',
-  'Strength training twice a week (muscles)',
-  'Meditation (nervous system)',
-  'Consistent sleep-wake cycle (hormones)',
-  'Learn something new (memory)',
+  HealthSuggestion('Daily walking (heart)', Icons.directions_walk, Color(0xFFF08BA0)),
+  HealthSuggestion('Quality sleep (brain)', Icons.psychology, Color(0xFFC79BF0)),
+  HealthSuggestion('Deep breathing exercises (lungs)', Icons.air, Color(0xFF7FC8F8)),
+  HealthSuggestion('Weight-bearing exercise (bones)', Icons.fitness_center, Color(0xFFFF9770)),
+  HealthSuggestion('Drink water regularly (blood)', Icons.water_drop, Color(0xFF2E9BE6)),
+  HealthSuggestion('Daily sunscreen (skin)', Icons.wb_sunny, Color(0xFFF2B93B)),
+  HealthSuggestion('Quality sleep (immune system)', Icons.shield, Color(0xFF6FDCA8)),
+  HealthSuggestion('Limit processed foods (liver)', Icons.no_food, Color(0xFFB07E10)),
+  HealthSuggestion('Eat probiotics (gut)', Icons.eco, Color(0xFF23A870)),
+  HealthSuggestion('Floss daily (teeth)', Icons.brush, Color(0xFFD9536F)),
+  HealthSuggestion('Natural daylight exposure (eyes)', Icons.visibility, Color(0xFF2E9BE6)),
+  HealthSuggestion('Regular hand-washing (hands)', Icons.clean_hands, Color(0xFF9B5DE5)),
+  HealthSuggestion('Strength training twice a week (muscles)', Icons.sports_gymnastics, Color(0xFFB8481F)),
+  HealthSuggestion('Meditation (nervous system)', Icons.self_improvement, Color(0xFF9B5DE5)),
+  HealthSuggestion('Consistent sleep-wake cycle (hormones)', Icons.schedule, Color(0xFFE0A419)),
+  HealthSuggestion('Learn something new (memory)', Icons.lightbulb, Color(0xFF17754D)),
 ];
 
-class _HealthGoalsContent extends StatelessWidget {
+class _HealthGoalsContent extends StatefulWidget {
   const _HealthGoalsContent();
+  @override
+  State<_HealthGoalsContent> createState() => _HealthGoalsContentState();
+}
+
+class _HealthGoalsContentState extends State<_HealthGoalsContent> {
+  Future<void> _toggle(HealthSuggestion s) async {
+    final goals = store.healthGoals;
+    final index = goals.indexWhere((t) => t.title == s.title);
+    if (index >= 0) {
+      await store.removeHealthGoal(index);
+    } else {
+      await store.addHealthGoal(s.title);
+      if (mounted) toastSaved(context);
+    }
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectedTitles = store.healthGoals.map((t) => t.title).toSet();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ItemHeader(icon: Icons.favorite_border, title: 'Health & body'),
         const SizedBox(height: 14),
-        Text('TAP TO ADD', style: label(Surfaces.eyebrow(dark))),
+        Text('TAP TO ADD · TAP AGAIN TO REMOVE', style: label(Surfaces.eyebrow(dark))),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             for (final suggestion in kHealthBodySuggestions)
-              InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () async {
-                  final already =
-                      store.healthGoals.any((t) => t.title == suggestion);
-                  if (already) return;
-                  await store.addHealthGoal(suggestion);
-                  if (context.mounted) toastSaved(context);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Surfaces.accentBorder(dark)),
-                  ),
-                  child: Text(suggestion,
-                      style: body(11.5, Surfaces.muted(dark), weight: FontWeight.w600)),
-                ),
+              _HealthChip(
+                suggestion: suggestion,
+                selected: selectedTitles.contains(suggestion.title),
+                dark: dark,
+                onTap: () => _toggle(suggestion),
               ),
           ],
         ),
@@ -1422,6 +1695,73 @@ class _HealthGoalsContent extends StatelessWidget {
           onRemove: store.removeHealthGoal,
         ),
       ],
+    );
+  }
+}
+
+/// A colorful, icon-led suggestion pill for the Health & Body section.
+/// Selected state is unmissable — a solid color fill, a checkmark badge,
+/// and a soft glow — so users can always tell at a glance what they've
+/// already added, fixing the "did that actually save?" confusion.
+class _HealthChip extends StatelessWidget {
+  final HealthSuggestion suggestion;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+
+  const _HealthChip({
+    required this.suggestion,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = suggestion.color;
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.only(left: 10, right: 14, top: 7, bottom: 7),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: dark ? 0.30 : 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? color : Surfaces.accentBorder(dark), width: selected ? 1.6 : 1),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 0.5)]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? color : color.withValues(alpha: dark ? 0.22 : 0.16),
+              ),
+              child: Icon(
+                selected ? Icons.check : suggestion.icon,
+                size: 13,
+                color: selected ? (dark ? Brand.deep : Colors.white) : color,
+              ),
+            ),
+            const SizedBox(width: 7),
+            Text(
+              suggestion.title,
+              style: body(
+                11.5,
+                selected ? Surfaces.heading(dark) : Surfaces.muted(dark),
+                weight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
