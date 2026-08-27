@@ -2041,19 +2041,185 @@ class _ToggleChip extends StatelessWidget {
   }
 }
 
-class _RelationshipsGoalsContent extends StatelessWidget {
+/// One "learn to connect better" tip — tapping a card turns it into a
+/// concrete practice goal in the list below, the same "tap to add" pattern
+/// as Health & Body, so the tips aren't just decorative reading material.
+class ConnectionTip {
+  final String title;
+  final String blurb;
+  final IconData icon;
+  final Color color;
+  const ConnectionTip(this.title, this.blurb, this.icon, this.color);
+}
+
+const kConnectionTips = [
+  ConnectionTip('Listen actively', 'Put the phone down and really hear them out.',
+      Icons.hearing, Color(0xFF7FC8F8)),
+  ConnectionTip('Ask meaningful questions', 'Go past small talk — ask what they care about.',
+      Icons.question_answer, Color(0xFFC79BF0)),
+  ConnectionTip('Remember important details', "Note birthdays, big days, little things they've said.",
+      Icons.bookmark, Color(0xFFF2B93B)),
+  ConnectionTip('Show genuine interest', "Ask about their world, not just your own updates.",
+      Icons.favorite, Color(0xFFF08BA0)),
+  ConnectionTip('Maintain eye contact', 'A small habit that says "you have my full attention."',
+      Icons.visibility, Color(0xFF2E9BE6)),
+  ConnectionTip('Offer support when needed', "Show up for the hard days, not just the easy ones.",
+      Icons.volunteer_activism, Color(0xFFFF9770)),
+  ConnectionTip('Communicate openly', 'Say what you actually think and feel, kindly and clearly.',
+      Icons.forum, Color(0xFF6FDCA8)),
+  ConnectionTip('Express appreciation', "A genuine thank-you costs nothing and means a lot.",
+      Icons.card_giftcard, Color(0xFFE0A419)),
+  ConnectionTip('Be consistent and reliable', 'Follow through on the small things you say you will.',
+      Icons.event_available, Color(0xFF23A870)),
+  ConnectionTip("Respect each other's boundaries", 'Space and consent keep connection healthy.',
+      Icons.shield_outlined, Color(0xFF9B5DE5)),
+  ConnectionTip('Spend quality time together', 'Undistracted time together is the bond itself.',
+      Icons.groups, Color(0xFFD9536F)),
+  ConnectionTip('Resolve conflicts healthily', 'Focus on the problem, not on winning the argument.',
+      Icons.handshake, Color(0xFFB8481F)),
+];
+
+class _RelationshipsGoalsContent extends StatefulWidget {
   const _RelationshipsGoalsContent();
   @override
-  Widget build(BuildContext context) => _GoalListContent(
-        icon: Icons.diversity_1_outlined,
-        title: 'Relationships & connection',
-        hint: 'e.g. Call someone you miss',
-        emptyText: 'Nothing set yet — add a connection goal above.',
-        goals: () => store.relationshipsGoals,
-        onAdd: store.addRelationshipsGoal,
-        onToggle: store.toggleRelationshipsGoal,
-        onRemove: store.removeRelationshipsGoal,
-      );
+  State<_RelationshipsGoalsContent> createState() => _RelationshipsGoalsContentState();
+}
+
+class _RelationshipsGoalsContentState extends State<_RelationshipsGoalsContent> {
+  Future<void> _toggle(ConnectionTip tip) async {
+    final goals = store.relationshipsGoals;
+    final index = goals.indexWhere((t) => t.title == tip.title);
+    if (index >= 0) {
+      await store.removeRelationshipsGoal(index);
+    } else {
+      await store.addRelationshipsGoal(tip.title);
+      if (mounted) toastSaved(context);
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final selectedTitles = store.relationshipsGoals.map((t) => t.title).toSet();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ItemHeader(icon: Icons.diversity_1_outlined, title: 'Relationships & connection'),
+        const SizedBox(height: 14),
+        Text('LEARN & PRACTICE — TAP TO ADD', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 128,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kConnectionTips.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, i) {
+              final tip = kConnectionTips[i];
+              final selected = selectedTitles.contains(tip.title);
+              return _ConnectionTipCard(
+                tip: tip,
+                selected: selected,
+                dark: dark,
+                onTap: () => _toggle(tip),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
+        _GoalListContent(
+          icon: Icons.checklist_outlined,
+          title: 'Your connection goals',
+          hint: 'e.g. Call someone you miss',
+          emptyText: 'Nothing set yet — tap a tip above or add your own.',
+          goals: () => store.relationshipsGoals,
+          onAdd: store.addRelationshipsGoal,
+          onToggle: store.toggleRelationshipsGoal,
+          onRemove: store.removeRelationshipsGoal,
+        ),
+      ],
+    );
+  }
+}
+
+/// A colorful, icon-led "learn to connect better" card. Selected state
+/// (already added as a goal) gets a solid fill, glow and checkmark badge —
+/// same visual language as the Health & Body chips, for consistency.
+class _ConnectionTipCard extends StatelessWidget {
+  final ConnectionTip tip;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+
+  const _ConnectionTipCard({
+    required this.tip,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = tip.color;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        width: 160,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: dark ? 0.28 : 0.14) : Surfaces.card(dark),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: selected ? color : Surfaces.cardBorder(dark), width: selected ? 1.6 : 1),
+          boxShadow: selected
+              ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 0.5)]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected ? color : color.withValues(alpha: dark ? 0.22 : 0.16),
+                  ),
+                  child: Icon(
+                    selected ? Icons.check : tip.icon,
+                    size: 15,
+                    color: selected ? (dark ? Brand.deep : Colors.white) : color,
+                  ),
+                ),
+                const Spacer(),
+                if (selected)
+                  Icon(Icons.push_pin, size: 13, color: color),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(tip.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: body(12, Surfaces.heading(dark), weight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            Expanded(
+              child: Text(tip.blurb,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: body(10.5, Surfaces.muted(dark))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ReminderItem extends StatelessWidget {

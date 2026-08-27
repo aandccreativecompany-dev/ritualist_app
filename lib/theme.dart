@@ -107,16 +107,71 @@ String get currentAccentId => _accentId;
 AccentPalette get currentAccent =>
     kAccentPalettes.firstWhere((p) => p.id == _accentId, orElse: () => kAccentPalettes.first);
 
+/// One selectable reading font for body copy — the display/headline font
+/// (Archivo Black) stays fixed as the app's brand identity regardless of
+/// this choice; only everyday body/label text switches.
+class AppFont {
+  final String id;
+  final String label;
+  final String googleFontsFamily;
+  const AppFont(this.id, this.label, this.googleFontsFamily);
+}
+
+const kFontFamilies = [
+  AppFont('inter', 'Inter', 'Inter'),
+  AppFont('poppins', 'Poppins', 'Poppins'),
+  AppFont('nunito', 'Nunito', 'Nunito'),
+  AppFont('quicksand', 'Quicksand', 'Quicksand'),
+  AppFont('workSans', 'Work Sans', 'Work Sans'),
+];
+
+/// One selectable text size scale. Kept to a small, hand-picked set of
+/// conservative multipliers (rather than an open slider) because a lot of
+/// this app's UI — chips, badges, circular icons — was tuned tightly around
+/// the default text size; a wide-open scale risks overflow in those spots.
+class AppFontScale {
+  final String id;
+  final String label;
+  final double factor;
+  const AppFontScale(this.id, this.label, this.factor);
+}
+
+const kFontScales = [
+  AppFontScale('small', 'Small', 0.92),
+  AppFontScale('default', 'Default', 1.0),
+  AppFontScale('large', 'Large', 1.12),
+];
+
+String _fontFamilyId = 'inter';
+String _fontScaleId = 'default';
+
+void setFontFamily(String id) {
+  if (kFontFamilies.any((f) => f.id == id)) _fontFamilyId = id;
+}
+
+void setFontScale(String id) {
+  if (kFontScales.any((s) => s.id == id)) _fontScaleId = id;
+}
+
+String get currentFontFamilyId => _fontFamilyId;
+String get currentFontScaleId => _fontScaleId;
+
+AppFont get _currentFont =>
+    kFontFamilies.firstWhere((f) => f.id == _fontFamilyId, orElse: () => kFontFamilies.first);
+
+double get _currentScale =>
+    kFontScales.firstWhere((s) => s.id == _fontScaleId, orElse: () => kFontScales[1]).factor;
+
 TextStyle display(double size, Color color) =>
-    GoogleFonts.archivoBlack(fontSize: size, color: color, height: 1.25);
+    GoogleFonts.archivoBlack(fontSize: size * _currentScale, color: color, height: 1.25);
 
 TextStyle body(double size, Color color,
         {FontWeight weight = FontWeight.w400, double height = 1.55}) =>
-    GoogleFonts.inter(
-        fontSize: size, color: color, fontWeight: weight, height: height);
+    GoogleFonts.getFont(_currentFont.googleFontsFamily,
+        fontSize: size * _currentScale, color: color, fontWeight: weight, height: height);
 
-TextStyle label(Color color) => GoogleFonts.inter(
-    fontSize: 10,
+TextStyle label(Color color) => GoogleFonts.getFont(_currentFont.googleFontsFamily,
+    fontSize: 10 * _currentScale,
     color: color,
     fontWeight: FontWeight.w800,
     letterSpacing: 2,

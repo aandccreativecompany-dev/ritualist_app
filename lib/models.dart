@@ -1,6 +1,6 @@
 // Plain data models. Everything serialises to JSON and lives on the device.
 
-import 'theme.dart' show kAccentPalettes;
+import 'theme.dart' show kAccentPalettes, kFontFamilies, kFontScales;
 
 String dayKey(DateTime date) {
   final m = date.month.toString().padLeft(2, '0');
@@ -608,6 +608,11 @@ class AppState {
   /// accent color — 'gold' is the original look and stays the default.
   String themeAccentId;
 
+  /// Which of [kFontFamilies] / [kFontScales] (theme.dart) the user picked
+  /// for body text readability — 'inter'/'default' are the original look.
+  String fontFamilyId;
+  String fontScaleId;
+
   bool onboardingComplete;
   String userName;
   List<String> focusAreas;
@@ -699,6 +704,8 @@ class AppState {
     required this.mantraSeed,
     required this.themeMode,
     this.themeAccentId = 'gold',
+    this.fontFamilyId = 'inter',
+    this.fontScaleId = 'default',
     required this.skipWeekends,
     required this.onboardingComplete,
     required this.userName,
@@ -811,6 +818,8 @@ class AppState {
         'mantraSeed': mantraSeed,
         'themeMode': themeMode,
         'themeAccentId': themeAccentId,
+        'fontFamilyId': fontFamilyId,
+        'fontScaleId': fontScaleId,
         'skipWeekends': skipWeekends,
         'onboardingComplete': onboardingComplete,
         'userName': userName,
@@ -899,6 +908,14 @@ class AppState {
     if (json['themeAccentId'] is String &&
         kAccentPalettes.any((p) => p.id == json['themeAccentId'])) {
       state.themeAccentId = json['themeAccentId'] as String;
+    }
+    if (json['fontFamilyId'] is String &&
+        kFontFamilies.any((f) => f.id == json['fontFamilyId'])) {
+      state.fontFamilyId = json['fontFamilyId'] as String;
+    }
+    if (json['fontScaleId'] is String &&
+        kFontScales.any((s) => s.id == json['fontScaleId'])) {
+      state.fontScaleId = json['fontScaleId'] as String;
     }
     if (json['skipWeekends'] is bool) {
       state.skipWeekends = json['skipWeekends'] as bool;
