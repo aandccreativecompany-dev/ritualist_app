@@ -299,24 +299,100 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
-  // ---- Scripting (outcome engineering) ----
+  // ---- Journaling (Brain Dump) — manifestation scripts + free brain dumps ----
 
   List<Script> get scripts => _state.scripts;
 
-  Future<void> addScript(String title, String body) async {
+  Future<void> addScript(String title, String body, {String mode = 'manifest'}) async {
     if (title.trim().isEmpty && body.trim().isEmpty) return;
-    _state.scripts.insert(0, Script(title: title.trim(), body: body.trim()));
+    _state.scripts
+        .insert(0, Script(title: title.trim(), body: body.trim(), mode: mode));
     await _commit();
   }
 
-  Future<void> updateScript(Script script, String title, String body) async {
+  Future<void> updateScript(Script script, String title, String body,
+      {String? mode}) async {
     script.title = title.trim();
     script.body = body.trim();
+    if (mode != null) script.mode = mode;
     await _commit();
   }
 
   Future<void> removeScript(Script script) async {
     _state.scripts.remove(script);
+    await _commit();
+  }
+
+  // ---- Finance & Money tools: Goal Roadmap + 50/30/20 budget calculator ----
+
+  FinanceRoadmap? get financeRoadmap => _state.financeRoadmap;
+
+  Future<void> setFinanceRoadmap(String dreamGoal, double targetAmount, int months) async {
+    _state.financeRoadmap =
+        FinanceRoadmap(dreamGoal: dreamGoal.trim(), targetAmount: targetAmount, months: months);
+    await _commit();
+  }
+
+  Future<void> toggleRoadmapMonth(int index) async {
+    final roadmap = _state.financeRoadmap;
+    if (roadmap == null || index < 0 || index >= roadmap.monthsDone.length) return;
+    roadmap.monthsDone[index] = !roadmap.monthsDone[index];
+    await _commit();
+  }
+
+  Future<void> clearFinanceRoadmap() async {
+    _state.financeRoadmap = null;
+    await _commit();
+  }
+
+  double? get financeBudgetIncome => _state.financeBudgetIncome;
+
+  Future<void> setFinanceBudgetIncome(double income) async {
+    _state.financeBudgetIncome = income;
+    await _commit();
+  }
+
+  // ---- Mindset & Growth tools ----
+
+  List<Reframe> get customReframes => _state.customReframes;
+
+  Future<void> addCustomReframe(String negative, String positive) async {
+    if (negative.trim().isEmpty || positive.trim().isEmpty) return;
+    _state.customReframes.add(Reframe(negative: negative.trim(), positive: positive.trim()));
+    await _commit();
+  }
+
+  Future<void> removeCustomReframe(int index) async {
+    if (index < 0 || index >= _state.customReframes.length) return;
+    _state.customReframes.removeAt(index);
+    await _commit();
+  }
+
+  List<String> get todaysStressFills =>
+      _state.stressBucketFills[dayKey(DateTime.now())] ?? <String>[];
+  List<String> get todaysStressEmpties =>
+      _state.stressBucketEmpties[dayKey(DateTime.now())] ?? <String>[];
+
+  Future<void> toggleStressFill(String item) async {
+    final key = dayKey(DateTime.now());
+    final list = _state.stressBucketFills.putIfAbsent(key, () => <String>[]);
+    if (!list.remove(item)) list.add(item);
+    await _commit();
+  }
+
+  Future<void> toggleStressEmpty(String item) async {
+    final key = dayKey(DateTime.now());
+    final list = _state.stressBucketEmpties.putIfAbsent(key, () => <String>[]);
+    if (!list.remove(item)) list.add(item);
+    await _commit();
+  }
+
+  List<String> get todaysDose => _state.doseByDay[dayKey(DateTime.now())] ?? <String>[];
+
+  Future<void> toggleDoseActivity(String activity) async {
+    final key = dayKey(DateTime.now());
+    final list = _state.doseByDay.putIfAbsent(key, () => <String>[]);
+    if (!list.remove(activity)) list.add(activity);
     await _commit();
   }
 
