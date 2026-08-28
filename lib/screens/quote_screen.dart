@@ -9,7 +9,7 @@ import '../widgets/common.dart';
 class QuoteScreen extends StatelessWidget {
   const QuoteScreen({super.key});
 
-  static const _shareFooter = 'A & C Creative Company\n'
+  static const _shareFooter = 'A and C Creative Ventures\n'
       'aandccreativecompany.netlify.app\n'
       'IG/Threads/YT @aandccreativecompany';
 

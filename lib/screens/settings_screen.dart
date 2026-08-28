@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/home_widget_service.dart';
 import '../store.dart';
@@ -254,6 +255,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ],
                                   ],
                                 ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('STARTING SCREEN', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Choose which section opens first when you launch the app.',
+                                  style: body(12, Surfaces.muted(dark)),
+                                ),
+                                const SizedBox(height: 10),
+                                for (final section in kHomePageSections)
+                                  InkWell(
+                                    onTap: () async {
+                                      await store.setDefaultPage(section.key);
+                                      if (context.mounted) toastSaved(context);
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(section.title,
+                                                style: body(13.5, Surfaces.bodyText(dark),
+                                                    weight: FontWeight.w500)),
+                                          ),
+                                          if (store.defaultPageKey == section.key)
+                                            Icon(Icons.check,
+                                                size: 18, color: Surfaces.accent(dark)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -560,11 +598,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.12',
+                                Text('Prakriyā 0.2.13',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),
-                                Text('A & C Creative Company',
+                                Text('A and C Creative Ventures',
                                     style: body(12.5, Surfaces.muted(dark))),
                               ],
                             ),

@@ -1,16 +1,20 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'shared_vision_board_screen.dart';
 import 'vision_layouts_screen.dart';
 
 /// A collage of what the user is working toward — a picked photo (saved from
@@ -22,6 +26,11 @@ class VisionBoardScreen extends StatelessWidget {
   const VisionBoardScreen({super.key});
 
   static const _hatchColors = [Brand.gold, Brand.violet, Brand.goldLight, Brand.mutedDark];
+
+  // Persists across rebuilds (the screen is StatelessWidget, rebuilt by the
+  // AnimatedBuilder below on every store change) so _shareAsImage can always
+  // find the same RepaintBoundary to capture.
+  static final GlobalKey _boardKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +52,11 @@ class VisionBoardScreen extends StatelessWidget {
                       title: 'Vision board',
                       subtitle: 'Pin a photo with a word or sentence, or just the words.',
                       actions: [
+                        IconButton(
+                          tooltip: 'Share',
+                          onPressed: () => _showShareOptions(context, items),
+                          icon: Icon(Icons.ios_share, color: Surfaces.accent(dark)),
+                        ),
                         IconButton(
                           onPressed: () => _addItem(context),
                           icon: Icon(Icons.add_circle_outline, color: Surfaces.accent(dark)),
@@ -123,23 +137,31 @@ class VisionBoardScreen extends StatelessWidget {
                             )
                           : SingleChildScrollView(
                               padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                              child: StaggeredGrid.count(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 14,
-                                crossAxisSpacing: 14,
-                                children: [
-                                  for (var i = 0; i < items.length; i++)
-                                    StaggeredGridTile.count(
-                                      crossAxisCellCount: items[i].spanX.clamp(1, 2),
-                                      mainAxisCellCount: items[i].spanY.clamp(1, 2),
-                                      child: _VisionTile(
-                                        item: items[i],
-                                        index: i,
-                                        color: _hatchColors[items[i].colorIndex % _hatchColors.length],
-                                        dark: dark,
-                                      ),
-                                    ),
-                                ],
+                              child: RepaintBoundary(
+                                key: _boardKey,
+                                child: Container(
+                                  color: dark ? Brand.deep : Brand.cream,
+                                  padding: const EdgeInsets.all(4),
+                                  child: StaggeredGrid.count(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 14,
+                                    crossAxisSpacing: 14,
+                                    children: [
+                                      for (var i = 0; i < items.length; i++)
+                                        StaggeredGridTile.count(
+                                          crossAxisCellCount: items[i].spanX.clamp(1, 2),
+                                          mainAxisCellCount: items[i].spanY.clamp(1, 2),
+                                          child: _VisionTile(
+                                            item: items[i],
+                                            index: i,
+                                            color: _hatchColors[
+                                                items[i].colorIndex % _hatchColors.length],
+                                            dark: dark,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                     ),
@@ -273,6 +295,108 @@ class VisionBoardScreen extends StatelessWidget {
       return dest;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _showShareOptions(BuildContext context, List<VisionItem> items) async {
+    if (items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Add something to your board first.')));
+      return;
+    }
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        decoration: BoxDecoration(
+          color: Surfaces.sheet(dark),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Share your vision board', style: display(17, Surfaces.heading(dark))),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.image_outlined, color: Surfaces.accent(dark)),
+              title: Text('Share as an image', style: body(14, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+              subtitle: Text('View-only — a snapshot of the board as it looks now.',
+                  style: body(11.5, Surfaces.muted(dark))),
+              onTap: () => Navigator.pop(context, 'image'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.text_snippet_outlined, color: Surfaces.accent(dark)),
+              title: Text('Share as a text list', style: body(14, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+              subtitle: Text('View-only — just the captions, no images.',
+                  style: body(11.5, Surfaces.muted(dark))),
+              onTap: () => Navigator.pop(context, 'text'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.groups_outlined, color: Surfaces.accent(dark)),
+              title: Text('Shared board others can add to', style: body(14, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+              subtitle: Text('A live board others join with a code and add their own points to.',
+                  style: body(11.5, Surfaces.muted(dark))),
+              onTap: () => Navigator.pop(context, 'collab'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!context.mounted) return;
+    if (choice == 'image') {
+      await _shareAsImage(context);
+    } else if (choice == 'text') {
+      await _shareAsText(context, items);
+    } else if (choice == 'collab') {
+      if (context.mounted) {
+        await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SharedVisionBoardScreen()));
+      }
+    }
+  }
+
+  Future<void> _shareAsText(BuildContext context, List<VisionItem> items) async {
+    final text = items.map((i) => '• ${i.caption}').where((l) => l != '• ').join('\n');
+    await SharePlus.instance.share(ShareParams(
+      text: text.isEmpty ? 'My vision board on Prakriyā' : text,
+      subject: 'My vision board',
+    ));
+  }
+
+  Future<void> _shareAsImage(BuildContext context) async {
+    try {
+      final boundary =
+          _boardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text("Couldn't capture the board — try again.")));
+        }
+        return;
+      }
+      final image = await boundary.toImage(pixelRatio: 2.5);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return;
+      final dir = await getTemporaryDirectory();
+      final file = File(p.join(
+          dir.path, 'vision_board_${DateTime.now().microsecondsSinceEpoch}.png'));
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(file.path)],
+        text: 'My vision board on Prakriyā',
+      ));
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("Couldn't share the board — try again.")));
+      }
     }
   }
 }

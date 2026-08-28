@@ -247,6 +247,124 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  /// Which kHomePageSections key opens first on launch.
+  String get defaultPageKey => _state.defaultPageKey;
+
+  Future<void> setDefaultPage(String key) async {
+    _state.defaultPageKey = key;
+    await _commit();
+  }
+
+  /// Chosen interval (seconds) for the exercise interval bell timer.
+  int get exerciseBellIntervalSeconds => _state.exerciseBellIntervalSeconds;
+
+  Future<void> setExerciseBellInterval(int seconds) async {
+    if (seconds <= 0) return;
+    _state.exerciseBellIntervalSeconds = seconds;
+    await _commit();
+  }
+
+  // ---- Wallet / spending tracker ----
+
+  List<SpendCategory> get spendCategories => _state.spendCategories;
+  List<SpendEntry> get spendEntries => _state.spendEntries;
+
+  Future<void> addSpendCategory(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    _state.spendCategories.add(
+        SpendCategory(id: '${DateTime.now().microsecondsSinceEpoch}', name: trimmed));
+    await _commit();
+  }
+
+  Future<void> renameSpendCategory(SpendCategory category, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    category.name = trimmed;
+    await _commit();
+  }
+
+  Future<void> removeSpendCategory(SpendCategory category) async {
+    // Also drops any logged entries pointing at it, so the tracker never
+    // ends up showing an expense under a category that no longer exists.
+    _state.spendCategories.remove(category);
+    _state.spendEntries.removeWhere((e) => e.categoryId == category.id);
+    await _commit();
+  }
+
+  Future<void> addSpendSubcategory(SpendCategory category, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty || category.subcategories.contains(trimmed)) return;
+    category.subcategories.add(trimmed);
+    await _commit();
+  }
+
+  Future<void> removeSpendSubcategory(SpendCategory category, String name) async {
+    category.subcategories.remove(name);
+    await _commit();
+  }
+
+  Future<void> addSpendEntry({
+    required String categoryId,
+    String subcategory = '',
+    required double amount,
+    required bool isNeed,
+    String note = '',
+  }) async {
+    if (amount <= 0) return;
+    _state.spendEntries.insert(
+      0,
+      SpendEntry(
+        id: '${DateTime.now().microsecondsSinceEpoch}',
+        categoryId: categoryId,
+        subcategory: subcategory.trim(),
+        amount: amount,
+        isNeed: isNeed,
+        note: note.trim(),
+        date: DateTime.now(),
+      ),
+    );
+    await _commit();
+  }
+
+  Future<void> removeSpendEntry(SpendEntry entry) async {
+    _state.spendEntries.remove(entry);
+    await _commit();
+  }
+
+  SpendCategory? spendCategoryById(String id) {
+    for (final c in _state.spendCategories) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  double get totalSpent =>
+      _state.spendEntries.fold(0.0, (sum, e) => sum + e.amount);
+  double get totalNeedSpent =>
+      _state.spendEntries.where((e) => e.isNeed).fold(0.0, (sum, e) => sum + e.amount);
+  double get totalWantSpent =>
+      _state.spendEntries.where((e) => !e.isNeed).fold(0.0, (sum, e) => sum + e.amount);
+
+  Map<String, double> get spentByCategoryId {
+    final result = <String, double>{};
+    for (final e in _state.spendEntries) {
+      result[e.categoryId] = (result[e.categoryId] ?? 0) + e.amount;
+    }
+    return result;
+  }
+
+  // ---- Shared vision board (cached locally so the code isn't re-entered) ----
+
+  String? get sharedBoardCode => _state.sharedBoardCode;
+  String? get sharedBoardTitle => _state.sharedBoardTitle;
+
+  Future<void> setSharedBoard(String? code, String? title) async {
+    _state.sharedBoardCode = code;
+    _state.sharedBoardTitle = title;
+    await _commit();
+  }
+
   // ---- Reminders ----
 
   Future<void> setReminderEnabled(ReminderSetting reminder, bool value) async {
@@ -272,9 +390,33 @@ class Store extends ChangeNotifier {
   Future<void> rescheduleReminders() async {
     await Notifications.instance.scheduleAll(
       reminders: _state.reminders,
+      keyDates: _state.keyDates,
       mantra: mantraOfTheDay,
       openTasks: todaysTasks.where((t) => !t.done).map((t) => t.title).toList(),
     );
+  }
+
+  // ---- Key dates (yearly reminders) ----
+
+  List<KeyDate> get keyDates => _state.keyDates;
+
+  Future<void> addKeyDate(String title, int month, int day) async {
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) return;
+    _state.keyDates.add(KeyDate(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      title: trimmed,
+      month: month,
+      day: day,
+    ));
+    await _commit();
+    await rescheduleReminders();
+  }
+
+  Future<void> removeKeyDate(KeyDate keyDate) async {
+    _state.keyDates.remove(keyDate);
+    await _commit();
+    await rescheduleReminders();
   }
 
   // ---- Onboarding ----
@@ -695,6 +837,26 @@ class Store extends ChangeNotifier {
     } else {
       _state.mindMapNotes[period] = text;
     }
+    await _commit();
+  }
+
+  List<MindMapStickyNote> mindMapStickyNotesFor(String period) =>
+      _state.mindMapStickyNotes[period] ?? const [];
+
+  Future<void> addMindMapStickyNote(String period, String text, int colorIndex) async {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return;
+    final list = _state.mindMapStickyNotes.putIfAbsent(period, () => []);
+    list.add(MindMapStickyNote(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      text: trimmed,
+      colorIndex: colorIndex,
+    ));
+    await _commit();
+  }
+
+  Future<void> removeMindMapStickyNote(String period, MindMapStickyNote note) async {
+    _state.mindMapStickyNotes[period]?.remove(note);
     await _commit();
   }
 
