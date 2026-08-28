@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -152,36 +153,47 @@ class _MindMapTab extends StatelessWidget {
         ? 0
         : ((habitsPct + prioritiesPct) / (snap.prioritiesTotal == 0 ? 1 : 2)).round();
 
+    // A whimsical, varied palette instead of the old mostly-monochrome gold
+    // — one distinct color per branch, cycling through the app's accent
+    // palette family so it stays visually consistent with the rest of the
+    // colorful redesign elsewhere in the app.
+    const branchColors = [
+      Color(0xFFF2B93B), // gold
+      Color(0xFFC79BF0), // amethyst
+      Color(0xFF7FC8F8), // sky
+      Color(0xFFF08BA0), // rose
+      Color(0xFF6FDCA8), // emerald
+    ];
     final branches = [
       _BranchData(
         icon: Icons.self_improvement,
         label: 'Habits',
         value: snap.habitsTotal == 0 ? 'None tracked' : '$habitsPct% done',
-        color: Brand.gold,
+        color: branchColors[0],
       ),
       _BranchData(
         icon: Icons.checklist_rounded,
         label: 'Priorities',
         value: snap.prioritiesTotal == 0 ? 'Nothing set' : '$prioritiesPct% done',
-        color: Brand.violet,
+        color: branchColors[1],
       ),
       _BranchData(
         icon: Icons.mood_outlined,
         label: 'Mood',
         value: snap.mood ?? 'Not logged',
-        color: Brand.goldLight,
+        color: branchColors[2],
       ),
       _BranchData(
         icon: Icons.nights_stay_outlined,
         label: 'Reflection',
         value: snap.journaled ? 'Written' : 'Not yet',
-        color: Brand.mutedDark,
+        color: branchColors[3],
       ),
       _BranchData(
         icon: Icons.auto_awesome,
         label: 'Journaling',
         value: '${snap.scriptsCount} total',
-        color: Brand.gold,
+        color: branchColors[4],
       ),
     ];
 
@@ -199,6 +211,8 @@ class _MindMapTab extends StatelessWidget {
               dark: dark,
             ),
           ),
+          const SizedBox(height: 20),
+          _StickyNotesSection(period: period),
           const SizedBox(height: 20),
           ModuleCard(
             eyebrow: 'Notes for this period',
@@ -230,6 +244,149 @@ class _MindMapTab extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Short, colorful sticky notes pinned to the mind map — a lighter, more
+/// visual complement to the single paragraph note. Several can exist per
+/// period tab; each is its own little rotated colored card.
+class _StickyNotesSection extends StatelessWidget {
+  final String period;
+  const _StickyNotesSection({required this.period});
+
+  static const _noteColors = [
+    Color(0xFFF2B93B),
+    Color(0xFFF08BA0),
+    Color(0xFF7FC8F8),
+    Color(0xFF6FDCA8),
+    Color(0xFFC79BF0),
+    Color(0xFFFF9770),
+  ];
+
+  Future<void> _addNote(BuildContext context) async {
+    final controller = TextEditingController();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('New sticky note', style: display(16, Surfaces.heading(dark))),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: 'A quick thought for this period'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: const Text('Add')),
+        ],
+      ),
+    );
+    if (text != null && text.trim().isNotEmpty) {
+      final colorIndex = store.mindMapStickyNotesFor(period).length % _noteColors.length;
+      await store.addMindMapStickyNote(period, text, colorIndex);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final notes = store.mindMapStickyNotesFor(period);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('STICKY NOTES', style: label(Surfaces.eyebrow(dark))),
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () => _addNote(context),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.add_circle_outline, size: 18, color: Surfaces.accent(dark)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (notes.isEmpty)
+          Text('Nothing pinned yet — tap + for a quick note.',
+              style: body(12.5, Surfaces.muted(dark)))
+        else
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final note in notes)
+                _StickyNoteCard(
+                  note: note,
+                  color: _noteColors[note.colorIndex % _noteColors.length],
+                  dark: dark,
+                  onRemove: () => store.removeMindMapStickyNote(period, note),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _StickyNoteCard extends StatelessWidget {
+  final MindMapStickyNote note;
+  final Color color;
+  final bool dark;
+  final VoidCallback onRemove;
+
+  const _StickyNoteCard({
+    required this.note,
+    required this.color,
+    required this.dark,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: (note.id.hashCode % 5 - 2) * 0.02, // a tiny whimsical tilt, ±~5°
+      child: Container(
+        width: 140,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: dark ? 0.26 : 0.9),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: dark ? 0.3 : 0.12), blurRadius: 6),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.push_pin, size: 12, color: dark ? Colors.white : Brand.deep),
+                const Spacer(),
+                InkWell(
+                  onTap: onRemove,
+                  child: Icon(Icons.close, size: 14, color: dark ? Colors.white70 : Brand.deep),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              note.text,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: body(11.5, dark ? Colors.white : Brand.deep, weight: FontWeight.w600),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -286,7 +443,7 @@ class _MindMapRadial extends StatelessWidget {
               painter: _BranchLinePainter(
                 center: center,
                 points: positions,
-                color: Surfaces.muted(dark).withValues(alpha: 0.35),
+                colors: [for (final b in branches) b.color.withValues(alpha: 0.45)],
               ),
             ),
             Positioned(
@@ -382,20 +539,20 @@ class _BranchNode extends StatelessWidget {
 class _BranchLinePainter extends CustomPainter {
   final Offset center;
   final List<Offset> points;
-  final Color color;
-  const _BranchLinePainter({required this.center, required this.points, required this.color});
+  final List<Color> colors;
+  const _BranchLinePainter({required this.center, required this.points, required this.colors});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.4;
-    for (final p in points) {
-      canvas.drawLine(center, p, paint);
+    for (var i = 0; i < points.length; i++) {
+      final paint = Paint()
+        ..color = i < colors.length ? colors[i] : Colors.grey.withValues(alpha: 0.35)
+        ..strokeWidth = 1.6;
+      canvas.drawLine(center, points[i], paint);
     }
   }
 
   @override
   bool shouldRepaint(covariant _BranchLinePainter oldDelegate) =>
-      oldDelegate.center != center || oldDelegate.points != points || oldDelegate.color != color;
+      oldDelegate.center != center || oldDelegate.points != points || oldDelegate.colors != colors;
 }

@@ -6,6 +6,7 @@ import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'evening_reflection_screen.dart';
+import 'exercise_timer_screen.dart';
 import 'habit_detail_screen.dart';
 import 'mind_map_screen.dart';
 import 'monthly_goals_screen.dart';
@@ -13,6 +14,7 @@ import 'quote_screen.dart';
 import 'reminders_screen.dart';
 import 'scripting_screen.dart';
 import 'settings_screen.dart';
+import 'spending_tracker_screen.dart';
 import 'todo_list_screen.dart';
 import 'vision_board_screen.dart';
 import 'weekly_goals_screen.dart';
@@ -38,9 +40,22 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// Which section-page index to open on first paint, per the user's
+/// Settings > "Starting screen" pick — falls back to page 0 (Productivity)
+/// if that section is hidden or was never set.
+int _initialPageIndex() {
+  final visible = store.visibleModuleIds;
+  final visibleKeys = [
+    for (final section in kHomePageSections)
+      if (section.moduleIds.any(visible.contains)) section.key,
+  ];
+  final index = visibleKeys.indexOf(store.defaultPageKey);
+  return index >= 0 ? index : 0;
+}
+
 class _HomeScreenState extends State<HomeScreen> {
-  final _pageController = PageController();
-  int _page = 0;
+  late final _pageController = PageController(initialPage: _initialPageIndex());
+  late int _page = _pageController.initialPage;
   bool _hintDismissed = false;
   late final String _mascotGreeting = kMascotGreetings[
       DateTime.now().millisecondsSinceEpoch % kMascotGreetings.length];
@@ -96,44 +111,20 @@ class _HomeScreenState extends State<HomeScreen> {
       animation: store,
       builder: (context, _) {
         final visible = store.visibleModuleIds;
-        final productivityItems = [
-          for (final id in kProductivityModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
-        final outcomeItems = [
-          for (final id in kOutcomeModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
-        final financeItems = [
-          for (final id in kFinanceModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
-        final healthItems = [
-          for (final id in kHealthModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
-        final mindsetItems = [
-          for (final id in kMindsetModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
-        final relationshipsItems = [
-          for (final id in kRelationshipsModuleIds)
-            if (visible.contains(id)) _itemFor(id),
-        ];
+        // Built from the single shared kHomePageSections list (models.dart)
+        // so this order always matches the Settings > "Starting screen"
+        // picker and _initialPageIndex() above — three places relying on
+        // one source of truth instead of three hand-kept lists.
         final pages = [
-          if (productivityItems.isNotEmpty)
-            _SectionPage(title: 'Productivity', items: productivityItems),
-          if (outcomeItems.isNotEmpty)
-            _SectionPage(title: 'Outcome engineering', items: outcomeItems),
-          if (financeItems.isNotEmpty)
-            _SectionPage(title: 'Finance & money', items: financeItems),
-          if (healthItems.isNotEmpty)
-            _SectionPage(title: 'Health & body', items: healthItems),
-          if (mindsetItems.isNotEmpty)
-            _SectionPage(title: 'Mindset & growth', items: mindsetItems),
-          if (relationshipsItems.isNotEmpty)
-            _SectionPage(
-                title: 'Relationships & connection', items: relationshipsItems),
+          for (final section in kHomePageSections)
+            if (section.moduleIds.any(visible.contains))
+              _SectionPage(
+                title: section.title,
+                items: [
+                  for (final id in section.moduleIds)
+                    if (visible.contains(id)) _itemFor(id),
+                ],
+              ),
         ];
 
         return Scaffold(
@@ -1150,8 +1141,9 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
 
   Future<void> _createRoadmap() async {
     final amount = double.tryParse(_amountCtrl.text.trim());
-    final months = int.tryParse(_monthsCtrl.text.trim()) ?? 12;
-    if (_dreamCtrl.text.trim().isEmpty || amount == null || amount <= 0 || months <= 0) return;
+    final monthsRaw = int.tryParse(_monthsCtrl.text.trim()) ?? 12;
+    final months = monthsRaw.clamp(1, 360);
+    if (_dreamCtrl.text.trim().isEmpty || amount == null || amount <= 0 || monthsRaw <= 0) return;
     await store.setFinanceRoadmap(_dreamCtrl.text, amount, months);
     _dreamCtrl.clear();
     _amountCtrl.clear();
@@ -1242,6 +1234,31 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ItemHeader(icon: Icons.savings_outlined, title: 'Finance & money goals'),
+        const SizedBox(height: 12),
+        InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SpendingTrackerScreen())),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Surfaces.accent(dark).withValues(alpha: 0.10),
+              border: Border.all(color: Surfaces.accent(dark).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.account_balance_wallet_outlined, size: 18, color: Surfaces.accent(dark)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Wallet & spending tracker — Need vs Want',
+                      style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
+                ),
+                Icon(Icons.chevron_right, size: 16, color: Surfaces.accent(dark)),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 16),
 
         // ---- Goal Roadmap: Dream Goal -> 12-Month Goal -> Monthly Milestones ----
@@ -1665,7 +1682,32 @@ class _HealthGoalsContentState extends State<_HealthGoalsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ItemHeader(icon: Icons.favorite_border, title: 'Health & body'),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
+        InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ExerciseTimerScreen())),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Surfaces.accent(dark).withValues(alpha: 0.10),
+              border: Border.all(color: Surfaces.accent(dark).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.timer_outlined, size: 18, color: Surfaces.accent(dark)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Exercise interval bell — customize & start',
+                      style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
+                ),
+                Icon(Icons.chevron_right, size: 16, color: Surfaces.accent(dark)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
         Text('TAP TO ADD · TAP AGAIN TO REMOVE', style: label(Surfaces.eyebrow(dark))),
         const SizedBox(height: 8),
         Wrap(
@@ -2440,7 +2482,7 @@ class _Footer extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('© A & C Creative Company',
+          Text('© A and C Creative Ventures',
               style: body(10.5, Surfaces.muted(dark), weight: FontWeight.w600)),
           const SizedBox(width: 10),
           _SocialIcon(

@@ -30,6 +30,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PRODUCTIVITY'), findsOneWidget);
-    expect(find.text('© A & C Creative Company'), findsOneWidget);
+    expect(find.text('© A and C Creative Ventures'), findsOneWidget);
   });
 }

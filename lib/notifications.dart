@@ -68,6 +68,41 @@ class Notifications {
         ),
       );
 
+  /// Schedules one key date at 9am on its next occurrence (this year if it
+  /// hasn't passed yet, else next year). No native yearly-repeat mode
+  /// exists in this plugin, so this relies on [scheduleAll] running again
+  /// at every app launch (it already does, via Store.load) to roll the
+  /// occurrence forward once the date passes.
+  Future<void> _scheduleKeyDate(KeyDate keyDate) async {
+    final now = tz.TZDateTime.now(tz.local);
+    var year = now.year;
+    // Clamp the day to whatever the target month actually has (handles a
+    // Feb 29 saved in a leap year, or any other invalid combination) —
+    // without this, tz.TZDateTime(..., 29) for Feb in a non-leap year
+    // would silently roll over into March instead of firing in February.
+    int lastDayOf(int y, int m) => DateTime(y, m + 1, 0).day;
+    var day = keyDate.day.clamp(1, lastDayOf(year, keyDate.month));
+    var scheduled = tz.TZDateTime(tz.local, year, keyDate.month, day, 9, 0);
+    if (!scheduled.isAfter(now)) {
+      year += 1;
+      day = keyDate.day.clamp(1, lastDayOf(year, keyDate.month));
+      scheduled = tz.TZDateTime(tz.local, year, keyDate.month, day, 9, 0);
+    }
+    // A stable id derived from the key date's own id, offset well clear of
+    // the fixed 1/2/3 used by the daily reminders above.
+    final id = 1000 + (keyDate.id.hashCode.abs() % 8000);
+    await _plugin.zonedSchedule(
+      id,
+      '🎉 ${keyDate.title}',
+      "Today's the day — ${keyDate.title}.",
+      scheduled,
+      _details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+  }
+
   tz.TZDateTime _nextInstance(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled =
@@ -104,11 +139,16 @@ class Notifications {
     required List<ReminderSetting> reminders,
     required String mantra,
     required List<String> openTasks,
+    List<KeyDate> keyDates = const [],
   }) async {
     await init();
     await _plugin.cancelAll();
 
     if (!await permissionGranted()) return;
+
+    for (final keyDate in keyDates) {
+      await _scheduleKeyDate(keyDate);
+    }
 
     for (final reminder in reminders) {
       if (!reminder.enabled) continue;

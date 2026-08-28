@@ -140,6 +140,148 @@ class ReminderSetting {
       {'id': id, 'enabled': enabled, 'hour': hour, 'minute': minute};
 }
 
+/// One short colorful sticky note pinned onto the organized mind map.
+class MindMapStickyNote {
+  String id;
+  String text;
+  int colorIndex;
+
+  MindMapStickyNote({required this.id, required this.text, this.colorIndex = 0});
+
+  Map<String, dynamic> toJson() => {'id': id, 'text': text, 'colorIndex': colorIndex};
+
+  static MindMapStickyNote? fromJson(Map<String, dynamic> json) {
+    final text = json['text'];
+    if (text is! String || text.isEmpty) return null;
+    final id = json['id'];
+    final colorIndex = json['colorIndex'];
+    return MindMapStickyNote(
+      id: id is String && id.isNotEmpty ? id : '${text.hashCode}',
+      text: text,
+      colorIndex: colorIndex is int ? colorIndex : 0,
+    );
+  }
+}
+
+/// One customizable spending category header (e.g. "Food") with its own
+/// customizable sub-headers (e.g. "Groceries", "Dining out") — per the
+/// explicit ask that both levels be user-editable, not a fixed list.
+class SpendCategory {
+  String id;
+  String name;
+  List<String> subcategories;
+
+  SpendCategory({required this.id, required this.name, List<String>? subcategories})
+      : subcategories = subcategories ?? [];
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, 'subcategories': subcategories};
+
+  static SpendCategory? fromJson(Map<String, dynamic> json) {
+    final name = json['name'];
+    if (name is! String || name.isEmpty) return null;
+    final id = json['id'];
+    final rawSubs = json['subcategories'];
+    return SpendCategory(
+      id: id is String && id.isNotEmpty ? id : '${name.hashCode}',
+      name: name,
+      subcategories: rawSubs is List ? rawSubs.map((e) => e.toString()).toList() : [],
+    );
+  }
+}
+
+/// One logged expense — tagged Need or Want per the explicit ask, so the
+/// tracker can show not just "where the money went" but "how much of it
+/// was actually necessary."
+class SpendEntry {
+  String id;
+  String categoryId;
+  String subcategory;
+  double amount;
+  bool isNeed;
+  String note;
+  DateTime date;
+
+  SpendEntry({
+    required this.id,
+    required this.categoryId,
+    this.subcategory = '',
+    required this.amount,
+    required this.isNeed,
+    this.note = '',
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'categoryId': categoryId,
+        'subcategory': subcategory,
+        'amount': amount,
+        'isNeed': isNeed,
+        'note': note,
+        'date': date.toIso8601String(),
+      };
+
+  static SpendEntry? fromJson(Map<String, dynamic> json) {
+    final categoryId = json['categoryId'];
+    final amount = json['amount'];
+    if (categoryId is! String || categoryId.isEmpty) return null;
+    final parsedAmount = amount is num ? amount.toDouble() : double.tryParse('$amount');
+    if (parsedAmount == null || parsedAmount <= 0) return null;
+    final id = json['id'];
+    final rawDate = json['date'];
+    final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
+    return SpendEntry(
+      id: id is String && id.isNotEmpty
+          ? id
+          : '${DateTime.now().microsecondsSinceEpoch}',
+      categoryId: categoryId,
+      subcategory: json['subcategory'] is String ? json['subcategory'] as String : '',
+      amount: parsedAmount,
+      isNeed: json['isNeed'] == true,
+      note: json['note'] is String ? json['note'] as String : '',
+      date: parsedDate ?? DateTime.now(),
+    );
+  }
+}
+
+/// A yearly recurring reminder for one date — a birthday, an anniversary,
+/// a renewal, anything that matters once a year — separate from the daily
+/// reminders above. Only month/day are kept (no year), since it repeats
+/// every year by definition; the next occurrence is computed at schedule
+/// time (this year if it hasn't passed yet, else next year).
+class KeyDate {
+  String id;
+  String title;
+  int month; // 1-12
+  int day; // 1-31 (clamped to a day that exists in that month when scheduled)
+
+  KeyDate({
+    required this.id,
+    required this.title,
+    required this.month,
+    required this.day,
+  });
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'title': title, 'month': month, 'day': day};
+
+  static KeyDate? fromJson(Map<String, dynamic> json) {
+    final title = json['title'];
+    final month = json['month'];
+    final day = json['day'];
+    if (title is! String || month is! int || day is! int) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    final id = json['id'];
+    return KeyDate(
+      id: id is String && id.isNotEmpty ? id : '$month-$day-${title.hashCode}',
+      title: title,
+      month: month,
+      day: day,
+    );
+  }
+}
+
 /// One entry in the Journaling (Brain Dump) list — either a manifestation
 /// script (write the outcome as if it already happened) or a free-form
 /// brain dump. [mode] is 'manifest' or 'dump'; unknown/legacy values are
@@ -187,12 +329,17 @@ class FinanceRoadmap {
   int months;
   List<bool> monthsDone;
 
+  // Clamped to a sane range — an unbounded value here (a stray extra digit
+  // typed into the months field, or a corrupted backup) would otherwise
+  // build one milestone-circle widget per month and could make the Finance
+  // page freeze or crash after the number gets large enough.
   FinanceRoadmap({
     required this.dreamGoal,
     required this.targetAmount,
-    required this.months,
+    required int months,
     List<bool>? monthsDone,
-  }) : monthsDone = monthsDone ?? List<bool>.filled(months, false);
+  })  : months = months.clamp(1, 360),
+        monthsDone = monthsDone ?? List<bool>.filled(months.clamp(1, 360), false);
 
   double get perMonth => months == 0 ? 0 : targetAmount / months;
   int get monthsCompleted => monthsDone.where((d) => d).length;
@@ -206,7 +353,11 @@ class FinanceRoadmap {
       };
 
   static FinanceRoadmap fromJson(Map<String, dynamic> json) {
-    final months = (json['months'] ?? 12) as int;
+    final rawMonths = json['months'];
+    final months = (rawMonths is int
+            ? rawMonths
+            : (rawMonths is num ? rawMonths.toInt() : 12))
+        .clamp(1, 360);
     final rawDone = json['monthsDone'];
     final done = rawDone is List
         ? rawDone.map((e) => e == true).toList()
@@ -549,6 +700,17 @@ List<Habit> defaultHabits() => [
       Habit(name: 'Learn something new', iconIndex: 2, colorIndex: 4),
     ];
 
+/// Starting set of spending categories — fully editable afterward (rename,
+/// delete, add more, edit sub-headers) per the explicit ask that this not
+/// be a fixed list.
+List<SpendCategory> defaultSpendCategories() => [
+      SpendCategory(id: 'food', name: 'Food', subcategories: ['Groceries', 'Dining out']),
+      SpendCategory(id: 'transport', name: 'Transport', subcategories: ['Fuel', 'Public transit']),
+      SpendCategory(id: 'shopping', name: 'Shopping', subcategories: ['Clothing', 'Electronics']),
+      SpendCategory(id: 'bills', name: 'Bills', subcategories: ['Rent', 'Utilities', 'Subscriptions']),
+      SpendCategory(id: 'other', name: 'Other', subcategories: []),
+    ];
+
 /// Vision board tile shapes the user can switch between — either as the
 /// board-wide default or per individual tile.
 const kVisionShapes = [
@@ -580,6 +742,26 @@ const kHealthModuleIds = ['healthGoals'];
 const kMindsetModuleIds = ['mindsetGoals'];
 const kRelationshipsModuleIds = ['relationshipsGoals'];
 
+/// One swipeable section of the home screen — bundles its title and the
+/// module ids it holds so home_screen.dart's page-building and the
+/// Settings "starting screen" picker both read from one shared list instead
+/// of duplicating the section order in two places.
+class HomePageSection {
+  final String key;
+  final String title;
+  final List<String> moduleIds;
+  const HomePageSection(this.key, this.title, this.moduleIds);
+}
+
+const kHomePageSections = [
+  HomePageSection('productivity', 'Productivity', kProductivityModuleIds),
+  HomePageSection('outcome', 'Outcome engineering', kOutcomeModuleIds),
+  HomePageSection('finance', 'Finance & money', kFinanceModuleIds),
+  HomePageSection('health', 'Health & body', kHealthModuleIds),
+  HomePageSection('mindset', 'Mindset & growth', kMindsetModuleIds),
+  HomePageSection('relationships', 'Relationships & connection', kRelationshipsModuleIds),
+];
+
 /// Onboarding presets — set by the quiz, changeable any time from settings.
 const kPresetFocus = 'focus';
 const kPresetManifest = 'manifest';
@@ -600,6 +782,7 @@ class AppState {
   Map<String, List<Task>> tasksByDay;
   List<Habit> habits;
   List<ReminderSetting> reminders;
+  List<KeyDate> keyDates;
   int mantraSeed;
   String themeMode;
   bool skipWeekends;
@@ -612,6 +795,25 @@ class AppState {
   /// for body text readability — 'inter'/'default' are the original look.
   String fontFamilyId;
   String fontScaleId;
+
+  /// Which [kHomePageSections] key opens first when the app launches.
+  /// 'productivity' (the original behavior) is the default.
+  String defaultPageKey;
+
+  /// Chosen interval, in seconds, for the exercise interval bell timer.
+  int exerciseBellIntervalSeconds;
+
+  /// Wallet / spending tracker — user-customizable category headers (each
+  /// with its own customizable sub-headers) and the logged expenses
+  /// against them, each tagged Need or Want.
+  List<SpendCategory> spendCategories;
+  List<SpendEntry> spendEntries;
+
+  /// The collaborative shared vision board this device last created or
+  /// joined, if any — cached locally so re-opening the screen doesn't
+  /// require re-entering the code every time.
+  String? sharedBoardCode;
+  String? sharedBoardTitle;
 
   bool onboardingComplete;
   String userName;
@@ -664,6 +866,11 @@ class AppState {
   /// period tab ('day' | 'week' | 'month').
   Map<String, String> mindMapNotes;
 
+  /// Short colorful sticky notes pinned onto the mind map, several per
+  /// period tab — a lighter, more visual complement to the single
+  /// paragraph note above.
+  Map<String, List<MindMapStickyNote>> mindMapStickyNotes;
+
   /// Which content shows in the Android home-screen widget.
   bool widgetShowHabits;
   bool widgetShowPriorities;
@@ -701,11 +908,18 @@ class AppState {
     required this.tasksByDay,
     required this.habits,
     required this.reminders,
+    this.keyDates = const [],
     required this.mantraSeed,
     required this.themeMode,
     this.themeAccentId = 'gold',
     this.fontFamilyId = 'inter',
     this.fontScaleId = 'default',
+    this.defaultPageKey = 'productivity',
+    this.exerciseBellIntervalSeconds = 60,
+    List<SpendCategory>? spendCategories,
+    this.spendEntries = const [],
+    this.sharedBoardCode,
+    this.sharedBoardTitle,
     required this.skipWeekends,
     required this.onboardingComplete,
     required this.userName,
@@ -731,6 +945,7 @@ class AppState {
     required this.mindsetGoals,
     required this.relationshipsGoals,
     required this.mindMapNotes,
+    Map<String, List<MindMapStickyNote>>? mindMapStickyNotes,
     required this.widgetShowHabits,
     required this.widgetShowPriorities,
     required this.widgetShowMantra,
@@ -745,7 +960,8 @@ class AppState {
     required this.stressBucketFills,
     required this.stressBucketEmpties,
     required this.doseByDay,
-  });
+  })  : mindMapStickyNotes = mindMapStickyNotes ?? <String, List<MindMapStickyNote>>{},
+        spendCategories = spendCategories ?? defaultSpendCategories();
 
   static AppState initial() => AppState(
         tasksByDay: <String, List<Task>>{},
@@ -815,11 +1031,18 @@ class AppState {
             MapEntry(key, value.map((t) => t.toJson()).toList())),
         'habits': habits.map((h) => h.toJson()).toList(),
         'reminders': reminders.map((r) => r.toJson()).toList(),
+        'keyDates': keyDates.map((k) => k.toJson()).toList(),
         'mantraSeed': mantraSeed,
         'themeMode': themeMode,
         'themeAccentId': themeAccentId,
         'fontFamilyId': fontFamilyId,
         'fontScaleId': fontScaleId,
+        'defaultPageKey': defaultPageKey,
+        'exerciseBellIntervalSeconds': exerciseBellIntervalSeconds,
+        'spendCategories': spendCategories.map((c) => c.toJson()).toList(),
+        'spendEntries': spendEntries.map((e) => e.toJson()).toList(),
+        'sharedBoardCode': sharedBoardCode,
+        'sharedBoardTitle': sharedBoardTitle,
         'skipWeekends': skipWeekends,
         'onboardingComplete': onboardingComplete,
         'userName': userName,
@@ -846,6 +1069,8 @@ class AppState {
         'mindsetGoals': mindsetGoals.map((t) => t.toJson()).toList(),
         'relationshipsGoals': relationshipsGoals.map((t) => t.toJson()).toList(),
         'mindMapNotes': mindMapNotes,
+        'mindMapStickyNotes': mindMapStickyNotes.map(
+            (key, value) => MapEntry(key, value.map((n) => n.toJson()).toList())),
         'widgetShowHabits': widgetShowHabits,
         'widgetShowPriorities': widgetShowPriorities,
         'widgetShowMantra': widgetShowMantra,
@@ -895,10 +1120,22 @@ class AppState {
             .toList();
         if (match.isEmpty) continue;
         final reminder = match.first;
-        reminder.enabled = (entry['enabled'] ?? reminder.enabled) as bool;
-        reminder.hour = (entry['hour'] ?? reminder.hour) as int;
-        reminder.minute = (entry['minute'] ?? reminder.minute) as int;
+        final enabled = entry['enabled'];
+        if (enabled is bool) reminder.enabled = enabled;
+        final hour = entry['hour'];
+        if (hour is int) reminder.hour = hour;
+        final minute = entry['minute'];
+        if (minute is int) reminder.minute = minute;
       }
+    }
+
+    final rawKeyDates = json['keyDates'];
+    if (rawKeyDates is List) {
+      state.keyDates = rawKeyDates
+          .whereType<Map<String, dynamic>>()
+          .map(KeyDate.fromJson)
+          .whereType<KeyDate>()
+          .toList();
     }
 
     if (json['mantraSeed'] is int) state.mantraSeed = json['mantraSeed'] as int;
@@ -916,6 +1153,37 @@ class AppState {
     if (json['fontScaleId'] is String &&
         kFontScales.any((s) => s.id == json['fontScaleId'])) {
       state.fontScaleId = json['fontScaleId'] as String;
+    }
+    if (json['defaultPageKey'] is String &&
+        kHomePageSections.any((s) => s.key == json['defaultPageKey'])) {
+      state.defaultPageKey = json['defaultPageKey'] as String;
+    }
+    final rawInterval = json['exerciseBellIntervalSeconds'];
+    if (rawInterval is int && rawInterval > 0) {
+      state.exerciseBellIntervalSeconds = rawInterval;
+    }
+    final rawSpendCategories = json['spendCategories'];
+    if (rawSpendCategories is List) {
+      final parsed = rawSpendCategories
+          .whereType<Map<String, dynamic>>()
+          .map(SpendCategory.fromJson)
+          .whereType<SpendCategory>()
+          .toList();
+      if (parsed.isNotEmpty) state.spendCategories = parsed;
+    }
+    final rawSpendEntries = json['spendEntries'];
+    if (rawSpendEntries is List) {
+      state.spendEntries = rawSpendEntries
+          .whereType<Map<String, dynamic>>()
+          .map(SpendEntry.fromJson)
+          .whereType<SpendEntry>()
+          .toList();
+    }
+    if (json['sharedBoardCode'] is String) {
+      state.sharedBoardCode = json['sharedBoardCode'] as String;
+    }
+    if (json['sharedBoardTitle'] is String) {
+      state.sharedBoardTitle = json['sharedBoardTitle'] as String;
     }
     if (json['skipWeekends'] is bool) {
       state.skipWeekends = json['skipWeekends'] as bool;
@@ -1034,6 +1302,19 @@ class AppState {
     final rawMindMap = json['mindMapNotes'];
     if (rawMindMap is Map) {
       state.mindMapNotes = rawMindMap.map((k, v) => MapEntry(k.toString(), v.toString()));
+    }
+    final rawSticky = json['mindMapStickyNotes'];
+    if (rawSticky is Map) {
+      state.mindMapStickyNotes = rawSticky.map((k, v) {
+        final notes = v is List
+            ? v
+                .whereType<Map<String, dynamic>>()
+                .map(MindMapStickyNote.fromJson)
+                .whereType<MindMapStickyNote>()
+                .toList()
+            : <MindMapStickyNote>[];
+        return MapEntry(k.toString(), notes);
+      });
     }
     if (json['widgetShowHabits'] is bool) {
       state.widgetShowHabits = json['widgetShowHabits'] as bool;

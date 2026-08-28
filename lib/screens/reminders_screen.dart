@@ -179,6 +179,76 @@ class _RemindersScreenState extends State<RemindersScreen> {
                               ),
                             ),
                           const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('KEY DATES', style: label(Surfaces.muted(dark))),
+                              InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: () => _addKeyDate(context),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(Icons.add_circle_outline,
+                                      size: 20, color: Surfaces.accent(dark)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Birthdays, anniversaries, renewals — anything that matters once a year, notified at 9am on the day.',
+                            style: body(12, Surfaces.muted(dark)),
+                          ),
+                          const SizedBox(height: 12),
+                          if (store.keyDates.isEmpty)
+                            ModuleCard(
+                              child: Text('Nothing added yet — tap + to add one.',
+                                  style: body(13, Surfaces.muted(dark))),
+                            )
+                          else
+                            for (final keyDate in _sortedKeyDates())
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: ModuleCard(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 40,
+                                        height: 40,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Surfaces.accent(dark).withValues(alpha: 0.16),
+                                        ),
+                                        child: Icon(Icons.cake_outlined,
+                                            size: 18, color: Surfaces.accent(dark)),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(keyDate.title,
+                                                style: body(13.5, Surfaces.heading(dark),
+                                                    weight: FontWeight.w700)),
+                                            const SizedBox(height: 2),
+                                            Text(_keyDateSubtitle(keyDate),
+                                                style: body(11.5, Surfaces.muted(dark))),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () async {
+                                          await store.removeKeyDate(keyDate);
+                                          if (mounted) toastSaved(context, label: 'Removed');
+                                        },
+                                        icon: Icon(Icons.close, size: 18, color: Surfaces.muted(dark)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          const SizedBox(height: 12),
                           Text('QUIET HOURS', style: label(Surfaces.muted(dark))),
                           const SizedBox(height: 12),
                           ModuleCard(
@@ -210,6 +280,127 @@ class _RemindersScreenState extends State<RemindersScreen> {
         );
       },
     );
+  }
+
+  static const _monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  List<KeyDate> _sortedKeyDates() {
+    final list = List<KeyDate>.from(store.keyDates);
+    list.sort((a, b) {
+      final aKey = a.month * 100 + a.day;
+      final bKey = b.month * 100 + b.day;
+      return aKey.compareTo(bKey);
+    });
+    return list;
+  }
+
+  String _keyDateSubtitle(KeyDate keyDate) {
+    final now = DateTime.now();
+    var year = now.year;
+    final lastDay = DateTime(year, keyDate.month + 1, 0).day;
+    var target = DateTime(year, keyDate.month, keyDate.day.clamp(1, lastDay));
+    if (target.isBefore(DateTime(now.year, now.month, now.day))) {
+      year += 1;
+      final lastDayNext = DateTime(year, keyDate.month + 1, 0).day;
+      target = DateTime(year, keyDate.month, keyDate.day.clamp(1, lastDayNext));
+    }
+    final daysAway = target.difference(DateTime(now.year, now.month, now.day)).inDays;
+    final dateLabel = '${_monthNames[keyDate.month - 1]} ${keyDate.day}';
+    if (daysAway == 0) return '$dateLabel · Today!';
+    if (daysAway == 1) return '$dateLabel · Tomorrow';
+    return '$dateLabel · in $daysAway days';
+  }
+
+  Future<void> _addKeyDate(BuildContext context) async {
+    final titleCtrl = TextEditingController();
+    DateTime picked = DateTime.now();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => StatefulBuilder(builder: (context, setSheetState) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: IconThemeData(color: Surfaces.heading(dark)),
+              title: Text('New key date', style: display(17, Surfaces.heading(dark))),
+              actions: [
+                IconButton(
+                  tooltip: 'Save',
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: Icon(Icons.check_circle, color: Surfaces.accent(dark), size: 28),
+                ),
+                const SizedBox(width: 6),
+              ],
+            ),
+            body: Container(
+              decoration: Surfaces.pageBackground(dark),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: titleCtrl,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: body(15, Surfaces.bodyText(dark), weight: FontWeight.w600),
+                        decoration: const InputDecoration(hintText: "e.g. Mom's birthday"),
+                      ),
+                      const SizedBox(height: 16),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final result = await showDatePicker(
+                            context: context,
+                            initialDate: picked,
+                            firstDate: DateTime(now.year - 1),
+                            lastDate: DateTime(now.year + 6),
+                            helpText: 'Pick the month and day (year is ignored)',
+                          );
+                          if (result != null) setSheetState(() => picked = result);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Surfaces.accentBorder(dark)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.event, size: 18, color: Surfaces.accent(dark)),
+                              const SizedBox(width: 10),
+                              Text('${_monthNames[picked.month - 1]} ${picked.day}',
+                                  style: body(14, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+                              const Spacer(),
+                              Icon(Icons.chevron_right, size: 18, color: Surfaces.muted(dark)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text('Repeats every year on this month and day.',
+                          style: body(11.5, Surfaces.muted(dark))),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+
+    if (result == true && titleCtrl.text.trim().isNotEmpty) {
+      await store.addKeyDate(titleCtrl.text, picked.month, picked.day);
+      if (mounted) toastSaved(context);
+    }
   }
 
   String _subtitleFor(String id) {
