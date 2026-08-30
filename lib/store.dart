@@ -34,12 +34,28 @@ class Store extends ChangeNotifier {
         _state = AppState.initial();
       }
     }
-    setAccentId(_state.themeAccentId);
-    setFontFamily(_state.fontFamilyId);
-    setFontScale(_state.fontScaleId);
+    // Each of these touches a saved preference (theme accent/font choice) —
+    // guarded individually so a single bad value from an old app version
+    // can't stop the others, or worse, stop `ready`/`notifyListeners()`
+    // below from ever running.
+    try {
+      setAccentId(_state.themeAccentId);
+    } catch (_) {}
+    try {
+      setFontFamily(_state.fontFamilyId);
+    } catch (_) {}
+    try {
+      setFontScale(_state.fontScaleId);
+    } catch (_) {}
     ready = true;
     notifyListeners();
-    await rescheduleReminders();
+    // Scheduling reminders is best-effort by itself (see Notifications.
+    // scheduleAll), but this call is still wrapped here too: it's awaited
+    // directly inside main()'s startup sequence before the first frame is
+    // ever drawn, so nothing here may ever throw past this point.
+    try {
+      await rescheduleReminders();
+    } catch (_) {}
   }
 
   Future<void> _save() async {

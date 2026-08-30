@@ -10,6 +10,7 @@ import 'exercise_timer_screen.dart';
 import 'habit_detail_screen.dart';
 import 'mind_map_screen.dart';
 import 'monthly_goals_screen.dart';
+import 'personal_care_screen.dart';
 import 'quote_screen.dart';
 import 'reminders_screen.dart';
 import 'scripting_screen.dart';
@@ -1700,6 +1701,31 @@ class _HealthGoalsContentState extends State<_HealthGoalsContent> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text('Exercise interval bell — customize & start',
+                      style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
+                ),
+                Icon(Icons.chevron_right, size: 16, color: Surfaces.accent(dark)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PersonalCareScreen())),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Surfaces.accent(dark).withValues(alpha: 0.10),
+              border: Border.all(color: Surfaces.accent(dark).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.spa_outlined, size: 18, color: Surfaces.accent(dark)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('Personal Care — Skin Care check-in',
                       style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
                 ),
                 Icon(Icons.chevron_right, size: 16, color: Surfaces.accent(dark)),
