@@ -166,7 +166,15 @@ jobs:
       - name: Apply the app icon
         run: dart run flutter_launcher_icons
 
-      - run: flutter analyze
+      # `flutter analyze` fails the whole step on ANY issue by default,
+      # including plain "info"-level style lints (a long-standing surprise —
+      # see flutter/flutter#20855 and #31918) — which is exactly what just
+      # failed this workflow in ~1 minute, before the real build ever ran:
+      # 25 pre-existing info-only lints (prefer_const_constructors etc.) in
+      # otherwise-working code, not an actual error or warning. --no-fatal-infos
+      # keeps analyze strict about real errors/warnings while not blocking a
+      # release over cosmetic style suggestions.
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - run: flutter build apk --release
 
