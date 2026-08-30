@@ -45,9 +45,36 @@ Future<void> main() async {
   // responding") with nothing ever shown on screen.
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    await Notifications.instance.init();
-    await store.load();
-    HomeWidgetService.instance.wire();
+    // Every step below is independently guarded and MUST NOT prevent
+    // runApp() at the bottom from running. Previously `Notifications.init()`
+    // and `store.load()` were awaited back-to-back with nothing catching a
+    // failure inside them — a plugin exception (a revoked exact-alarm
+    // permission after an OS update, a corrupted reminder, anything) would
+    // escape past this function entirely with nothing left to call runApp(),
+    // which is exactly what "the app doesn't boot, just a blank screen"
+    // looks like from the outside. Since the same bad state is re-read from
+    // disk on every subsequent launch, that blank screen never recovered on
+    // its own — only a fresh install did. Each phase is now isolated so one
+    // failing piece degrades gracefully instead of taking the whole app down.
+    try {
+      await Notifications.instance.init();
+    } catch (error, stack) {
+      debugPrint('Notifications.init failed: $error\n$stack');
+    }
+    try {
+      await store.load();
+    } catch (error, stack) {
+      debugPrint('store.load failed: $error\n$stack');
+      // store.load() sets `ready = true` internally before its own
+      // fallible tail (reminders); if it threw before reaching that line,
+      // force it here so the UI doesn't sit waiting on it forever.
+      store.ready = true;
+    }
+    try {
+      HomeWidgetService.instance.wire();
+    } catch (error, stack) {
+      debugPrint('HomeWidgetService.wire failed: $error\n$stack');
+    }
     // Firebase reads its config from android/app/google-services.json (baked
     // in at build time) — no explicit FirebaseOptions needed on Android. If
     // it's ever missing (a local dev build without the file), sign-in/sync

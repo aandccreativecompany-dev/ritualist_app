@@ -30,11 +30,24 @@ class Notifications {
       // Fall back to UTC rather than crash on an unknown zone name.
     }
 
-    await _plugin.initialize(
-      const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      ),
-    );
+    try {
+      await _plugin.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
+      );
+    } catch (_) {
+      // A handful of OEM Android builds throw here (missing/renamed
+      // notification resources, a stale plugin channel after an OS update).
+      // Reminders just won't be available this session — that's a much
+      // better failure than taking the whole app down with it, which is
+      // what letting this escape used to do (store.load() awaits init()
+      // before app launch can proceed).
+    }
+    // Marked initialised either way: a plugin that failed once tends to keep
+    // failing, and re-throwing on every subsequent call (permission checks,
+    // every reschedule) is exactly the repeated-crash pattern this guards
+    // against.
     _initialised = true;
   }
 
@@ -135,63 +148,85 @@ class Notifications {
 
   /// Rebuilds the whole schedule. Called on launch, on edit, and after reboot
   /// (the OS drops pending alarms when the device restarts).
+  /// Rebuilds the whole schedule. Best-effort end to end: reminders are a
+  /// nice-to-have layered on top of the app, never something the app's
+  /// ability to open should depend on. This used to let a single bad
+  /// `zonedSchedule` call (a revoked exact-alarm permission after an Android
+  /// update, a stale plugin channel, a duplicate id) throw straight out of
+  /// `Store.load()` — which is awaited before `runApp()` in main() — so one
+  /// unlucky reminder or key date meant the app never rendered anything
+  /// again on any future launch. Every step below is now isolated so that
+  /// can't happen; at worst, reminders silently stop firing instead.
   Future<void> scheduleAll({
     required List<ReminderSetting> reminders,
     required String mantra,
     required List<String> openTasks,
     List<KeyDate> keyDates = const [],
   }) async {
-    await init();
-    await _plugin.cancelAll();
+    try {
+      await init();
+      await _plugin.cancelAll();
 
-    if (!await permissionGranted()) return;
+      if (!await permissionGranted()) return;
 
-    for (final keyDate in keyDates) {
-      await _scheduleKeyDate(keyDate);
-    }
-
-    for (final reminder in reminders) {
-      if (!reminder.enabled) continue;
-
-      switch (reminder.id) {
-        case 'mantra':
-          final tasks = openTasks.isEmpty
-              ? 'Set your three priorities for today.'
-              : openTasks.join(' · ');
-          await _schedule(
-            id: 1,
-            title: 'Your mantra for today',
-            body: '$mantra\n\n$tasks',
-            hour: reminder.hour,
-            minute: reminder.minute,
-          );
-          break;
-
-        case 'midday':
-          // Fires only when something is still open.
-          if (openTasks.isEmpty) break;
-          final count = openTasks.length;
-          await _schedule(
-            id: 2,
-            title: count == 1
-                ? '1 priority still open'
-                : '$count priorities still open',
-            body: openTasks.join('\n'),
-            hour: reminder.hour,
-            minute: reminder.minute,
-          );
-          break;
-
-        case 'evening':
-          await _schedule(
-            id: 3,
-            title: 'Close the day',
-            body: 'Ninety seconds: tick your habits and look at tomorrow.',
-            hour: reminder.hour,
-            minute: reminder.minute,
-          );
-          break;
+      for (final keyDate in keyDates) {
+        try {
+          await _scheduleKeyDate(keyDate);
+        } catch (_) {
+          // Skip this one key date, keep going with the rest.
+        }
       }
+
+      for (final reminder in reminders) {
+        if (!reminder.enabled) continue;
+        try {
+          switch (reminder.id) {
+            case 'mantra':
+              final tasks = openTasks.isEmpty
+                  ? 'Set your three priorities for today.'
+                  : openTasks.join(' · ');
+              await _schedule(
+                id: 1,
+                title: 'Your mantra for today',
+                body: '$mantra\n\n$tasks',
+                hour: reminder.hour,
+                minute: reminder.minute,
+              );
+              break;
+
+            case 'midday':
+              // Fires only when something is still open.
+              if (openTasks.isEmpty) break;
+              final count = openTasks.length;
+              await _schedule(
+                id: 2,
+                title: count == 1
+                    ? '1 priority still open'
+                    : '$count priorities still open',
+                body: openTasks.join('\n'),
+                hour: reminder.hour,
+                minute: reminder.minute,
+              );
+              break;
+
+            case 'evening':
+              await _schedule(
+                id: 3,
+                title: 'Close the day',
+                body: 'Ninety seconds: tick your habits and look at tomorrow.',
+                hour: reminder.hour,
+                minute: reminder.minute,
+              );
+              break;
+          }
+        } catch (_) {
+          // Skip this one reminder, keep going with the rest.
+        }
+      }
+    } catch (_) {
+      // Whatever else went wrong (plugin unavailable, permission check
+      // itself threw, etc.) — reminders just don't get (re)scheduled this
+      // time. The rest of the app must not depend on this succeeding.
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,10 +9,10 @@ import '../theme.dart';
 import '../widgets/common.dart';
 
 /// A simple in-workout interval bell — pick how often it should chime
-/// (every 30s up to every 10 minutes), start it, and it rings (system
-/// sound + haptic) on every interval until stopped. Good for stretch
-/// breaks, HIIT rounds, or just a "still moving?" nudge during a workout.
-/// The chosen interval is remembered for next time.
+/// (every 30s up to every 10 minutes), start it, and it rings (a bundled
+/// bell tone + a firm haptic buzz) on every interval until stopped. Good
+/// for stretch breaks, HIIT rounds, or just a "still moving?" nudge during
+/// a workout. The chosen interval is remembered for next time.
 class ExerciseTimerScreen extends StatefulWidget {
   const ExerciseTimerScreen({super.key});
 
@@ -28,9 +29,25 @@ class _ExerciseTimerScreenState extends State<ExerciseTimerScreen> {
   int _bellCount = 0;
   late int _intervalSeconds = store.exerciseBellIntervalSeconds;
 
+  // `SystemSound.play(SystemSoundType.alert)` — the previous approach — is
+  // effectively silent on a lot of real Android devices/OEM skins: it's
+  // meant for short UI feedback clicks, not a standalone "alert" chime, and
+  // several manufacturers simply don't wire anything to it. A bundled tone
+  // played through a real audio player is what's actually guaranteed to be
+  // audible. Kept as one reused player instance rather than a fresh one per
+  // ring, so repeated bells don't build up player objects over a session.
+  final AudioPlayer _bellPlayer = AudioPlayer();
+
+  @override
+  void initState() {
+    super.initState();
+    _bellPlayer.setReleaseMode(ReleaseMode.stop);
+  }
+
   @override
   void dispose() {
     _ticker?.cancel();
+    _bellPlayer.dispose();
     super.dispose();
   }
 
@@ -43,23 +60,35 @@ class _ExerciseTimerScreenState extends State<ExerciseTimerScreen> {
     });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+      var shouldRing = false;
       setState(() {
         _elapsedInIntervalSeconds += 1;
         if (_elapsedInIntervalSeconds >= _intervalSeconds) {
           _elapsedInIntervalSeconds = 0;
           _bellCount += 1;
-          _ringBell();
+          shouldRing = true;
         }
       });
+      // Fire-and-forget: playback is async, but the timer tick itself
+      // shouldn't wait on it, and setState's callback must stay synchronous.
+      if (shouldRing) unawaited(_ringBell());
     });
   }
 
-  void _ringBell() {
-    // No custom audio asset is bundled, so the system alert sound + a
-    // firm haptic buzz stands in for a "bell" — audible and unmistakable
-    // without adding an asset/dependency.
-    SystemSound.play(SystemSoundType.alert);
+  Future<void> _ringBell() async {
     HapticFeedback.heavyImpact();
+    try {
+      // `resume()` after `stop()` (rather than `play()` fresh each time)
+      // reuses the same underlying player/source instead of tearing one
+      // down and standing up a new one every interval, which is both
+      // faster and avoids overlapping-playback glitches on a fast device.
+      await _bellPlayer.stop();
+      await _bellPlayer.play(AssetSource('sound/bell.wav'), volume: 1.0);
+    } catch (_) {
+      // Fall back to the old (best-effort, sometimes silent) system sound
+      // rather than let a playback error interrupt the workout timer.
+      SystemSound.play(SystemSoundType.alert);
+    }
   }
 
   void _stop() {

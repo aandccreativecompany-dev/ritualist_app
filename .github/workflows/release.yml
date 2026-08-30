@@ -175,9 +175,17 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk \
              ritualist-${GITHUB_REF_NAME#v}.apk
 
-      - name: Draft the release
+      # Published immediately (not a draft) and explicitly not marked as a
+      # pre-release: GitHub's "latest release" (the page/API the website's
+      # Prakriya section links to — /releases/latest) only ever resolves to
+      # the newest published, non-prerelease release. A draft is invisible
+      # there until someone manually clicks "Publish release" in the GitHub
+      # UI, which is exactly why the website's download link needs this.
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          name: "Prakriyā ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
           files: ritualist-*.apk
           generate_release_notes: true
