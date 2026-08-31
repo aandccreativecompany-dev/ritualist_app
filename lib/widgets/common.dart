@@ -33,12 +33,17 @@ class ScreenHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
   final List<Widget>? actions;
+  /// False for a screen reached via a bottom-nav tab rather than pushed on
+  /// the Navigator — there's nothing to pop back to, so showing the arrow
+  /// would just be a dead button.
+  final bool showBackButton;
   const ScreenHeader({
     super.key,
     required this.icon,
     required this.title,
     this.subtitle,
     this.actions,
+    this.showBackButton = true,
   });
 
   @override
@@ -49,10 +54,11 @@ class ScreenHeader extends StatelessWidget {
       children: [
         Row(
           children: [
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
-            ),
+            if (showBackButton)
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.arrow_back, color: Surfaces.bodyText(dark)),
+              ),
             const Spacer(),
             if (actions != null) ...actions!,
           ],

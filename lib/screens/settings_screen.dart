@@ -70,7 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Retake the setup quiz?'),
         content: const Text(
-            'Your tasks, habits and history stay put — only your preset and card picks reset.'),
+            'Your tasks, habits and history stay put — only your preset and card picks reset.',
+            textAlign: TextAlign.justify),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -221,7 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Text(
                                   'Pick the accent color used for icons, highlights and buttons throughout the app.',
-                                  style: body(12, Surfaces.muted(dark)),
+                                  textAlign: TextAlign.justify,
+                                  style: body(12, Surfaces.muted(dark)).copyWith(height: 1.4),
                                 ),
                                 const SizedBox(height: 14),
                                 Wrap(
@@ -435,7 +437,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               children: [
                                 Text(
                                   'Add the Prakriyā widget to your Android home screen, then choose what shows on it.',
-                                  style: body(12.5, Surfaces.muted(dark)),
+                                  textAlign: TextAlign.justify,
+                                  style: body(12.5, Surfaces.muted(dark)).copyWith(height: 1.4),
                                 ),
                                 const SizedBox(height: 14),
                                 _WidgetToggleRow(
@@ -578,7 +581,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   const SizedBox(height: 14),
                                   Text(
                                     'Your data syncs to this account and follows you to any device you sign into.',
-                                    style: body(12, Surfaces.muted(dark)),
+                                    textAlign: TextAlign.justify,
+                                    style: body(12, Surfaces.muted(dark)).copyWith(height: 1.4),
                                   ),
                                   const SizedBox(height: 14),
                                   TextButton(
@@ -613,7 +617,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ] else ...[
                                   Text(
                                     'Sign in with Google to back your data up and sync it across your devices. Optional — everything works fully offline without it.',
-                                    style: body(12.5, Surfaces.muted(dark)),
+                                    textAlign: TextAlign.justify,
+                                    style: body(12.5, Surfaces.muted(dark)).copyWith(height: 1.4),
                                   ),
                                   const SizedBox(height: 16),
                                   GoldButton(
@@ -659,7 +664,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.3.0',
+                                Text('Prakriyā 0.4.0',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),

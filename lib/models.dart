@@ -639,6 +639,13 @@ class VisionItem {
   double imageOffsetY;
   double imageZoom;
 
+  /// Decorative frame — one of [kVisionFrames]. Empty string means "none".
+  String frameStyle;
+
+  /// Photo colour-grading preset — one of [kVisionFilters]. Empty string
+  /// means "none" (the original photo, untouched).
+  String filter;
+
   VisionItem({
     required this.caption,
     this.colorIndex = 0,
@@ -649,6 +656,8 @@ class VisionItem {
     this.imageOffsetX = 0.5,
     this.imageOffsetY = 0.5,
     this.imageZoom = 1.0,
+    this.frameStyle = '',
+    this.filter = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -661,6 +670,8 @@ class VisionItem {
         'imageOffsetX': imageOffsetX,
         'imageOffsetY': imageOffsetY,
         'imageZoom': imageZoom,
+        'frameStyle': frameStyle,
+        'filter': filter,
       };
 
   static VisionItem fromJson(Map<String, dynamic> json) => VisionItem(
@@ -673,6 +684,8 @@ class VisionItem {
         imageOffsetX: ((json['imageOffsetX'] ?? 0.5) as num).toDouble(),
         imageOffsetY: ((json['imageOffsetY'] ?? 0.5) as num).toDouble(),
         imageZoom: ((json['imageZoom'] ?? 1.0) as num).toDouble(),
+        frameStyle: (json['frameStyle'] ?? '') as String,
+        filter: (json['filter'] ?? '') as String,
       );
 }
 
@@ -911,6 +924,43 @@ const kVisionShapeLabels = {
   'blob': 'Blob',
 };
 
+/// Decorative frame treatments a vision-board tile can wear, on top of its
+/// shape — a lightweight stand-in for the "make it feel like a real mood
+/// board" styles (polaroid borders, torn-paper edges, washi tape, a soft
+/// drop shadow) rather than a flat clipped photo.
+const kVisionFrames = ['none', 'polaroid', 'tornPaper', 'washiTape', 'dropShadow'];
+
+const kVisionFrameLabels = {
+  'none': 'Plain',
+  'polaroid': 'Polaroid',
+  'tornPaper': 'Torn paper',
+  'washiTape': 'Washi tape',
+  'dropShadow': 'Drop shadow',
+};
+
+/// Simple, dependency-free colour-grading presets applied to a tile's photo.
+const kVisionFilters = ['none', 'warm', 'dreamy', 'bw'];
+
+const kVisionFilterLabels = {
+  'none': 'Original',
+  'warm': 'Warm',
+  'dreamy': 'Dreamy',
+  'bw': 'B&W',
+};
+
+/// Background textures/themes for the whole board — a plain colour by
+/// default, or one of a few textured/atmospheric options so the board can
+/// feel more like a physical mood board than a bare grid.
+const kVisionBackgrounds = ['default', 'cork', 'linen', 'gradient', 'dark'];
+
+const kVisionBackgroundLabels = {
+  'default': 'Default',
+  'cork': 'Cork board',
+  'linen': 'Linen',
+  'gradient': 'Gradient',
+  'dark': 'Midnight',
+};
+
 /// Which section of the swipeable home each module lives in. `mantra` isn't
 /// listed — it sits above every section as a standalone banner.
 const kProductivityModuleIds = ['priorities', 'habits', 'tips', 'reminders'];
@@ -962,6 +1012,17 @@ class AppState {
   List<ReminderSetting> reminders;
   List<KeyDate> keyDates;
   int mantraSeed;
+
+  /// A shuffled permutation of every mantra's index — advances one step per
+  /// calendar day, guaranteeing no repeat until the whole list has been
+  /// shown once (then reshuffled, avoiding an immediate repeat of the last
+  /// one shown). Replaces the old `mantraSeed`-only rotation, which could
+  /// repeat far sooner than intended since it never tracked what had
+  /// already been shown.
+  List<int> mantraShuffleOrder;
+  int mantraShuffleCursor;
+  String? mantraLastShownDay;
+
   String themeMode;
   bool skipWeekends;
 
@@ -1046,6 +1107,9 @@ class AppState {
   /// informational (shown as "Currently: <name>" in the picker).
   String? visionBoardLayoutName;
 
+  /// Board-wide background texture/theme — one of [kVisionBackgrounds].
+  String visionBoardBackground;
+
   /// Finance & Money, Health & Body, Mindset & Growth and Relationships &
   /// Connection are simple goal checklists, same shape as weekly/monthly
   /// goals, each its own swipeable home card.
@@ -1102,6 +1166,9 @@ class AppState {
     required this.reminders,
     this.keyDates = const [],
     required this.mantraSeed,
+    List<int>? mantraShuffleOrder,
+    this.mantraShuffleCursor = 0,
+    this.mantraLastShownDay,
     required this.themeMode,
     this.themeAccentId = 'gold',
     this.fontFamilyId = 'inter',
@@ -1136,6 +1203,7 @@ class AppState {
     required this.avatarGender,
     required this.visionBoardShape,
     this.visionBoardLayoutName,
+    this.visionBoardBackground = 'default',
     required this.financeGoals,
     required this.healthGoals,
     required this.mindsetGoals,
@@ -1157,7 +1225,8 @@ class AppState {
     required this.stressBucketEmpties,
     required this.doseByDay,
   })  : mindMapStickyNotes = mindMapStickyNotes ?? <String, List<MindMapStickyNote>>{},
-        spendCategories = spendCategories ?? defaultSpendCategories();
+        spendCategories = spendCategories ?? defaultSpendCategories(),
+        mantraShuffleOrder = mantraShuffleOrder ?? <int>[];
 
   static AppState initial() => AppState(
         tasksByDay: <String, List<Task>>{},
@@ -1204,6 +1273,7 @@ class AppState {
         avatarGender: 'girl',
         visionBoardShape: 'square',
         visionBoardLayoutName: null,
+        visionBoardBackground: 'default',
         financeGoals: <Task>[],
         healthGoals: <Task>[],
         mindsetGoals: <Task>[],
@@ -1233,6 +1303,9 @@ class AppState {
         'reminders': reminders.map((r) => r.toJson()).toList(),
         'keyDates': keyDates.map((k) => k.toJson()).toList(),
         'mantraSeed': mantraSeed,
+        'mantraShuffleOrder': mantraShuffleOrder,
+        'mantraShuffleCursor': mantraShuffleCursor,
+        'mantraLastShownDay': mantraLastShownDay,
         'themeMode': themeMode,
         'themeAccentId': themeAccentId,
         'fontFamilyId': fontFamilyId,
@@ -1268,6 +1341,7 @@ class AppState {
         'avatarGender': avatarGender,
         'visionBoardShape': visionBoardShape,
         'visionBoardLayoutName': visionBoardLayoutName,
+        'visionBoardBackground': visionBoardBackground,
         'financeGoals': financeGoals.map((t) => t.toJson()).toList(),
         'healthGoals': healthGoals.map((t) => t.toJson()).toList(),
         'mindsetGoals': mindsetGoals.map((t) => t.toJson()).toList(),
@@ -1343,6 +1417,16 @@ class AppState {
     }
 
     if (json['mantraSeed'] is int) state.mantraSeed = json['mantraSeed'] as int;
+    final rawShuffle = json['mantraShuffleOrder'];
+    if (rawShuffle is List) {
+      state.mantraShuffleOrder = rawShuffle.whereType<int>().toList();
+    }
+    if (json['mantraShuffleCursor'] is int) {
+      state.mantraShuffleCursor = json['mantraShuffleCursor'] as int;
+    }
+    if (json['mantraLastShownDay'] is String) {
+      state.mantraLastShownDay = json['mantraLastShownDay'] as String;
+    }
     if (json['themeMode'] is String) {
       state.themeMode = json['themeMode'] as String;
     }
@@ -1501,6 +1585,10 @@ class AppState {
     if (json['visionBoardShape'] is String &&
         kVisionShapes.contains(json['visionBoardShape'])) {
       state.visionBoardShape = json['visionBoardShape'] as String;
+    }
+    if (json['visionBoardBackground'] is String &&
+        kVisionBackgrounds.contains(json['visionBoardBackground'])) {
+      state.visionBoardBackground = json['visionBoardBackground'] as String;
     }
     if (json['visionBoardLayoutName'] is String) {
       state.visionBoardLayoutName = json['visionBoardLayoutName'] as String;

@@ -1,78 +1,58 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// Personal Care — mirrors the "Personal Care → Skin Care" section added to
-/// the website: right now it's just the Skin Care intake form, embedded
-/// in-app via a WebView so filling it out doesn't require leaving the app.
-/// More Personal Care sub-sections (sleep, nutrition, movement) can slot in
-/// next to this one later, same as on the website.
-class PersonalCareScreen extends StatefulWidget {
+/// Skin Health — was a Skin Care intake form embedded via WebView; the form
+/// is removed for now (per product decision) and replaced with a short,
+/// practical set of grounded skin-health habits so the section still gives
+/// users something actionable. More Personal Care sub-sections (sleep,
+/// nutrition, movement) can slot in next to this one later.
+class PersonalCareScreen extends StatelessWidget {
   const PersonalCareScreen({super.key});
 
-  @override
-  State<PersonalCareScreen> createState() => _PersonalCareScreenState();
-}
-
-// Same Google Form as the website's Personal Care → Skin Care section
-// (resolved from the forms.gle short link to its stable embeddable URL).
-const _formEmbedUrl =
-    'https://docs.google.com/forms/d/e/1FAIpQLSfqOxgf-prd-fNYpgHZu7nFDqeYEse88UVPpgWNxi-UPREecw/viewform?embedded=true';
-const _formDirectUrl = 'https://forms.gle/ZYEt3fHograpWJW18';
-
-class _PersonalCareScreenState extends State<PersonalCareScreen> {
-  late final WebViewController _controller;
-  bool _loading = true;
-  bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) {
-            if (mounted) setState(() => _loading = true);
-          },
-          onPageFinished: (_) {
-            if (mounted) setState(() => _loading = false);
-          },
-          onWebResourceError: (_) {
-            // Most likely: no internet connection. Fall back to a clear
-            // "open in your browser" path rather than a stuck spinner or a
-            // native error page that looks like the app is broken.
-            if (mounted) {
-              setState(() {
-                _loading = false;
-                _failed = true;
-              });
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(_formEmbedUrl));
-  }
-
-  Future<void> _openExternally() async {
-    final uri = Uri.parse(_formDirectUrl);
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      // Nothing more we can do offline; the button stays tappable to retry.
-    }
-  }
-
-  void _retry() {
-    setState(() {
-      _loading = true;
-      _failed = false;
-    });
-    _controller.loadRequest(Uri.parse(_formEmbedUrl));
-  }
+  static const _tips = [
+    (
+      Icons.water_drop_outlined,
+      'Hydrate first',
+      'Skin reflects overall hydration before any product does. Aim for '
+          'steady water intake through the day rather than a rushed catch-up '
+          'at night.',
+    ),
+    (
+      Icons.wb_sunny_outlined,
+      'Protect from sun daily',
+      'UV exposure is the single biggest driver of visible skin aging. A '
+          'broad-spectrum SPF in the morning matters more than any evening '
+          'routine.',
+    ),
+    (
+      Icons.bedtime_outlined,
+      'Prioritize sleep',
+      'Skin repairs itself overnight. Consistently short sleep shows up as '
+          'dullness and slower healing before it shows up anywhere else.',
+    ),
+    (
+      Icons.cleaning_services_outlined,
+      'Keep it simple',
+      'A gentle cleanser and a moisturizer, used consistently, usually beat '
+          'a long list of actives used inconsistently.',
+    ),
+    (
+      Icons.restaurant_outlined,
+      'Mind sugar & processed food',
+      'Diets high in refined sugar are linked to accelerated skin aging in '
+          'multiple studies — small, steady swaps add up more than strict '
+          'short-term diets.',
+    ),
+    (
+      Icons.self_improvement_outlined,
+      'Manage stress',
+      'Chronic stress raises cortisol, which can worsen breakouts and slow '
+          'healing. Whatever helps you decompress is part of your skin '
+          'routine too.',
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -86,74 +66,51 @@ class _PersonalCareScreenState extends State<PersonalCareScreen> {
               children: [
                 const ScreenHeader(
                   icon: Icons.spa_outlined,
-                  title: 'Personal Care',
-                  subtitle: 'Skin Care — a quick, honest check-in. It shapes what we cover here next.',
+                  title: 'Skin Health',
+                  subtitle: 'Grounded, everyday habits — no forms to fill out.',
                 ),
-                const SizedBox(height: 12),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Surfaces.cardBorder(dark)),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Stack(
-                          children: [
-                            if (!_failed)
-                              Positioned.fill(child: WebViewWidget(controller: _controller)),
-                            if (_loading && !_failed)
-                              const Positioned.fill(
-                                child: Center(child: CircularProgressIndicator()),
-                              ),
-                            if (_failed)
-                              Positioned.fill(
-                                child: Container(
-                                  color: Surfaces.card(dark),
-                                  padding: const EdgeInsets.all(28),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                    children: [
+                      for (final (icon, title, desc) in _tips)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ModuleCard(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Surfaces.accent(dark).withValues(alpha: 0.14),
+                                  ),
+                                  child: Icon(icon, size: 17, color: Surfaces.accent(dark)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Icon(Icons.wifi_off_rounded,
-                                          size: 32, color: Surfaces.muted(dark)),
-                                      const SizedBox(height: 14),
-                                      Text('Couldn’t load the form',
-                                          style: display(16, Surfaces.heading(dark))),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Check your connection, or open it in your browser instead.',
-                                        textAlign: TextAlign.center,
-                                        style: body(13, Surfaces.muted(dark)),
-                                      ),
-                                      const SizedBox(height: 20),
-                                      GoldButton(labelText: 'Try again', onPressed: _retry),
-                                      const SizedBox(height: 10),
-                                      TextButton(
-                                        onPressed: _openExternally,
-                                        child: Text('Open in browser instead',
-                                            style: body(13, Surfaces.accent(dark),
-                                                weight: FontWeight.w700)),
-                                      ),
+                                      Text(title,
+                                          style: body(14, Surfaces.heading(dark),
+                                              weight: FontWeight.w700)),
+                                      const SizedBox(height: 4),
+                                      Text(desc,
+                                          textAlign: TextAlign.justify,
+                                          style: body(12.5, Surfaces.bodyText(dark))
+                                              .copyWith(height: 1.4)),
                                     ],
                                   ),
                                 ),
-                              ),
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: TextButton.icon(
-                    onPressed: _openExternally,
-                    icon: Icon(Icons.open_in_new, size: 16, color: Surfaces.muted(dark)),
-                    label: Text('Trouble with the form above? Open it directly',
-                        style: body(12.5, Surfaces.muted(dark))),
+                    ],
                   ),
                 ),
               ],

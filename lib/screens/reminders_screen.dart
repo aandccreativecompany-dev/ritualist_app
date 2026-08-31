@@ -197,7 +197,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           const SizedBox(height: 6),
                           Text(
                             'Birthdays, anniversaries, renewals — anything that matters once a year, notified at 9am on the day.',
-                            style: body(12, Surfaces.muted(dark)),
+                            textAlign: TextAlign.justify,
+                            style: body(12, Surfaces.muted(dark)).copyWith(height: 1.4),
                           ),
                           const SizedBox(height: 12),
                           if (store.keyDates.isEmpty)
