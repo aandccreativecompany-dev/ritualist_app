@@ -116,16 +116,19 @@ class _HomeScreenState extends State<HomeScreen> {
         // so this order always matches the Settings > "Starting screen"
         // picker and _initialPageIndex() above — three places relying on
         // one source of truth instead of three hand-kept lists.
-        final pages = [
+        final visibleSections = [
           for (final section in kHomePageSections)
-            if (section.moduleIds.any(visible.contains))
-              _SectionPage(
-                title: section.title,
-                items: [
-                  for (final id in section.moduleIds)
-                    if (visible.contains(id)) _itemFor(id),
-                ],
-              ),
+            if (section.moduleIds.any(visible.contains)) section,
+        ];
+        final pages = [
+          for (final section in visibleSections)
+            _SectionPage(
+              title: section.title,
+              items: [
+                for (final id in section.moduleIds)
+                  if (visible.contains(id)) _itemFor(id),
+              ],
+            ),
         ];
 
         return Scaffold(
@@ -191,26 +194,29 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                       ),
                       if (pages.length > 1) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
+                        // One tappable icon per section — jumps straight to
+                        // it — with the existing animated dot underneath
+                        // each one, so the same row still reads as a swipe
+                        // position indicator at a glance.
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            for (var i = 0; i < pages.length; i++)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 220),
-                                margin: const EdgeInsets.symmetric(horizontal: 4),
-                                width: i == _page ? 20 : 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: i == _page
-                                      ? Surfaces.accent(dark)
-                                      : Surfaces.muted(dark).withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(3),
+                            for (var i = 0; i < visibleSections.length; i++)
+                              _SectionJumpDot(
+                                icon: _sectionIcon(visibleSections[i].key),
+                                label: visibleSections[i].title,
+                                selected: i == _page,
+                                dark: dark,
+                                onTap: () => _pageController.animateToPage(
+                                  i,
+                                  duration: const Duration(milliseconds: 320),
+                                  curve: Curves.easeOutCubic,
                                 ),
                               ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                       ],
                       const _Footer(),
                       const SizedBox(height: 6),
@@ -246,6 +252,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  IconData _sectionIcon(String key) {
+    switch (key) {
+      case 'productivity':
+        return Icons.checklist_rounded;
+      case 'outcome':
+        return Icons.auto_awesome;
+      case 'finance':
+        return Icons.account_balance_wallet_outlined;
+      case 'health':
+        return Icons.favorite_border;
+      case 'mindset':
+        return Icons.psychology_alt_outlined;
+      case 'relationships':
+        return Icons.diversity_1_outlined;
+      default:
+        return Icons.circle_outlined;
+    }
+  }
+
   Widget _itemFor(String id) {
     switch (id) {
       case 'priorities':
@@ -275,6 +300,65 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         return const SizedBox.shrink();
     }
+  }
+}
+
+/// A section's icon + swipe-position dot, combined into one tappable target
+/// so users can jump straight to any section instead of only swiping —
+/// alongside (not replacing) the existing dot-based position indicator.
+class _SectionJumpDot extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _SectionJumpDot({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? Surfaces.accent(dark) : Surfaces.muted(dark);
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: 26,
+                height: 26,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected ? color.withValues(alpha: dark ? 0.24 : 0.14) : Colors.transparent,
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(height: 2),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: selected ? 16 : 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: selected ? 1 : 0.5),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1118,8 +1202,12 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
   @override
   void initState() {
     super.initState();
-    if (store.financeBudgetIncome != null) {
-      _incomeCtrl.text = store.financeBudgetIncome!.toStringAsFixed(0);
+    // Prefill from the wallet's own budget when the user hasn't set a
+    // calculator income yet — one number entered once (in the wallet)
+    // carries over here instead of asking for it twice.
+    final prefill = store.financeBudgetIncome ?? store.spendBudgetAmount;
+    if (prefill != null) {
+      _incomeCtrl.text = prefill.toStringAsFixed(0);
     }
   }
 
@@ -1473,6 +1561,32 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
         const SizedBox(height: 14),
         _BudgetStackedBar(needsPct: needsPct, wantsPct: wantsPct, savingsPct: savingsPct),
 
+        if (income != null && income > 0) ...[
+          const SizedBox(height: 16),
+          Text('ACTUAL VS PLANNED — WALLET SPENDING', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 10),
+          _ActualVsPlannedRow(
+            label: 'Needs',
+            color: const Color(0xFF6FDCA8),
+            actual: store.totalNeedSpent,
+            planned: income * needsPct / 100,
+            dark: dark,
+          ),
+          const SizedBox(height: 8),
+          _ActualVsPlannedRow(
+            label: 'Wants',
+            color: const Color(0xFF7FC8F8),
+            actual: store.totalWantSpent,
+            planned: income * wantsPct / 100,
+            dark: dark,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'From your wallet & spending tracker — logged expenses tagged Need or Want, compared against this split.',
+            style: body(11, Surfaces.muted(dark)),
+          ),
+        ],
+
         const SizedBox(height: 18),
         Divider(height: 1, color: Surfaces.cardBorder(dark)),
         const SizedBox(height: 18),
@@ -1622,6 +1736,56 @@ class _BudgetStackedBar extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Compares one budget category's planned allocation (income × its %) with
+/// what's actually been logged in the wallet tracker tagged that way — the
+/// link between the budget calculator and real spending the user asked for.
+class _ActualVsPlannedRow extends StatelessWidget {
+  final String label;
+  final Color color;
+  final double actual;
+  final double planned;
+  final bool dark;
+  const _ActualVsPlannedRow({
+    required this.label,
+    required this.color,
+    required this.actual,
+    required this.planned,
+    required this.dark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = planned <= 0 ? 0.0 : (actual / planned).clamp(0.0, 1.5);
+    final over = planned > 0 && actual > planned;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(label, style: body(12.5, Surfaces.bodyText(dark), weight: FontWeight.w600)),
+            ),
+            Text('₹${actual.toStringAsFixed(0)} / ₹${planned.toStringAsFixed(0)}',
+                style: body(12, over ? Colors.redAccent : color, weight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: pct.clamp(0, 1),
+            minHeight: 8,
+            backgroundColor: color.withValues(alpha: 0.15),
+            color: over ? Colors.redAccent : color,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2198,6 +2362,10 @@ class _RelationshipsGoalsContentState extends State<_RelationshipsGoalsContent> 
         const SizedBox(height: 18),
         Divider(height: 1, color: Surfaces.cardBorder(dark)),
         const SizedBox(height: 18),
+        const _RelationshipContactsSection(),
+        const SizedBox(height: 18),
+        Divider(height: 1, color: Surfaces.cardBorder(dark)),
+        const SizedBox(height: 18),
         _GoalListContent(
           icon: Icons.checklist_outlined,
           title: 'Your connection goals',
@@ -2209,6 +2377,235 @@ class _RelationshipsGoalsContentState extends State<_RelationshipsGoalsContent> 
           onRemove: store.removeRelationshipsGoal,
         ),
       ],
+    );
+  }
+}
+
+/// "Who to reach out to" — pick people you're intentionally staying in
+/// touch with, how often, and log when you last did. Whoever's overdue
+/// surfaces with a clear "Reach out" badge, the way contact-care apps
+/// nudge relationship maintenance instead of leaving it to memory.
+class _RelationshipContactsSection extends StatefulWidget {
+  const _RelationshipContactsSection();
+  @override
+  State<_RelationshipContactsSection> createState() => _RelationshipContactsSectionState();
+}
+
+class _RelationshipContactsSectionState extends State<_RelationshipContactsSection> {
+  final _nameCtrl = TextEditingController();
+  String _relation = 'friend';
+  int _cadenceDays = 7;
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _add() async {
+    if (_nameCtrl.text.trim().isEmpty) return;
+    await store.addRelationshipContact(_nameCtrl.text,
+        relation: _relation, cadenceDays: _cadenceDays);
+    _nameCtrl.clear();
+    if (mounted) {
+      FocusScope.of(context).unfocus();
+      setState(() {});
+      toastSaved(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final contacts = store.relationshipContacts;
+    final overdue = contacts.where((c) => c.isOverdue).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('WHO TO REACH OUT TO', style: label(Surfaces.eyebrow(dark))),
+        const SizedBox(height: 4),
+        Text(
+          'Add the people you want to intentionally stay close to — you\'ll see who\'s overdue for a check-in.',
+          style: body(11.5, Surfaces.muted(dark)),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _nameCtrl,
+                textCapitalization: TextCapitalization.words,
+                style: body(13.5, Surfaces.bodyText(dark), weight: FontWeight.w500),
+                decoration: InputDecoration(
+                  isDense: true,
+                  hintText: 'Name — e.g. Mom, Priya',
+                  hintStyle: body(12.5, Surfaces.muted(dark)),
+                ),
+                onSubmitted: (_) => _add(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _add,
+              icon: Icon(Icons.add_circle, color: Surfaces.accent(dark)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final r in kRelationTypes)
+              _MiniChip(
+                label: kRelationTypeLabels[r] ?? r,
+                selected: _relation == r,
+                dark: dark,
+                onTap: () => setState(() => _relation = r),
+              ),
+            const SizedBox(width: 6),
+            for (final (label, days) in const [('Weekly', 7), ('Biweekly', 14), ('Monthly', 30)])
+              _MiniChip(
+                label: label,
+                selected: _cadenceDays == days,
+                dark: dark,
+                onTap: () => setState(() => _cadenceDays = days),
+              ),
+          ],
+        ),
+        if (contacts.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          if (overdue.isNotEmpty) ...[
+            Text('REACH OUT SOON', style: label(Surfaces.eyebrow(dark))),
+            const SizedBox(height: 8),
+            for (final c in overdue)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _ContactRow(contact: c, dark: dark, overdue: true, onChanged: () => setState(() {})),
+              ),
+            const SizedBox(height: 6),
+          ],
+          for (final c in contacts.where((c) => !c.isOverdue))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ContactRow(contact: c, dark: dark, overdue: false, onChanged: () => setState(() {})),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MiniChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _MiniChip({required this.label, required this.selected, required this.dark, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? Surfaces.accent(dark).withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? Surfaces.accent(dark) : Surfaces.accentBorder(dark),
+          ),
+        ),
+        child: Text(label,
+            style: body(11, selected ? Surfaces.accent(dark) : Surfaces.muted(dark),
+                weight: FontWeight.w600)),
+      ),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final RelationshipContact contact;
+  final bool dark;
+  final bool overdue;
+  final VoidCallback onChanged;
+  const _ContactRow({
+    required this.contact,
+    required this.dark,
+    required this.overdue,
+    required this.onChanged,
+  });
+
+  String get _lastContactLabel {
+    final last = contact.lastContactAt;
+    if (last == null) return 'Never logged';
+    final days = DateTime.now().difference(last).inDays;
+    if (days <= 0) return 'Today';
+    if (days == 1) return 'Yesterday';
+    return '$days days ago';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ModuleCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: (overdue ? Colors.redAccent : Surfaces.accent(dark)).withValues(alpha: 0.16),
+            child: Text(contact.name.isEmpty ? '?' : contact.name[0].toUpperCase(),
+                style: body(13, overdue ? Colors.redAccent : Surfaces.accent(dark), weight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(contact.name, style: body(13.5, Surfaces.heading(dark), weight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  '${kRelationTypeLabels[contact.relation] ?? contact.relation} · $_lastContactLabel',
+                  style: body(11, Surfaces.muted(dark)),
+                ),
+              ],
+            ),
+          ),
+          if (overdue)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.redAccent.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('Reach out',
+                    style: body(10, Colors.redAccent, weight: FontWeight.w700)),
+              ),
+            ),
+          IconButton(
+            tooltip: 'Log contact today',
+            onPressed: () async {
+              await store.logContactNow(contact);
+              onChanged();
+            },
+            icon: Icon(Icons.check_circle_outline, size: 20, color: Surfaces.accent(dark)),
+            visualDensity: VisualDensity.compact,
+          ),
+          IconButton(
+            tooltip: 'Remove',
+            onPressed: () async {
+              await store.removeRelationshipContact(contact);
+              onChanged();
+            },
+            icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
     );
   }
 }

@@ -83,7 +83,12 @@ Future<void> main() async {
       await Firebase.initializeApp();
       CloudSync.instance.wire();
       AuthService.instance.userChanges.listen((user) {
-        if (user != null) CloudSync.instance.pullAndApply(user.uid);
+        // Deliberately the non-destructive path — see pullIfFreshInstall's
+        // own comment. This fires on every cold start for an already
+        // signed-in user (Firebase remembers sign-in across launches), so
+        // it must never blindly overwrite real on-device data with an
+        // older cloud snapshot.
+        if (user != null) CloudSync.instance.pullIfFreshInstall(user.uid);
       });
     } catch (_) {
       // No google-services.json in this build — app still works fully offline.
@@ -224,6 +229,17 @@ class _RootState extends State<_Root> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Independent of the PIN-lock logic below: whenever the app is about to
+    // leave the foreground, make sure every queued save has actually landed
+    // on disk before Android has a chance to kill the process outright (a
+    // background app can be killed at any time, with no further warning).
+    // Store writes are queued, not awaited, since round-1/round-2 — this is
+    // the one place that still needs to wait for the queue to drain.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      unawaited(store.flush());
+    }
     if (!store.hasPin || !store.onboardingComplete) return;
     if (state == AppLifecycleState.paused) {
       _pausedAt ??= DateTime.now();

@@ -36,6 +36,15 @@ class CloudSync {
     _debounce = Timer(const Duration(seconds: 2), () => _push(user.uid));
   }
 
+  /// Explicit, user-triggered "Back up now" — pushes immediately rather
+  /// than waiting for the debounce, and waits for any queued local save to
+  /// land first so the pushed copy reflects everything just entered.
+  Future<void> backUpNow(String uid) async {
+    _debounce?.cancel();
+    await store.flush();
+    await _push(uid);
+  }
+
   Future<void> _push(String uid) async {
     try {
       await _db.collection('users').doc(uid).set({
@@ -48,8 +57,11 @@ class CloudSync {
     }
   }
 
-  /// Pulls the signed-in user's cloud copy down and replaces local state
-  /// with it. Call right after a successful sign-in.
+  /// Pulls the signed-in user's cloud copy down and REPLACES local state
+  /// with it — destructive, last-write-wins. Only call this when the user
+  /// has explicitly asked to restore from their cloud backup (e.g. a new
+  /// phone), never automatically: see `pullIfFreshInstall` for the
+  /// auto-sync-on-launch path, which deliberately never calls this.
   Future<void> pullAndApply(String uid) async {
     try {
       final snap = await _db.collection('users').doc(uid).get();
@@ -67,5 +79,29 @@ class CloudSync {
       // No network, or Firestore rules aren't live yet — keep using
       // whatever's already on the device.
     }
+  }
+
+  /// Safe to call every time the app launches with an already-signed-in
+  /// user (Firebase persists sign-in across launches, so this fires on
+  /// every cold start, not just a fresh sign-in). Used to be `pullAndApply`
+  /// unconditionally, which meant: whenever the debounced 2-second push
+  /// hadn't yet reached the cloud before the app closed (backgrounded,
+  /// force-quit, "swiped away", or just no network at that moment), the NEXT
+  /// launch would silently overwrite the on-device data — including
+  /// whatever was written after that last successful push — with the older
+  /// cloud snapshot. That's exactly what "a saved journal entry is gone a
+  /// week later" looks like: the entry was real, saved locally, and then
+  /// wiped by this call reviving a stale backup. Local storage is this
+  /// app's actual source of truth (per the comment on `_push` above); the
+  /// cloud copy exists to hand data to a NEW device, not to reconcile with
+  /// an existing one that already has real data on it. So this only ever
+  /// pulls when the device looks like a fresh install (nothing local yet) —
+  /// otherwise it just makes sure the cloud copy is fresh by pushing now.
+  Future<void> pullIfFreshInstall(String uid) async {
+    if (!store.looksEmpty) {
+      unawaited(_push(uid));
+      return;
+    }
+    await pullAndApply(uid);
   }
 }

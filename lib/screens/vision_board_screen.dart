@@ -726,6 +726,14 @@ CustomClipper<Path> _shapeClipper(String shape) {
       return const _DiamondClipper();
     case 'roundedRect':
       return const _RoundedSquareClipper();
+    case 'cloud':
+      return const _CloudClipper();
+    case 'flower':
+      return const _FlowerClipper();
+    case 'arch':
+      return const _ArchClipper();
+    case 'blob':
+      return const _BlobClipper();
     default:
       return const _RoundedSquareClipper();
   }
@@ -837,6 +845,109 @@ class _DiamondClipper extends CustomClipper<Path> {
     path.lineTo(size.width, size.height / 2);
     path.lineTo(size.width / 2, size.height);
     path.lineTo(0, size.height / 2);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// A soft cloud shape — several overlapping circular lobes along the top of
+/// a rounded base, one of the newer "whimsical" tile options.
+class _CloudClipper extends CustomClipper<Path> {
+  const _CloudClipper();
+  @override
+  Path getClip(Size size) {
+    final w = size.width, h = size.height;
+    final path = Path();
+    path.moveTo(w * 0.15, h * 0.75);
+    path.cubicTo(w * -0.05, h * 0.75, w * -0.05, h * 0.4, w * 0.18, h * 0.4);
+    path.cubicTo(w * 0.18, h * 0.12, w * 0.55, h * 0.08, w * 0.62, h * 0.3);
+    path.cubicTo(w * 0.8, h * 0.15, w * 1.05, h * 0.35, w * 0.92, h * 0.55);
+    path.cubicTo(w * 1.08, h * 0.6, w * 1.05, h * 0.85, w * 0.85, h * 0.85);
+    path.lineTo(w * 0.15, h * 0.85);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// A simple six-petal flower, inscribed in the tile.
+class _FlowerClipper extends CustomClipper<Path> {
+  const _FlowerClipper();
+  @override
+  Path getClip(Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final petalRadius = size.shortestSide * 0.30;
+    final orbit = size.shortestSide * 0.26;
+    final path = Path();
+    for (var i = 0; i < 6; i++) {
+      final angle = i * 60 * math.pi / 180;
+      final petalCenter = Offset(
+        center.dx + orbit * math.cos(angle),
+        center.dy + orbit * math.sin(angle),
+      );
+      final petal = Path()
+        ..addOval(Rect.fromCenter(center: petalCenter, width: petalRadius * 2, height: petalRadius * 2));
+      path.addPath(petal, Offset.zero);
+    }
+    path.addOval(Rect.fromCenter(
+        center: center, width: petalRadius * 1.3, height: petalRadius * 1.3));
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// A rounded-top "storybook" arch — flat bottom, semicircular top.
+class _ArchClipper extends CustomClipper<Path> {
+  const _ArchClipper();
+  @override
+  Path getClip(Size size) {
+    final w = size.width, h = size.height;
+    final radius = w / 2;
+    final straightTop = (h - radius).clamp(0.0, h);
+    final path = Path();
+    path.moveTo(0, h);
+    path.lineTo(0, straightTop);
+    path.arcToPoint(Offset(w, straightTop), radius: Radius.circular(radius), clockwise: true);
+    path.lineTo(w, h);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// An organic, hand-drawn-looking "blob" — an irregular closed curve built
+/// from cubic segments around a wobbly radius, so it never reads as a
+/// precise geometric shape the way the other tiles do.
+class _BlobClipper extends CustomClipper<Path> {
+  const _BlobClipper();
+  @override
+  Path getClip(Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final base = size.shortestSide / 2;
+    // Fixed wobble pattern (not random) so the shape is stable across
+    // rebuilds/relayouts instead of jittering every frame.
+    const wobble = [1.0, 0.85, 1.1, 0.9, 1.15, 0.8, 1.05, 0.92];
+    final points = <Offset>[];
+    for (var i = 0; i < wobble.length; i++) {
+      final angle = i * (360 / wobble.length) * math.pi / 180;
+      final r = base * wobble[i];
+      points.add(Offset(center.dx + r * math.cos(angle), center.dy + r * math.sin(angle)));
+    }
+    final path = Path()..moveTo(points[0].dx, points[0].dy);
+    for (var i = 0; i < points.length; i++) {
+      final next = points[(i + 1) % points.length];
+      final mid = Offset((points[i].dx + next.dx) / 2, (points[i].dy + next.dy) / 2);
+      path.quadraticBezierTo(points[i].dx, points[i].dy, mid.dx, mid.dy);
+    }
     path.close();
     return path;
   }
