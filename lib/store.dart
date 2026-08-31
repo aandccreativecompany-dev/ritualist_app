@@ -63,10 +63,55 @@ class Store extends ChangeNotifier {
     await prefs.setString(_storageKey, jsonEncode(_state.toJson()));
   }
 
+  // Every write used to `await _save()` before returning, which meant any
+  // screen that did `await store.addX(...); Navigator.pop(context);` sat
+  // waiting on a full disk write (a platform-channel round trip through
+  // shared_preferences) before it could pop back to a screen that would
+  // show the new entry — reported as "it takes time for a new item to show
+  // up". notifyListeners() below still fires synchronously and immediately,
+  // so anything already on screen (an AnimatedBuilder over `store`) updates
+  // at once; the disk write itself is chained onto this queue instead of
+  // being awaited by the caller, so callers return right away while saves
+  // still happen in the background, strictly in order, one at a time (never
+  // overlapping, never dropped, and never able to save an older snapshot
+  // after a newer one).
+  Future<void> _saveQueue = Future.value();
+
+  // Deliberately not `await`-ing the queued save below (this still returns
+  // `Future<void>` — an already-completed one — so every existing
+  // `await store.addX(...)` call site keeps compiling and working exactly
+  // as before; it just no longer actually blocks on disk I/O).
   Future<void> _commit() async {
     notifyListeners();
-    await _save();
+    _saveQueue = _saveQueue.then((_) => _save()).catchError((Object error, StackTrace stack) {
+      debugPrint('Store save failed: $error\n$stack');
+    });
   }
+
+  /// Waits for every queued save to actually reach disk — call this before
+  /// the app is about to go away (backgrounded/killed) or before anything
+  /// that reads persisted state from outside the store (a cloud push), so
+  /// neither one can race ahead of a write that's still in flight.
+  Future<void> flush() => _saveQueue;
+
+  /// True when there's essentially nothing here yet — a fresh install, or
+  /// onboarding not even finished. Used to gate the one-time "no cloud copy
+  /// exists locally, pull mine down" sync so it can never overwrite real,
+  /// newer local data with a stale cloud snapshot (see CloudSync.pullIfFreshInstall).
+  bool get looksEmpty =>
+      !_state.onboardingComplete &&
+      _state.scripts.isEmpty &&
+      _state.habits.isEmpty &&
+      _state.tasksByDay.isEmpty &&
+      _state.spendEntries.isEmpty &&
+      _state.savingsEntries.isEmpty &&
+      _state.visionItems.isEmpty &&
+      _state.weeklyGoals.isEmpty &&
+      _state.monthlyGoals.isEmpty &&
+      _state.financeGoals.isEmpty &&
+      _state.healthGoals.isEmpty &&
+      _state.mindsetGoals.isEmpty &&
+      _state.relationshipsGoals.isEmpty;
 
   /// Swaps in a whole different AppState — used when a cloud backup is
   /// pulled down after signing in — and immediately persists + notifies,
@@ -366,6 +411,81 @@ class Store extends ChangeNotifier {
     final result = <String, double>{};
     for (final e in _state.spendEntries) {
       result[e.categoryId] = (result[e.categoryId] ?? 0) + e.amount;
+    }
+    return result;
+  }
+
+  // ---- Wallet budget (monthly/weekly) ----
+
+  double? get spendBudgetAmount => _state.spendBudgetAmount;
+  String get spendBudgetPeriod => _state.spendBudgetPeriod;
+
+  Future<void> setSpendBudget(double amount, String period) async {
+    if (amount < 0) return;
+    _state.spendBudgetAmount = amount;
+    _state.spendBudgetPeriod = period == 'weekly' ? 'weekly' : 'monthly';
+    await _commit();
+  }
+
+  Future<void> clearSpendBudget() async {
+    _state.spendBudgetAmount = null;
+    await _commit();
+  }
+
+  DateTime get _currentBudgetWindowStart {
+    final now = DateTime.now();
+    if (_state.spendBudgetPeriod == 'weekly') {
+      final today = DateTime(now.year, now.month, now.day);
+      return today.subtract(Duration(days: today.weekday - 1)); // Monday
+    }
+    return DateTime(now.year, now.month, 1);
+  }
+
+  /// Sum of everything logged inside the current budget window (this
+  /// calendar month, or this Monday-to-now week) — what the budget bar
+  /// compares against.
+  double get spentInCurrentBudgetPeriod {
+    final start = _currentBudgetWindowStart;
+    return _state.spendEntries
+        .where((e) => !e.date.isBefore(start))
+        .fold(0.0, (sum, e) => sum + e.amount);
+  }
+
+  // ---- Savings & investments ----
+
+  List<SavingsEntry> get savingsEntries => _state.savingsEntries;
+
+  Future<void> addSavingsEntry({
+    required String type,
+    required double amount,
+    String note = '',
+  }) async {
+    if (amount <= 0) return;
+    _state.savingsEntries.insert(
+      0,
+      SavingsEntry(
+        id: '${DateTime.now().microsecondsSinceEpoch}',
+        type: type,
+        amount: amount,
+        note: note.trim(),
+        date: DateTime.now(),
+      ),
+    );
+    await _commit();
+  }
+
+  Future<void> removeSavingsEntry(SavingsEntry entry) async {
+    _state.savingsEntries.remove(entry);
+    await _commit();
+  }
+
+  double get totalSavings =>
+      _state.savingsEntries.fold(0.0, (sum, e) => sum + e.amount);
+
+  Map<String, double> get savingsByType {
+    final result = <String, double>{};
+    for (final e in _state.savingsEntries) {
+      result[e.type] = (result[e.type] ?? 0) + e.amount;
     }
     return result;
   }
@@ -806,6 +926,42 @@ class Store extends ChangeNotifier {
   Future<void> removeRelationshipsGoal(int index) async {
     if (index < 0 || index >= _state.relationshipsGoals.length) return;
     _state.relationshipsGoals.removeAt(index);
+    await _commit();
+  }
+
+  // ---- Relationships & Connection: people to stay in touch with ----
+
+  List<RelationshipContact> get relationshipContacts => _state.relationshipContacts;
+
+  Future<void> addRelationshipContact(String name,
+      {String relation = 'friend', int cadenceDays = 7}) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    _state.relationshipContacts.add(RelationshipContact(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      name: trimmed,
+      relation: relation,
+      cadenceDays: cadenceDays,
+    ));
+    await _commit();
+  }
+
+  Future<void> removeRelationshipContact(RelationshipContact contact) async {
+    _state.relationshipContacts.remove(contact);
+    await _commit();
+  }
+
+  Future<void> logContactNow(RelationshipContact contact) async {
+    contact.lastContactAt = DateTime.now();
+    await _commit();
+  }
+
+  Future<void> updateRelationshipContact(RelationshipContact contact,
+      {String? name, String? relation, int? cadenceDays, String? note}) async {
+    if (name != null && name.trim().isNotEmpty) contact.name = name.trim();
+    if (relation != null) contact.relation = relation;
+    if (cadenceDays != null) contact.cadenceDays = cadenceDays.clamp(1, 365);
+    if (note != null) contact.note = note.trim();
     await _commit();
   }
 

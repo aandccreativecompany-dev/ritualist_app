@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../models.dart';
 import '../services/auth_service.dart';
+import '../services/cloud_sync.dart';
 import '../services/home_widget_service.dart';
 import '../store.dart';
 import '../theme.dart';
@@ -107,6 +108,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     setState(() => _busy = false);
     toastSaved(context, label: 'Signed out');
+  }
+
+  Future<void> _backUpNow() async {
+    final user = AuthService.instance.currentUser;
+    if (user == null) return;
+    setState(() => _busy = true);
+    await CloudSync.instance.backUpNow(user.uid);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    toastSaved(context, label: 'Backed up to your account');
+  }
+
+  Future<void> _restoreFromCloud() async {
+    final user = AuthService.instance.currentUser;
+    if (user == null) return;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Restore from cloud backup?', style: display(16, Surfaces.heading(dark))),
+        content: Text(
+          'This replaces everything on this phone with your last cloud backup. '
+          "Anything entered here since then that hasn't synced will be lost.",
+          style: body(13, Surfaces.muted(dark)),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Restore', style: body(13, Colors.redAccent, weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _busy = true);
+    await CloudSync.instance.pullAndApply(user.uid);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    toastSaved(context, label: 'Restored from cloud');
   }
 
   @override
@@ -541,6 +582,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                   const SizedBox(height: 14),
                                   TextButton(
+                                    onPressed: _busy ? null : _backUpNow,
+                                    style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        alignment: Alignment.centerLeft),
+                                    child: Text('Back up now',
+                                        style: body(13, Surfaces.accent(dark),
+                                            weight: FontWeight.w600)),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextButton(
+                                    onPressed: _busy ? null : _restoreFromCloud,
+                                    style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        alignment: Alignment.centerLeft),
+                                    child: Text('Restore from cloud backup',
+                                        style: body(13, Surfaces.muted(dark),
+                                            weight: FontWeight.w600)),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  TextButton(
                                     onPressed: _busy ? null : _signOut,
                                     style: TextButton.styleFrom(
                                         padding: EdgeInsets.zero,
@@ -598,7 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.2.14',
+                                Text('Prakriyā 0.3.0',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),

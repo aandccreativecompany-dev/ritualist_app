@@ -245,6 +245,159 @@ class SpendEntry {
   }
 }
 
+/// One savings/investment contribution, tagged by [kSavingsTypes] — separate
+/// from spendEntries (money going out) since this is money being set aside,
+/// tracked as a running total per type rather than a single Need/Want split.
+class SavingsEntry {
+  String id;
+  String type;
+  double amount;
+  String note;
+  DateTime date;
+
+  SavingsEntry({
+    required this.id,
+    required this.type,
+    required this.amount,
+    this.note = '',
+    required this.date,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type,
+        'amount': amount,
+        'note': note,
+        'date': date.toIso8601String(),
+      };
+
+  static SavingsEntry? fromJson(Map<String, dynamic> json) {
+    final type = json['type'];
+    final amount = json['amount'];
+    if (type is! String || type.isEmpty) return null;
+    final parsedAmount = amount is num ? amount.toDouble() : double.tryParse('$amount');
+    if (parsedAmount == null || parsedAmount <= 0) return null;
+    final id = json['id'];
+    final rawDate = json['date'];
+    final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
+    return SavingsEntry(
+      id: id is String && id.isNotEmpty ? id : '${DateTime.now().microsecondsSinceEpoch}',
+      type: type,
+      amount: parsedAmount,
+      note: json['note'] is String ? json['note'] as String : '',
+      date: parsedDate ?? DateTime.now(),
+    );
+  }
+}
+
+/// Real-world savings/investment vehicles the wallet lets someone track a
+/// running total against — deliberately broader than just "savings account"
+/// so it covers the common ways people actually build wealth.
+const kSavingsTypes = [
+  'emergencyFund',
+  'stocks',
+  'mutualFunds',
+  'gold',
+  'fixedDeposit',
+  'ppfEpf',
+  'realEstate',
+  'crypto',
+  'other',
+];
+
+const kSavingsTypeLabels = {
+  'emergencyFund': 'Emergency fund',
+  'stocks': 'Stocks',
+  'mutualFunds': 'Mutual funds',
+  'gold': 'Gold',
+  'fixedDeposit': 'Fixed deposit',
+  'ppfEpf': 'PPF / EPF',
+  'realEstate': 'Real estate',
+  'crypto': 'Crypto',
+  'other': 'Other',
+};
+
+const kSavingsTypeIcons = {
+  'emergencyFund': 'shield_outlined',
+  'stocks': 'trending_up',
+  'mutualFunds': 'pie_chart_outline',
+  'gold': 'workspace_premium_outlined',
+  'fixedDeposit': 'lock_clock_outlined',
+  'ppfEpf': 'account_balance_outlined',
+  'realEstate': 'home_work_outlined',
+  'crypto': 'currency_bitcoin',
+  'other': 'savings_outlined',
+};
+
+/// One person the user is intentionally investing in, for the Relationships
+/// & Connection section's "who to reach out to" tracker — a lightweight take
+/// on the relationship-maintenance pattern used by contact-care apps: pick
+/// how often you want to stay in touch, log when you last did, and the app
+/// surfaces whoever's overdue.
+class RelationshipContact {
+  String id;
+  String name;
+  String relation;
+
+  /// How often the user wants to check in, in days (e.g. 7, 14, 30).
+  int cadenceDays;
+  DateTime? lastContactAt;
+  String note;
+
+  RelationshipContact({
+    required this.id,
+    required this.name,
+    this.relation = 'friend',
+    this.cadenceDays = 7,
+    this.lastContactAt,
+    this.note = '',
+  });
+
+  bool get isOverdue {
+    if (lastContactAt == null) return true;
+    return DateTime.now().difference(lastContactAt!).inDays >= cadenceDays;
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'relation': relation,
+        'cadenceDays': cadenceDays,
+        'lastContactAt': lastContactAt?.toIso8601String(),
+        'note': note,
+      };
+
+  static RelationshipContact? fromJson(Map<String, dynamic> json) {
+    final name = json['name'];
+    if (name is! String || name.isEmpty) return null;
+    final id = json['id'];
+    final rawCadence = json['cadenceDays'];
+    final cadence = rawCadence is int
+        ? rawCadence
+        : (rawCadence is num ? rawCadence.toInt() : 7);
+    final rawLast = json['lastContactAt'];
+    return RelationshipContact(
+      id: id is String && id.isNotEmpty ? id : '${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      relation: json['relation'] is String ? json['relation'] as String : 'friend',
+      cadenceDays: cadence.clamp(1, 365),
+      lastContactAt: rawLast is String ? DateTime.tryParse(rawLast) : null,
+      note: json['note'] is String ? json['note'] as String : '',
+    );
+  }
+}
+
+const kRelationTypes = ['family', 'friend', 'partner', 'colleague', 'mentor', 'other'];
+
+const kRelationTypeLabels = {
+  'family': 'Family',
+  'friend': 'Friend',
+  'partner': 'Partner',
+  'colleague': 'Colleague',
+  'mentor': 'Mentor',
+  'other': 'Other',
+};
+
 /// A yearly recurring reminder for one date — a birthday, an anniversary,
 /// a renewal, anything that matters once a year — separate from the daily
 /// reminders above. Only month/day are kept (no year), since it repeats
@@ -541,6 +694,7 @@ const kVisionLayoutCategories = [
   'Mosaic',
   'Minimal',
   'Bold & Playful',
+  'Whimsical',
 ];
 
 const List<VisionLayoutSpec> kVisionLayouts = [
@@ -640,6 +794,22 @@ const List<VisionLayoutSpec> kVisionLayouts = [
     ('star', 1, 1), ('heart', 1, 1), ('roundedRect', 2, 1),
     ('star', 1, 1), ('heart', 1, 1),
   ]),
+  // Whimsical — softer, more organic/fun shapes for a less boxy board.
+  VisionLayoutSpec(name: 'Daydream', category: 'Whimsical', slots: [
+    ('cloud', 2, 1), ('flower', 1, 1), ('blob', 1, 1),
+    ('cloud', 1, 1), ('arch', 1, 2),
+  ]),
+  VisionLayoutSpec(name: 'Garden Path', category: 'Whimsical', slots: [
+    ('flower', 1, 1), ('flower', 1, 1), ('arch', 2, 1),
+    ('blob', 1, 1), ('flower', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Soft Focus', category: 'Whimsical', slots: [
+    ('blob', 2, 2), ('cloud', 1, 1), ('flower', 1, 1),
+  ]),
+  VisionLayoutSpec(name: 'Storybook', category: 'Whimsical', slots: [
+    ('arch', 1, 2), ('cloud', 1, 1), ('flower', 1, 1),
+    ('blob', 1, 1), ('arch', 1, 2),
+  ]),
 ];
 
 /// Visibility + order of one home-screen card. Order in the list is display order.
@@ -721,6 +891,10 @@ const kVisionShapes = [
   'hexagon',
   'diamond',
   'roundedRect',
+  'cloud',
+  'flower',
+  'arch',
+  'blob',
 ];
 
 const kVisionShapeLabels = {
@@ -731,6 +905,10 @@ const kVisionShapeLabels = {
   'hexagon': 'Hexagon',
   'diamond': 'Diamond',
   'roundedRect': 'Wide',
+  'cloud': 'Cloud',
+  'flower': 'Flower',
+  'arch': 'Arch',
+  'blob': 'Blob',
 };
 
 /// Which section of the swipeable home each module lives in. `mantra` isn't
@@ -808,6 +986,20 @@ class AppState {
   /// against them, each tagged Need or Want.
   List<SpendCategory> spendCategories;
   List<SpendEntry> spendEntries;
+
+  /// User-set spending budget for the wallet tracker — null until set. Period
+  /// is 'monthly' or 'weekly'; `spentInCurrentBudgetPeriod` (Store) sums
+  /// entries against whichever window is chosen.
+  double? spendBudgetAmount;
+  String spendBudgetPeriod;
+
+  /// Savings & investments logged from the wallet section — separate running
+  /// totals per [kSavingsTypes], not part of the Need/Want spend split.
+  List<SavingsEntry> savingsEntries;
+
+  /// People the user is intentionally staying in touch with, for the
+  /// Relationships & Connection section's check-in tracker.
+  List<RelationshipContact> relationshipContacts;
 
   /// The collaborative shared vision board this device last created or
   /// joined, if any — cached locally so re-opening the screen doesn't
@@ -918,6 +1110,10 @@ class AppState {
     this.exerciseBellIntervalSeconds = 60,
     List<SpendCategory>? spendCategories,
     this.spendEntries = const [],
+    this.spendBudgetAmount,
+    this.spendBudgetPeriod = 'monthly',
+    this.savingsEntries = const [],
+    this.relationshipContacts = const [],
     this.sharedBoardCode,
     this.sharedBoardTitle,
     required this.skipWeekends,
@@ -1020,6 +1216,10 @@ class AppState {
         hasSeenSwipeHint: false,
         financeRoadmap: null,
         financeBudgetIncome: null,
+        spendBudgetAmount: null,
+        spendBudgetPeriod: 'monthly',
+        savingsEntries: <SavingsEntry>[],
+        relationshipContacts: <RelationshipContact>[],
         customReframes: <Reframe>[],
         stressBucketFills: <String, List<String>>{},
         stressBucketEmpties: <String, List<String>>{},
@@ -1041,6 +1241,10 @@ class AppState {
         'exerciseBellIntervalSeconds': exerciseBellIntervalSeconds,
         'spendCategories': spendCategories.map((c) => c.toJson()).toList(),
         'spendEntries': spendEntries.map((e) => e.toJson()).toList(),
+        'spendBudgetAmount': spendBudgetAmount,
+        'spendBudgetPeriod': spendBudgetPeriod,
+        'savingsEntries': savingsEntries.map((e) => e.toJson()).toList(),
+        'relationshipContacts': relationshipContacts.map((c) => c.toJson()).toList(),
         'sharedBoardCode': sharedBoardCode,
         'sharedBoardTitle': sharedBoardTitle,
         'skipWeekends': skipWeekends,
@@ -1177,6 +1381,29 @@ class AppState {
           .whereType<Map<String, dynamic>>()
           .map(SpendEntry.fromJson)
           .whereType<SpendEntry>()
+          .toList();
+    }
+    if (json['spendBudgetAmount'] is num) {
+      state.spendBudgetAmount = (json['spendBudgetAmount'] as num).toDouble();
+    }
+    if (json['spendBudgetPeriod'] is String &&
+        (json['spendBudgetPeriod'] == 'monthly' || json['spendBudgetPeriod'] == 'weekly')) {
+      state.spendBudgetPeriod = json['spendBudgetPeriod'] as String;
+    }
+    final rawSavings = json['savingsEntries'];
+    if (rawSavings is List) {
+      state.savingsEntries = rawSavings
+          .whereType<Map<String, dynamic>>()
+          .map(SavingsEntry.fromJson)
+          .whereType<SavingsEntry>()
+          .toList();
+    }
+    final rawContacts = json['relationshipContacts'];
+    if (rawContacts is List) {
+      state.relationshipContacts = rawContacts
+          .whereType<Map<String, dynamic>>()
+          .map(RelationshipContact.fromJson)
+          .whereType<RelationshipContact>()
           .toList();
     }
     if (json['sharedBoardCode'] is String) {
