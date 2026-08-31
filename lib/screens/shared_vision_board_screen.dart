@@ -47,7 +47,8 @@ class _SharedVisionBoardScreenState extends State<SharedVisionBoardScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Sign in to continue'),
         content: const Text(
-            'Shared boards use your Google sign-in so points are attributed to someone, not left anonymous.'),
+            'Shared boards use your Google sign-in so points are attributed to someone, not left anonymous.',
+            textAlign: TextAlign.justify),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign in')),

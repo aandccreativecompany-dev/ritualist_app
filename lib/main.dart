@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'notifications.dart';
 import 'screens/home_screen.dart';
@@ -35,8 +36,26 @@ void _installErrorHandling() {
   };
 }
 
+void _enableImmersiveDisplay() {
+  // Edge-to-edge: content draws behind the status/nav bars instead of being
+  // letterboxed above/below them, with transparent bar backgrounds so the
+  // app's own background shows through — the "immersive" look users on
+  // Instagram/Spotify-style apps are used to. Wrapped in try/catch since
+  // this touches platform channels that can be unavailable on some
+  // embedders (e.g. running tests).
+  try {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    ));
+  } catch (_) {}
+}
+
 Future<void> main() async {
   _installErrorHandling();
+  _enableImmersiveDisplay();
   // Catches errors that happen outside the widget-build path entirely —
   // inside a Timer callback, a notification handler, an awaited Future's
   // continuation — which FlutterError.onError above does not see. Without
@@ -250,6 +269,14 @@ class _RootState extends State<_Root> with WidgetsBindingObserver {
           DateTime.now().difference(pausedAt) >= _relockGrace) {
         setState(() => _locked = true);
       }
+    }
+    // Independent of the PIN-lock branch above — if the app was left open
+    // (or just backgrounded) across midnight, catch the mantra rotation up
+    // to today as soon as it's foregrounded again, not just at cold start.
+    if (state == AppLifecycleState.resumed) {
+      try {
+        store.ensureMantraRotationCurrent();
+      } catch (_) {}
     }
   }
 

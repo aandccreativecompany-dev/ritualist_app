@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../models.dart';
 import '../store.dart';
@@ -156,71 +157,88 @@ class _SpendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final category = store.spendCategoryById(entry.categoryId);
     final tagColor = entry.isNeed ? const Color(0xFF6FDCA8) : const Color(0xFFF08BA0);
-    return ModuleCard(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category?.name ?? 'Uncategorized',
-                  style: body(13.5, Surfaces.heading(dark), weight: FontWeight.w700),
-                ),
-                if (entry.subcategory.isNotEmpty || entry.note.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => _AddSpendScreen(existing: entry))),
+      child: ModuleCard(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    [entry.subcategory, entry.note].where((s) => s.isNotEmpty).join(' · '),
-                    style: body(11.5, Surfaces.muted(dark)),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    category?.name ?? 'Uncategorized',
+                    style: body(13.5, Surfaces.heading(dark), weight: FontWeight.w700),
+                  ),
+                  if (entry.subcategory.isNotEmpty || entry.note.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      [entry.subcategory, entry.note].where((s) => s.isNotEmpty).join(' · '),
+                      style: body(11.5, Surfaces.muted(dark)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: tagColor.withValues(alpha: dark ? 0.24 : 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(entry.isNeed ? 'Need' : 'Want',
+                        style: body(10, tagColor, weight: FontWeight.w700)),
                   ),
                 ],
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: tagColor.withValues(alpha: dark ? 0.24 : 0.14),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(entry.isNeed ? 'Need' : 'Want',
-                      style: body(10, tagColor, weight: FontWeight.w700)),
-                ),
-              ],
+              ),
             ),
-          ),
-          Text('₹${entry.amount.toStringAsFixed(0)}',
-              style: display(15, Surfaces.heading(dark))),
-          IconButton(
-            onPressed: () => store.removeSpendEntry(entry),
-            icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
-          ),
-        ],
+            Text('₹${entry.amount.toStringAsFixed(0)}',
+                style: display(15, Surfaces.heading(dark))),
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: () => store.removeSpendEntry(entry),
+              icon: Icon(Icons.close, size: 16, color: Surfaces.muted(dark)),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Full screen add-expense form — Save is pinned in the AppBar, same
-/// keyboard-safe pattern established for the journaling entry screen.
+/// Full screen add/edit-expense form — Save is pinned in the AppBar, same
+/// keyboard-safe pattern established for the journaling entry screen. Pass
+/// `existing` to edit a previously logged entry in place instead of adding
+/// a new one.
 class _AddSpendScreen extends StatefulWidget {
-  const _AddSpendScreen();
+  final SpendEntry? existing;
+  const _AddSpendScreen({this.existing});
   @override
   State<_AddSpendScreen> createState() => _AddSpendScreenState();
 }
 
 class _AddSpendScreenState extends State<_AddSpendScreen> {
-  final _amountCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
+  late final _amountCtrl =
+      TextEditingController(text: widget.existing?.amount.toStringAsFixed(0) ?? '');
+  late final _noteCtrl = TextEditingController(text: widget.existing?.note ?? '');
   final _newSubCtrl = TextEditingController();
   String? _categoryId;
   String _subcategory = '';
   bool _isNeed = true;
 
+  bool get _isEditing => widget.existing != null;
+
   @override
   void initState() {
     super.initState();
-    if (store.spendCategories.isNotEmpty) {
+    final existing = widget.existing;
+    if (existing != null) {
+      _categoryId = existing.categoryId;
+      _subcategory = existing.subcategory;
+      _isNeed = existing.isNeed;
+    } else if (store.spendCategories.isNotEmpty) {
       _categoryId = store.spendCategories.first.id;
     }
   }
@@ -237,16 +255,29 @@ class _AddSpendScreenState extends State<_AddSpendScreen> {
     final amount = double.tryParse(_amountCtrl.text.trim());
     final categoryId = _categoryId;
     if (amount == null || amount <= 0 || categoryId == null) return;
-    await store.addSpendEntry(
-      categoryId: categoryId,
-      subcategory: _subcategory,
-      amount: amount,
-      isNeed: _isNeed,
-      note: _noteCtrl.text,
-    );
+    HapticFeedback.mediumImpact();
+    final existing = widget.existing;
+    if (existing != null) {
+      await store.updateSpendEntry(
+        existing,
+        categoryId: categoryId,
+        subcategory: _subcategory,
+        amount: amount,
+        isNeed: _isNeed,
+        note: _noteCtrl.text,
+      );
+    } else {
+      await store.addSpendEntry(
+        categoryId: categoryId,
+        subcategory: _subcategory,
+        amount: amount,
+        isNeed: _isNeed,
+        note: _noteCtrl.text,
+      );
+    }
     if (mounted) {
       Navigator.pop(context);
-      toastSaved(context, label: 'Logged');
+      toastSaved(context, label: _isEditing ? 'Updated' : 'Logged');
     }
   }
 
@@ -264,7 +295,8 @@ class _AddSpendScreenState extends State<_AddSpendScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: Surfaces.heading(dark)),
-        title: Text('Log an expense', style: display(17, Surfaces.heading(dark))),
+        title: Text(_isEditing ? 'Edit expense' : 'Log an expense',
+            style: display(17, Surfaces.heading(dark))),
         actions: [
           IconButton(
             tooltip: 'Save',
@@ -403,7 +435,8 @@ class _AddSpendScreenState extends State<_AddSpendScreen> {
                   decoration: const InputDecoration(hintText: 'e.g. Weekend groceries'),
                 ),
                 const SizedBox(height: 26),
-                GoldButton(labelText: 'Save expense', onPressed: _save),
+                GoldButton(
+                    labelText: _isEditing ? 'Save changes' : 'Save expense', onPressed: _save),
               ],
             ),
           ),
@@ -725,6 +758,42 @@ class _BudgetSheetState extends State<_BudgetSheet> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _enterManually() async {
+    final ctrl = TextEditingController(text: _amount == 0 ? '' : _amount.toStringAsFixed(0));
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Surfaces.sheet(dark),
+        title: Text('Enter amount', style: display(16, Surfaces.heading(dark))),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: body(18, Surfaces.bodyText(dark), weight: FontWeight.w700),
+          decoration: const InputDecoration(prefixText: '₹ ', hintText: '0'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: body(13, Surfaces.muted(dark)))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.trim())),
+            child: Text('Use amount',
+                style: body(13, Surfaces.accent(dark), weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result >= 0) {
+      final rounded = result.round();
+      setState(() {
+        _thousands = (rounded ~/ 1000).clamp(0, 200);
+        _hundreds = ((rounded % 1000) ~/ 100).clamp(0, 9);
+      });
+    }
+  }
+
   Widget _wheel({
     required int itemCount,
     required int selected,
@@ -814,9 +883,18 @@ class _BudgetSheetState extends State<_BudgetSheet> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Scroll each wheel — rounds to the nearest ₹100.',
+            Text('Scroll each wheel, or type the amount directly.',
                 textAlign: TextAlign.center, style: body(11.5, Surfaces.muted(dark))),
-            const SizedBox(height: 18),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: _enterManually,
+                icon: Icon(Icons.keyboard_alt_outlined, size: 16, color: Surfaces.accent(dark)),
+                label: Text('Enter amount manually',
+                    style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(height: 10),
             GoldButton(labelText: 'Save budget', onPressed: _save),
             if (store.spendBudgetAmount != null) ...[
               const SizedBox(height: 8),
@@ -980,10 +1058,47 @@ class _AddSavingsScreenState extends State<_AddSavingsScreen> {
 
   Future<void> _save() async {
     if (_amount <= 0) return;
+    HapticFeedback.mediumImpact();
     await store.addSavingsEntry(type: _type, amount: _amount, note: _noteCtrl.text);
     if (mounted) {
       Navigator.pop(context);
       toastSaved(context, label: 'Logged');
+    }
+  }
+
+  Future<void> _enterManually() async {
+    final ctrl = TextEditingController(text: _amount == 0 ? '' : _amount.toStringAsFixed(0));
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Surfaces.sheet(dark),
+        title: Text('Enter amount', style: display(16, Surfaces.heading(dark))),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: body(18, Surfaces.bodyText(dark), weight: FontWeight.w700),
+          decoration: const InputDecoration(prefixText: '₹ ', hintText: '0'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: body(13, Surfaces.muted(dark)))),
+          TextButton(
+            onPressed: () => Navigator.pop(context, double.tryParse(ctrl.text.trim())),
+            child: Text('Use amount',
+                style: body(13, Surfaces.accent(dark), weight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result >= 0) {
+      final rounded = result.round();
+      setState(() {
+        _thousands = (rounded ~/ 1000).clamp(0, 200);
+        _hundreds = ((rounded % 1000) ~/ 100).clamp(0, 9);
+      });
     }
   }
 
@@ -1076,7 +1191,16 @@ class _AddSavingsScreenState extends State<_AddSavingsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 4),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: _enterManually,
+                    icon: Icon(Icons.keyboard_alt_outlined, size: 16, color: Surfaces.accent(dark)),
+                    label: Text('Enter amount manually',
+                        style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text('NOTE (OPTIONAL)', style: label(Surfaces.eyebrow(dark))),
                 const SizedBox(height: 8),
                 TextField(

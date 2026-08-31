@@ -120,7 +120,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'This opens your mail app with a message addressed to us ($_feedbackEmail) — you send it from there.',
-                          style: body(11.5, Surfaces.muted(dark)),
+                          textAlign: TextAlign.justify,
+                          style: body(11.5, Surfaces.muted(dark)).copyWith(height: 1.4),
                         ),
                         const SizedBox(height: 16),
                         GoldButton(
