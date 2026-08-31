@@ -49,7 +49,7 @@ class QuoteScreen extends StatelessWidget {
                           style: display(28, Surfaces.heading(dark)),
                         ),
                         const SizedBox(height: 18),
-                        Text('— ${mantra.source}',
+                        Text(mantra.source,
                             textAlign: TextAlign.center,
                             style: body(13, Surfaces.muted(dark),
                                 weight: FontWeight.w500)),
@@ -66,7 +66,7 @@ class QuoteScreen extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => SharePlus.instance.share(
                       ShareParams(
-                        text: '"${mantra.text}"\n— ${mantra.source}\n\n'
+                        text: '"${mantra.text}"\n${mantra.source}\n\n'
                             'Shared from Prakriyā by $_shareFooter',
                       ),
                     ),

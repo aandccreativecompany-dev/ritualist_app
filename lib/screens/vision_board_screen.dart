@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -104,6 +105,22 @@ class VisionBoardScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            const SizedBox(width: 10),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () => _openBackgroundPicker(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(11),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  color: Surfaces.accent(dark).withValues(alpha: 0.10),
+                                  border: Border.all(
+                                      color: Surfaces.accent(dark).withValues(alpha: 0.3)),
+                                ),
+                                child: Icon(Icons.wallpaper_outlined,
+                                    size: 18, color: Surfaces.accent(dark)),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -140,25 +157,38 @@ class VisionBoardScreen extends StatelessWidget {
                               child: RepaintBoundary(
                                 key: _boardKey,
                                 child: Container(
-                                  color: dark ? Brand.deep : Brand.cream,
+                                  decoration: boardBackgroundDecoration(
+                                      store.visionBoardBackground, dark),
                                   padding: const EdgeInsets.all(4),
-                                  child: StaggeredGrid.count(
-                                    crossAxisCount: 2,
-                                    mainAxisSpacing: 14,
-                                    crossAxisSpacing: 14,
+                                  child: Stack(
                                     children: [
-                                      for (var i = 0; i < items.length; i++)
-                                        StaggeredGridTile.count(
-                                          crossAxisCellCount: items[i].spanX.clamp(1, 2),
-                                          mainAxisCellCount: items[i].spanY.clamp(1, 2),
-                                          child: _VisionTile(
-                                            item: items[i],
-                                            index: i,
-                                            color: _hatchColors[
-                                                items[i].colorIndex % _hatchColors.length],
-                                            dark: dark,
+                                      if (store.visionBoardBackground == 'cork' ||
+                                          store.visionBoardBackground == 'linen')
+                                        Positioned.fill(
+                                          child: CustomPaint(
+                                            painter: _BoardTexturePainter(
+                                                theme: store.visionBoardBackground),
                                           ),
                                         ),
+                                      StaggeredGrid.count(
+                                        crossAxisCount: 2,
+                                        mainAxisSpacing: 14,
+                                        crossAxisSpacing: 14,
+                                        children: [
+                                          for (var i = 0; i < items.length; i++)
+                                            StaggeredGridTile.count(
+                                              crossAxisCellCount: items[i].spanX.clamp(1, 2),
+                                              mainAxisCellCount: items[i].spanY.clamp(1, 2),
+                                              child: _VisionTile(
+                                                item: items[i],
+                                                index: i,
+                                                color: _hatchColors[
+                                                    items[i].colorIndex % _hatchColors.length],
+                                                dark: dark,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -298,6 +328,73 @@ class VisionBoardScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _openBackgroundPicker(BuildContext context) async {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        decoration: BoxDecoration(
+          color: Surfaces.sheet(dark),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Board background', style: display(17, Surfaces.heading(dark))),
+            const SizedBox(height: 4),
+            Text('A texture or theme behind your tiles.',
+                style: body(12.5, Surfaces.muted(dark))),
+            const SizedBox(height: 16),
+            AnimatedBuilder(
+              animation: store,
+              builder: (context, _) => Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final theme in kVisionBackgrounds)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => store.setVisionBoardBackground(theme),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: store.visionBoardBackground == theme
+                                    ? Surfaces.accent(dark)
+                                    : Surfaces.accentBorder(dark),
+                                width: store.visionBoardBackground == theme ? 2 : 1,
+                              ),
+                            ),
+                            child: DecoratedBox(
+                              decoration: boardBackgroundDecoration(theme, dark),
+                              child: (theme == 'cork' || theme == 'linen')
+                                  ? CustomPaint(painter: _BoardTexturePainter(theme: theme))
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(kVisionBackgroundLabels[theme] ?? theme,
+                              style: body(10.5, Surfaces.muted(dark))),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showShareOptions(BuildContext context, List<VisionItem> items) async {
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -411,6 +508,66 @@ class _VisionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shape = item.shape.isEmpty ? store.visionBoardShape : item.shape;
+    final colorFilter = visionTileColorFilter(item.filter);
+    Widget image = Image.file(
+      File(item.imagePath ?? ''),
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => CustomPaint(painter: _HatchPainter(color: color)),
+    );
+    if (colorFilter != null) image = ColorFiltered(colorFilter: colorFilter, child: image);
+
+    final card = ClipPath(
+      clipper: _shapeClipper(shape),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+          color: color.withValues(alpha: dark ? 0.08 : 0.1),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (item.imagePath != null)
+              Align(
+                alignment: Alignment(
+                    (item.imageOffsetX - 0.5) * 2, (item.imageOffsetY - 0.5) * 2),
+                child: Transform.scale(scale: item.imageZoom, child: image),
+              )
+            else
+              CustomPaint(painter: _HatchPainter(color: color)),
+            if (item.imagePath != null)
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
+                    stops: const [0.5, 1.0],
+                  ),
+                ),
+              ),
+            if (item.caption.isNotEmpty)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Text(
+                  item.caption,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: body(13, item.imagePath != null ? Colors.white : Surfaces.heading(dark),
+                      weight: FontWeight.w700),
+                ),
+              ),
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Icon(Icons.tune, size: 15, color: Colors.white.withValues(alpha: 0.85)),
+            ),
+          ],
+        ),
+      ),
+    );
+
     return InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () => _openCustomizer(context),
@@ -421,66 +578,82 @@ class _VisionTile extends StatelessWidget {
           if (context.mounted) toastSaved(context, label: 'Removed');
         }
       },
-      child: ClipPath(
-        clipper: _shapeClipper(shape),
-        child: Container(
+      child: _framedTile(card, item.frameStyle, dark),
+    );
+  }
+
+  /// Wraps a tile's clipped card in the chosen decorative frame — a light,
+  /// dependency-free approximation of a real mood-board look (polaroid
+  /// border, torn-paper edge, a strip of washi tape, or just a soft drop
+  /// shadow) rather than a flat clipped rectangle.
+  Widget _framedTile(Widget card, String frameStyle, bool dark) {
+    switch (frameStyle) {
+      case 'polaroid':
+        return Container(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 20),
           decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
-            color: color.withValues(alpha: dark ? 0.08 : 0.1),
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (item.imagePath != null)
-                Align(
-                  alignment: Alignment(
-                      (item.imageOffsetX - 0.5) * 2, (item.imageOffsetY - 0.5) * 2),
-                  child: Transform.scale(
-                    scale: item.imageZoom,
-                    child: Image.file(
-                      File(item.imagePath!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          CustomPaint(painter: _HatchPainter(color: color)),
-                    ),
-                  ),
-                )
-              else
-                CustomPaint(painter: _HatchPainter(color: color)),
-              if (item.imagePath != null)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black.withValues(alpha: 0.55)],
-                      stops: const [0.5, 1.0],
-                    ),
-                  ),
-                ),
-              if (item.caption.isNotEmpty)
-                Positioned(
-                  left: 12,
-                  right: 12,
-                  bottom: 12,
-                  child: Text(
-                    item.caption,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: body(13, item.imagePath != null ? Colors.white : Surfaces.heading(dark),
-                        weight: FontWeight.w700),
-                  ),
-                ),
-              Positioned(
-                top: 6,
-                right: 6,
-                child: Icon(Icons.tune, size: 15, color: Colors.white.withValues(alpha: 0.85)),
-              ),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.22),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5)),
             ],
           ),
-        ),
-      ),
-    );
+          child: card,
+        );
+      case 'dropShadow':
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withValues(alpha: dark ? 0.5 : 0.24),
+                  blurRadius: 16,
+                  offset: const Offset(0, 7)),
+            ],
+          ),
+          child: card,
+        );
+      case 'washiTape':
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            card,
+            Positioned(
+              top: -9,
+              left: 14,
+              child: Transform.rotate(
+                angle: -0.32,
+                child: Container(
+                  width: 46,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.8),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      case 'tornPaper':
+        return Stack(
+          children: [
+            card,
+            Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _TornEdgePainter(dark: dark)),
+              ),
+            ),
+          ],
+        );
+      default:
+        return card;
+    }
   }
 
   Future<bool?> _confirmRemove(BuildContext context, String caption) {
@@ -526,6 +699,8 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
   late double _offsetX;
   late double _offsetY;
   late double _zoom;
+  late String _frameStyle;
+  late String _filter;
 
   static const _sizeOptions = [
     ('Small', 1, 1),
@@ -543,9 +718,12 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
     _offsetX = widget.item.imageOffsetX;
     _offsetY = widget.item.imageOffsetY;
     _zoom = widget.item.imageZoom;
+    _frameStyle = widget.item.frameStyle.isEmpty ? 'none' : widget.item.frameStyle;
+    _filter = widget.item.filter.isEmpty ? 'none' : widget.item.filter;
   }
 
   Future<void> _save() async {
+    HapticFeedback.mediumImpact();
     await store.updateVisionItemStyle(
       widget.item,
       shape: _shape,
@@ -554,6 +732,8 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
       imageOffsetX: _offsetX,
       imageOffsetY: _offsetY,
       imageZoom: _zoom,
+      frameStyle: _frameStyle,
+      filter: _filter,
     );
     if (mounted) {
       Navigator.pop(context);
@@ -668,6 +848,40 @@ class _TileCustomizerSheetState extends State<_TileCustomizerSheet> {
                     ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Text('FRAME', style: label(Surfaces.eyebrow(dark))),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final f in kVisionFrames)
+                    _Chip(
+                      label: kVisionFrameLabels[f] ?? f,
+                      selected: _frameStyle == f,
+                      dark: dark,
+                      onTap: () => setState(() => _frameStyle = f),
+                    ),
+                ],
+              ),
+              if (widget.item.imagePath != null) ...[
+                const SizedBox(height: 16),
+                Text('PHOTO FILTER', style: label(Surfaces.eyebrow(dark))),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final f in kVisionFilters)
+                      _Chip(
+                        label: kVisionFilterLabels[f] ?? f,
+                        selected: _filter == f,
+                        dark: dark,
+                        onTap: () => setState(() => _filter = f),
+                      ),
+                  ],
+                ),
+              ],
                   ],
                 ),
               ),
@@ -710,6 +924,101 @@ class _Chip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Decoration for the whole board's background — a plain colour by default,
+/// or one of a few textured/atmospheric themes (paired with
+/// [_BoardTexturePainter] for the ones that need a drawn texture on top).
+BoxDecoration boardBackgroundDecoration(String theme, bool dark) {
+  switch (theme) {
+    case 'cork':
+      return const BoxDecoration(color: Color(0xFFC9A268));
+    case 'linen':
+      return BoxDecoration(color: dark ? const Color(0xFF3B372F) : const Color(0xFFEEE7D7));
+    case 'gradient':
+      return BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: dark
+              ? [Brand.violet.withValues(alpha: 0.85), Brand.deep]
+              : [Brand.goldLight.withValues(alpha: 0.55), Brand.cream],
+        ),
+      );
+    case 'dark':
+      return const BoxDecoration(color: Color(0xFF14101F));
+    default:
+      return BoxDecoration(color: dark ? Brand.deep : Brand.cream);
+  }
+}
+
+/// Colour-grading for a tile's photo — a small, dependency-free stand-in for
+/// a real filter engine: a saturation/hue matrix rather than a texture or
+/// blur, so it stays cheap to apply to every tile on every rebuild.
+ColorFilter? visionTileColorFilter(String filter) {
+  switch (filter) {
+    case 'warm':
+      return const ColorFilter.matrix([
+        1.12, 0, 0, 0, 14,
+        0, 1.02, 0, 0, 6,
+        0, 0, 0.86, 0, 0,
+        0, 0, 0, 1, 0,
+      ]);
+    case 'dreamy':
+      // Softened contrast + a light lift — a gentle, hazy look without
+      // needing an actual blur/bloom pass.
+      return const ColorFilter.matrix([
+        0.85, 0.06, 0.06, 0, 18,
+        0.06, 0.85, 0.06, 0, 18,
+        0.08, 0.08, 0.82, 0, 20,
+        0, 0, 0, 1, 0,
+      ]);
+    case 'bw':
+      return const ColorFilter.matrix([
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0.2126, 0.7152, 0.0722, 0, 0,
+        0, 0, 0, 1, 0,
+      ]);
+    default:
+      return null;
+  }
+}
+
+/// Cork-board dot texture / linen crosshatch, drawn once behind the tiles.
+class _BoardTexturePainter extends CustomPainter {
+  final String theme;
+  const _BoardTexturePainter({required this.theme});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (theme == 'cork') {
+      final paint = Paint()..color = const Color(0x226B4F2A);
+      const gap = 9.0;
+      for (var y = gap / 2; y < size.height; y += gap) {
+        for (var x = gap / 2; x < size.width; x += gap) {
+          // Fixed jitter (not random) so the texture is stable across
+          // rebuilds instead of sparkling every frame.
+          final jitter = ((x + y) % 5) - 2;
+          canvas.drawCircle(Offset(x + jitter, y), 1.1, paint);
+        }
+      }
+    } else if (theme == 'linen') {
+      final paint = Paint()
+        ..color = const Color(0x14000000)
+        ..strokeWidth = 0.6;
+      const gap = 6.0;
+      for (var x = 0.0; x < size.width; x += gap) {
+        canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      }
+      for (var y = 0.0; y < size.height; y += gap) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BoardTexturePainter oldDelegate) => oldDelegate.theme != theme;
 }
 
 CustomClipper<Path> _shapeClipper(String shape) {
@@ -954,6 +1263,46 @@ class _BlobClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// A jagged, hand-torn-paper-look edge drawn just inside a tile's border —
+/// a purely decorative overlay, so it works with any of the tile's own
+/// shapes instead of needing its own clip.
+class _TornEdgePainter extends CustomPainter {
+  final bool dark;
+  const _TornEdgePainter({required this.dark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = (dark ? Colors.white : Colors.black).withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    const jag = 7.0;
+    // Fixed jitter pattern (not random) so the edge is stable across
+    // rebuilds, matching the approach used by _BlobClipper/_BoardTexturePainter.
+    const wobble = [0.0, 1.6, -1.2, 2.0, -1.8, 1.2, -0.6, 1.8];
+    final path = Path();
+    var toggle = 0;
+    for (var x = 0.0; x <= size.width; x += jag) {
+      final y = wobble[toggle % wobble.length];
+      if (x == 0) {
+        path.moveTo(x, y.abs());
+      } else {
+        path.lineTo(x, y.abs());
+      }
+      toggle++;
+    }
+    for (var y = 0.0; y <= size.height; y += jag) {
+      final x = size.width - wobble[toggle % wobble.length].abs();
+      path.lineTo(x, y);
+      toggle++;
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TornEdgePainter oldDelegate) => oldDelegate.dark != dark;
 }
 
 /// Diagonal hatch lines standing in for a photo, used when a tile has no

@@ -1,30 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'about_screen.dart';
+import 'dashboard_screen.dart';
 import 'evening_reflection_screen.dart';
 import 'exercise_timer_screen.dart';
 import 'habit_detail_screen.dart';
 import 'mind_map_screen.dart';
 import 'monthly_goals_screen.dart';
 import 'personal_care_screen.dart';
-import 'quote_screen.dart';
 import 'reminders_screen.dart';
 import 'scripting_screen.dart';
-import 'settings_screen.dart';
 import 'spending_tracker_screen.dart';
 import 'todo_list_screen.dart';
 import 'vision_board_screen.dart';
 import 'weekly_goals_screen.dart';
-
-const _monthNames = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const _moods = [
   ('Rough', '😔'),
@@ -34,6 +28,46 @@ const _moods = [
   ('Amazing', '🤩'),
 ];
 
+/// Short one-word bottom-nav labels — a section's full title (used as that
+/// section's own screen header) is often too long for a nav bar.
+String _sectionShortLabel(String key) {
+  switch (key) {
+    case 'productivity':
+      return 'Tasks';
+    case 'outcome':
+      return 'Outcome';
+    case 'finance':
+      return 'Finance';
+    case 'health':
+      return 'Health';
+    case 'mindset':
+      return 'Mindset';
+    case 'relationships':
+      return 'Connect';
+    default:
+      return key;
+  }
+}
+
+IconData _sectionIcon(String key) {
+  switch (key) {
+    case 'productivity':
+      return Icons.checklist_rounded;
+    case 'outcome':
+      return Icons.auto_awesome;
+    case 'finance':
+      return Icons.account_balance_wallet_outlined;
+    case 'health':
+      return Icons.favorite_border;
+    case 'mindset':
+      return Icons.psychology_alt_outlined;
+    case 'relationships':
+      return Icons.diversity_1_outlined;
+    default:
+      return Icons.circle_outlined;
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -41,47 +75,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-/// Which section-page index to open on first paint, per the user's
-/// Settings > "Starting screen" pick — falls back to page 0 (Productivity)
-/// if that section is hidden or was never set.
-int _initialPageIndex() {
-  final visible = store.visibleModuleIds;
-  final visibleKeys = [
-    for (final section in kHomePageSections)
-      if (section.moduleIds.any(visible.contains)) section.key,
-  ];
-  final index = visibleKeys.indexOf(store.defaultPageKey);
-  return index >= 0 ? index : 0;
-}
-
+/// The app's shell: a Dashboard tab (greeting, mantra, quick stats — see
+/// dashboard_screen.dart) plus one bottom-nav tab per visible section, each
+/// its own separate, focused screen instead of a swipeable card sharing a
+/// header with everything else. Up to 3 sections get their own tab; any
+/// more live under "More" so the bar never gets crowded — still one tap
+/// away, just not competing for space with Dashboard/Tasks/Outcome/Finance.
 class _HomeScreenState extends State<HomeScreen> {
-  late final _pageController = PageController(initialPage: _initialPageIndex());
-  late int _page = _pageController.initialPage;
-  bool _hintDismissed = false;
-  late final String _mascotGreeting = kMascotGreetings[
-      DateTime.now().millisecondsSinceEpoch % kMascotGreetings.length];
+  int _tabIndex = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowDailyPrompts());
-    Future.delayed(const Duration(seconds: 5), _dismissHint);
-  }
-
-  void _dismissHint() {
-    if (_hintDismissed || !mounted) return;
-    setState(() => _hintDismissed = true);
-    store.markSwipeHintSeen();
-  }
-
-  Future<void> _refresh() async {
-    await store.load();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
   }
 
   Future<void> _maybeShowDailyPrompts() async {
@@ -98,176 +104,6 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (_) => const _EveningPromptDialog(),
       );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final today = DateTime.now();
-    final dateLine =
-        '${_dayNames[today.weekday - 1]} ${today.day} ${_monthNames[today.month - 1]}';
-
-    return AnimatedBuilder(
-      animation: store,
-      builder: (context, _) {
-        final visible = store.visibleModuleIds;
-        // Built from the single shared kHomePageSections list (models.dart)
-        // so this order always matches the Settings > "Starting screen"
-        // picker and _initialPageIndex() above — three places relying on
-        // one source of truth instead of three hand-kept lists.
-        final visibleSections = [
-          for (final section in kHomePageSections)
-            if (section.moduleIds.any(visible.contains)) section,
-        ];
-        final pages = [
-          for (final section in visibleSections)
-            _SectionPage(
-              title: section.title,
-              items: [
-                for (final id in section.moduleIds)
-                  if (visible.contains(id)) _itemFor(id),
-              ],
-            ),
-        ];
-
-        return Scaffold(
-          body: Container(
-            decoration: Surfaces.pageBackground(dark),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 8, 18, 0),
-                        child: _Header(dateLine: dateLine),
-                      ),
-                      const SizedBox(height: 14),
-                      if (visible.contains('mantra'))
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: const _MantraCard(),
-                        ),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: pages.isEmpty
-                            ? Center(
-                                child: Text('Nothing turned on — check Settings.',
-                                    style: body(13, Surfaces.muted(dark))),
-                              )
-                            : RefreshIndicator(
-                                onRefresh: _refresh,
-                                color: Surfaces.accent(dark),
-                                child: AnimatedBuilder(
-                                  animation: _pageController,
-                                  builder: (context, _) {
-                                    return PageView.builder(
-                                      controller: _pageController,
-                                      itemCount: pages.length,
-                                      onPageChanged: (i) {
-                                        setState(() => _page = i);
-                                        _dismissHint();
-                                      },
-                                      itemBuilder: (context, i) {
-                                        var scale = 1.0;
-                                        if (_pageController.position.haveDimensions) {
-                                          final delta = (i -
-                                                  (_pageController.page ??
-                                                      _page.toDouble()))
-                                              .abs()
-                                              .clamp(0.0, 1.0);
-                                          scale = 1 - (delta * 0.08);
-                                        }
-                                        return Padding(
-                                          padding:
-                                              const EdgeInsets.fromLTRB(18, 0, 18, 4),
-                                          child: Transform.scale(
-                                            scale: scale,
-                                            child: pages[i],
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                      ),
-                      if (pages.length > 1) ...[
-                        const SizedBox(height: 4),
-                        // One tappable icon per section — jumps straight to
-                        // it — with the existing animated dot underneath
-                        // each one, so the same row still reads as a swipe
-                        // position indicator at a glance.
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            for (var i = 0; i < visibleSections.length; i++)
-                              _SectionJumpDot(
-                                icon: _sectionIcon(visibleSections[i].key),
-                                label: visibleSections[i].title,
-                                selected: i == _page,
-                                dark: dark,
-                                onTap: () => _pageController.animateToPage(
-                                  i,
-                                  duration: const Duration(milliseconds: 320),
-                                  curve: Curves.easeOutCubic,
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                      const _Footer(),
-                      const SizedBox(height: 6),
-                    ],
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: Align(
-                        alignment: const Alignment(0, -0.05),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 118,
-                          child: GreetingMascot(
-                            avatarGender: store.avatarGender,
-                            greeting: _mascotGreeting,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (pages.length > 1 && !store.hasSeenSwipeHint && !_hintDismissed)
-                    Positioned(
-                      right: 30,
-                      bottom: 70,
-                      child: IgnorePointer(child: _SwipeHint(dark: dark)),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  IconData _sectionIcon(String key) {
-    switch (key) {
-      case 'productivity':
-        return Icons.checklist_rounded;
-      case 'outcome':
-        return Icons.auto_awesome;
-      case 'finance':
-        return Icons.account_balance_wallet_outlined;
-      case 'health':
-        return Icons.favorite_border;
-      case 'mindset':
-        return Icons.psychology_alt_outlined;
-      case 'relationships':
-        return Icons.diversity_1_outlined;
-      default:
-        return Icons.circle_outlined;
     }
   }
 
@@ -301,57 +137,177 @@ class _HomeScreenState extends State<HomeScreen> {
         return const SizedBox.shrink();
     }
   }
-}
 
-/// A section's icon + swipe-position dot, combined into one tappable target
-/// so users can jump straight to any section instead of only swiping —
-/// alongside (not replacing) the existing dot-based position indicator.
-class _SectionJumpDot extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final bool dark;
-  final VoidCallback onTap;
-  const _SectionJumpDot({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.dark,
-    required this.onTap,
-  });
+  void _openSection(String key, List<HomePageSection> primary, List<HomePageSection> overflow) {
+    final primaryIndex = primary.indexWhere((s) => s.key == key);
+    if (primaryIndex >= 0) {
+      setState(() => _tabIndex = primaryIndex + 1); // +1 for the Dashboard tab
+      return;
+    }
+    final match = overflow.where((s) => s.key == key).toList();
+    if (match.isEmpty) return;
+    _pushSection(match.first);
+  }
+
+  void _pushSection(HomePageSection section) {
+    final visible = store.visibleModuleIds;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _SectionScreen(
+        title: section.title,
+        sectionKey: section.key,
+        items: [
+          for (final id in section.moduleIds)
+            if (visible.contains(id)) _itemFor(id),
+        ],
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? Surfaces.accent(dark) : Surfaces.muted(dark);
-    return Tooltip(
-      message: label,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 26,
-                height: 26,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: selected ? color.withValues(alpha: dark ? 0.24 : 0.14) : Colors.transparent,
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final visible = store.visibleModuleIds;
+        // Built from the single shared kHomePageSections list (models.dart)
+        // so this order always matches the Settings > "Starting screen"
+        // picker — one source of truth instead of hand-kept lists.
+        final visibleSections = [
+          for (final section in kHomePageSections)
+            if (section.moduleIds.any(visible.contains)) section,
+        ];
+        final primarySections = visibleSections.take(3).toList();
+        final overflowSections = visibleSections.skip(3).toList();
+        final hasOverflow = overflowSections.isNotEmpty;
+
+        final tabs = <Widget>[
+          DashboardScreen(
+            sections: visibleSections,
+            onOpenSection: (key) => _openSection(key, primarySections, overflowSections),
+          ),
+          for (final section in primarySections)
+            _SectionScreen(
+              title: section.title,
+              sectionKey: section.key,
+              showBackButton: false,
+              items: [
+                for (final id in section.moduleIds)
+                  if (visible.contains(id)) _itemFor(id),
+              ],
+            ),
+          if (hasOverflow) _MoreScreen(sections: overflowSections, onOpen: _pushSection),
+        ];
+
+        final destinations = <NavigationDestination>[
+          const NavigationDestination(
+              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Dashboard'),
+          for (final section in primarySections)
+            NavigationDestination(
+                icon: Icon(_sectionIcon(section.key)), label: _sectionShortLabel(section.key)),
+          if (hasOverflow)
+            const NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+        ];
+
+        final safeIndex = _tabIndex.clamp(0, tabs.length - 1);
+
+        return Scaffold(
+          body: tabs.isEmpty
+              ? const SizedBox.shrink()
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOut,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: KeyedSubtree(key: ValueKey(safeIndex), child: tabs[safeIndex]),
                 ),
-                child: Icon(icon, size: 14, color: color),
+          bottomNavigationBar: destinations.length > 1
+              ? SafeArea(
+                  top: false,
+                  child: NavigationBar(
+                    selectedIndex: safeIndex,
+                    onDestinationSelected: (i) {
+                      HapticFeedback.selectionClick();
+                      setState(() => _tabIndex = i);
+                    },
+                    destinations: destinations,
+                  ),
+                )
+              : null,
+        );
+      },
+    );
+  }
+}
+
+/// Every other section, plus About Us, when there are more sections
+/// visible than fit as their own bottom-nav tab — still one tap away.
+class _MoreScreen extends StatelessWidget {
+  final List<HomePageSection> sections;
+  final void Function(HomePageSection) onOpen;
+  const _MoreScreen({required this.sections, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Scaffold(
+      body: Container(
+        decoration: Surfaces.pageBackground(dark),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const ScreenHeader(
+                icon: Icons.more_horiz,
+                title: 'More',
+                subtitle: 'Everything else, one tap away.',
               ),
-              const SizedBox(height: 2),
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: selected ? 16 : 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: selected ? 1 : 0.5),
-                  borderRadius: BorderRadius.circular(3),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                  children: [
+                    for (final section in sections)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => onOpen(section),
+                          child: ModuleCard(
+                            child: Row(
+                              children: [
+                                Icon(_sectionIcon(section.key), size: 20, color: Surfaces.accent(dark)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(section.title,
+                                      style: body(14, Surfaces.heading(dark), weight: FontWeight.w700)),
+                                ),
+                                Icon(Icons.chevron_right, size: 18, color: Surfaces.muted(dark)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+                        child: ModuleCard(
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 20, color: Surfaces.accent(dark)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text('About us',
+                                    style: body(14, Surfaces.heading(dark), weight: FontWeight.w700)),
+                              ),
+                              Icon(Icons.chevron_right, size: 18, color: Surfaces.muted(dark)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -362,50 +318,125 @@ class _SectionJumpDot extends StatelessWidget {
   }
 }
 
-/// One swipeable "page" of the home screen — a whole section (Productivity
-/// or Outcome engineering) presented as a single card, scrollable inside
-/// itself only if its content runs long, so the primary way to move around
-/// the app is a horizontal swipe between cards, not one long vertical feed.
-class _SectionPage extends StatelessWidget {
+/// One section as its own separate, focused screen — a header (no repeated
+/// greeting/mantra), its content, and a floating jump button that appears
+/// once there's more than one screenful to scroll through.
+class _SectionScreen extends StatefulWidget {
   final String title;
+  final String sectionKey;
   final List<Widget> items;
-  const _SectionPage({required this.title, required this.items});
+  final bool showBackButton;
+  const _SectionScreen({
+    required this.title,
+    this.sectionKey = '_',
+    required this.items,
+    this.showBackButton = true,
+  });
+
+  @override
+  State<_SectionScreen> createState() => _SectionScreenState();
+}
+
+class _SectionScreenState extends State<_SectionScreen> {
+  final _scrollController = ScrollController();
+  bool _overflows = false;
+  bool _atBottom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkOverflow());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _checkOverflow() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final overflows = _scrollController.position.maxScrollExtent > 8;
+    if (overflows != _overflows) setState(() => _overflows = overflows);
+  }
+
+  void _onScroll() {
+    _checkOverflow();
+    final atBottom = _scrollController.hasClients &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 24;
+    if (atBottom != _atBottom) setState(() => _atBottom = atBottom);
+  }
+
+  void _jump() {
+    if (!_scrollController.hasClients) return;
+    HapticFeedback.lightImpact();
+    final target = _atBottom ? 0.0 : _scrollController.position.maxScrollExtent;
+    _scrollController.animateTo(target,
+        duration: const Duration(milliseconds: 420), curve: Curves.easeOutCubic);
+  }
+
+  Future<void> _refresh() async => store.load();
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Surfaces.card(dark),
-        border: Border.all(color: Surfaces.cardBorder(dark)),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(title.toUpperCase(), style: label(Surfaces.eyebrow(dark))),
-                const Spacer(),
-                Icon(Icons.cloud_done_outlined, size: 13, color: Surfaces.muted(dark)),
-                const SizedBox(width: 4),
-                Text('Saves automatically',
-                    style: body(10, Surfaces.muted(dark), weight: FontWeight.w600)),
-              ],
-            ),
-            const SizedBox(height: 18),
-            for (var i = 0; i < items.length; i++) ...[
-              items[i],
-              if (i != items.length - 1) ...[
-                const SizedBox(height: 18),
-                Divider(height: 1, color: Surfaces.cardBorder(dark)),
-                const SizedBox(height: 18),
-              ],
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkOverflow());
+    return Scaffold(
+      body: Container(
+        decoration: Surfaces.pageBackground(dark),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  ScreenHeader(
+                      icon: _sectionIcon(widget.sectionKey),
+                      title: widget.title,
+                      showBackButton: widget.showBackButton),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: _refresh,
+                      color: Surfaces.accent(dark),
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+                        child: ModuleCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var i = 0; i < widget.items.length; i++) ...[
+                                widget.items[i],
+                                if (i != widget.items.length - 1) ...[
+                                  const SizedBox(height: 18),
+                                  Divider(height: 1, color: Surfaces.cardBorder(dark)),
+                                  const SizedBox(height: 18),
+                                ],
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_overflows)
+                Positioned(
+                  right: 18,
+                  bottom: 18,
+                  child: FloatingActionButton.small(
+                    heroTag: null,
+                    onPressed: _jump,
+                    backgroundColor: Surfaces.accent(dark),
+                    child: Icon(_atBottom ? Icons.arrow_upward : Icons.arrow_downward,
+                        color: Colors.white, size: 18),
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -433,91 +464,6 @@ class _ItemHeader extends StatelessWidget {
         ),
         if (trailing != null) trailing!,
       ],
-    );
-  }
-}
-
-class _Header extends StatelessWidget {
-  final String dateLine;
-  const _Header({required this.dateLine});
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final done = store.todaysTasks.where((t) => t.done).length;
-    final total = store.todaysTasks.length;
-    final greeting = _greeting();
-    final name = store.userName;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(dateLine.toUpperCase(), style: label(Surfaces.muted(dark))),
-              const SizedBox(height: 8),
-              Text(name.isEmpty ? greeting : '$greeting, $name',
-                  style: display(26, Surfaces.heading(dark))),
-              const SizedBox(height: 4),
-              Text(
-                total == 0
-                    ? 'Nothing set yet'
-                    : '$done of $total priorities · ${store.habitsDoneToday} of ${store.habits.length} habits',
-                style: body(12.5, Surfaces.muted(dark)),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          icon:
-              Icon(Icons.settings_outlined, color: Surfaces.muted(dark), size: 22),
-        ),
-      ],
-    );
-  }
-
-  String _greeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 5) return 'Still up';
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    if (hour < 21) return 'Good evening';
-    return 'Winding down';
-  }
-}
-
-class _MantraCard extends StatelessWidget {
-  const _MantraCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => const QuoteScreen())),
-      child: ModuleCard(
-        accent: true,
-        eyebrow: 'Mantra of the day',
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(store.mantraEntryOfTheDay.text,
-                style: display(17, Surfaces.accentText(dark)),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 8),
-            Text('— ${store.mantraEntryOfTheDay.source}',
-                style: body(11, Surfaces.accentText(dark).withValues(alpha: 0.7),
-                    weight: FontWeight.w500)),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -760,6 +706,7 @@ class _HabitCard extends StatefulWidget {
 
 class _HabitCardState extends State<_HabitCard> {
   Future<void> _toggle() async {
+    HapticFeedback.lightImpact();
     await store.toggleHabit(widget.habit);
     if (mounted) toastSaved(context);
   }
@@ -993,66 +940,6 @@ class _MindMapItem extends StatelessWidget {
                 style: body(12, Surfaces.muted(dark))),
             const SizedBox(width: 6),
             Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A one-time "swipe for more" nudge — a hand icon that drifts left/right
-/// and fades, so first-time users notice the home cards are swipeable
-/// instead of assuming Productivity is the whole app.
-class _SwipeHint extends StatefulWidget {
-  final bool dark;
-  const _SwipeHint({required this.dark});
-
-  @override
-  State<_SwipeHint> createState() => _SwipeHintState();
-}
-
-class _SwipeHintState extends State<_SwipeHint> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final t = _controller.value;
-        return Opacity(
-          opacity: 0.55 + (t * 0.35),
-          child: Transform.translate(offset: Offset(-10 + (t * 14), 0), child: child),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Surfaces.accent(widget.dark).withValues(alpha: 0.85),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.swipe, color: Brand.deep, size: 15),
-            const SizedBox(width: 5),
-            Text('Swipe for more',
-                style: body(11, Brand.deep, weight: FontWeight.w700)),
           ],
         ),
       ),
@@ -1583,7 +1470,8 @@ class _FinanceGoalsContentState extends State<_FinanceGoalsContent> {
           const SizedBox(height: 6),
           Text(
             'From your wallet & spending tracker — logged expenses tagged Need or Want, compared against this split.',
-            style: body(11, Surfaces.muted(dark)),
+            textAlign: TextAlign.justify,
+            style: body(11, Surfaces.muted(dark)).copyWith(height: 1.4),
           ),
         ],
 
@@ -1889,7 +1777,7 @@ class _HealthGoalsContentState extends State<_HealthGoalsContent> {
                 Icon(Icons.spa_outlined, size: 18, color: Surfaces.accent(dark)),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text('Personal Care — Skin Care check-in',
+                  child: Text('Personal Care — Skin Health',
                       style: body(12.5, Surfaces.accent(dark), weight: FontWeight.w700)),
                 ),
                 Icon(Icons.chevron_right, size: 16, color: Surfaces.accent(dark)),
@@ -2678,6 +2566,7 @@ class _ConnectionTipCard extends StatelessWidget {
               child: Text(tip.blurb,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.justify,
                   style: body(10.5, Surfaces.muted(dark))),
             ),
           ],
@@ -2887,62 +2776,6 @@ class _EveningPromptDialogState extends State<_EveningPromptDialog> {
   }
 }
 
-/// Persistent brand footer — copyright plus the two social links, present
-/// on the home screen the way it appears on shared mantra cards.
-class _Footer extends StatelessWidget {
-  const _Footer();
-
-  Future<void> _open(String url) async {
-    final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('© A and C Creative Ventures',
-              style: body(10.5, Surfaces.muted(dark), weight: FontWeight.w600)),
-          const SizedBox(width: 10),
-          _SocialIcon(
-            icon: Icons.camera_alt_outlined,
-            onTap: () => _open('https://www.instagram.com/aandccreativecompany/'),
-          ),
-          const SizedBox(width: 8),
-          _SocialIcon(
-            icon: Icons.play_circle_outline,
-            onTap: () => _open('https://www.youtube.com/@aandccreativecompany'),
-          ),
-          const SizedBox(width: 8),
-          _SocialIcon(
-            icon: Icons.language,
-            onTap: () => _open('https://aandccreativecompany.netlify.app/'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SocialIcon extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _SocialIcon({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Icon(icon, size: 15, color: Surfaces.muted(dark)),
-      ),
-    );
-  }
-}
+// Brand footer (website/Instagram/YouTube links) moved to its own
+// About Us screen (about_screen.dart) — reachable from the Dashboard —
+// instead of repeating on every section.

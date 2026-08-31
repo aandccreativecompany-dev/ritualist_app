@@ -47,6 +47,9 @@ class Store extends ChangeNotifier {
     try {
       setFontScale(_state.fontScaleId);
     } catch (_) {}
+    try {
+      ensureMantraRotationCurrent();
+    } catch (_) {}
     ready = true;
     notifyListeners();
     // Scheduling reminders is best-effort by itself (see Notifications.
@@ -215,17 +218,67 @@ class Store extends ChangeNotifier {
 
   // ---- Mantra ----
 
-  /// Stable for the whole day, different every day, cycling through the
-  /// full sourced quote list before repeating.
-  int get _mantraIndex {
-    final today = DateTime.now();
-    final dayNumber = today.difference(DateTime(2026, 1, 1)).inDays;
-    return (dayNumber + _state.mantraSeed) % mantras.length;
+  /// Today's mantra, from a shuffled rotation that never repeats until
+  /// every entry in [mantras] has been shown once (then reshuffles,
+  /// skipping an immediate repeat of the last one shown) — see
+  /// `ensureMantraRotationCurrent`, which actually advances the rotation
+  /// once per calendar day. This getter stays pure/read-only (no state
+  /// mutation here) so it's always safe to call from a build() method;
+  /// if the rotation hasn't been set up yet for the current mantra list
+  /// size, it falls back to the old deterministic-by-day index until
+  /// `ensureMantraRotationCurrent` (called at startup and on resume)
+  /// catches up.
+  Mantra get mantraEntryOfTheDay {
+    if (mantras.isEmpty) return const Mantra('', '');
+    final total = mantras.length;
+    final order = _state.mantraShuffleOrder;
+    final cursor = _state.mantraShuffleCursor;
+    if (order.length == total && cursor >= 0 && cursor < total) {
+      return mantras[order[cursor]];
+    }
+    final dayNumber = DateTime.now().difference(DateTime(2026, 1, 1)).inDays;
+    return mantras[(dayNumber + _state.mantraSeed).abs() % total];
   }
 
-  Mantra get mantraEntryOfTheDay => mantras[_mantraIndex.abs()];
-
   String get mantraOfTheDay => mantraEntryOfTheDay.text;
+
+  /// Advances the mantra rotation exactly once per calendar day. Safe to
+  /// call as often as you like (at startup, on every app resume) — it's a
+  /// no-op unless the day has actually changed since the last time it ran,
+  /// or the rotation has never been set up / no longer matches the current
+  /// mantra list length (e.g. after an app update added more mantras).
+  void ensureMantraRotationCurrent() {
+    final total = mantras.length;
+    if (total == 0) return;
+    final today = dayKey(DateTime.now());
+    if (_state.mantraLastShownDay == today &&
+        _state.mantraShuffleOrder.length == total) {
+      return;
+    }
+    if (_state.mantraShuffleOrder.length != total) {
+      _state.mantraShuffleOrder = _shuffledMantraOrder(total);
+      _state.mantraShuffleCursor = 0;
+    } else {
+      _state.mantraShuffleCursor++;
+      if (_state.mantraShuffleCursor >= total) {
+        final lastShown = _state.mantraShuffleOrder.last;
+        _state.mantraShuffleOrder = _shuffledMantraOrder(total, avoidFirst: lastShown);
+        _state.mantraShuffleCursor = 0;
+      }
+    }
+    _state.mantraLastShownDay = today;
+    _commit();
+  }
+
+  List<int> _shuffledMantraOrder(int total, {int? avoidFirst}) {
+    final order = List<int>.generate(total, (i) => i)..shuffle();
+    if (avoidFirst != null && order.length > 1 && order.first == avoidFirst) {
+      final tmp = order[0];
+      order[0] = order[1];
+      order[1] = tmp;
+    }
+    return order;
+  }
 
   // ---- Productivity tip ----
 
@@ -390,6 +443,25 @@ class Store extends ChangeNotifier {
 
   Future<void> removeSpendEntry(SpendEntry entry) async {
     _state.spendEntries.remove(entry);
+    await _commit();
+  }
+
+  /// Edits a previously logged expense in place — until now the only way
+  /// to fix a mis-entered spend was to delete it and re-add it from scratch.
+  Future<void> updateSpendEntry(
+    SpendEntry entry, {
+    required String categoryId,
+    String subcategory = '',
+    required double amount,
+    required bool isNeed,
+    String note = '',
+  }) async {
+    if (amount <= 0) return;
+    entry.categoryId = categoryId;
+    entry.subcategory = subcategory.trim();
+    entry.amount = amount;
+    entry.isNeed = isNeed;
+    entry.note = note.trim();
     await _commit();
   }
 
@@ -774,6 +846,8 @@ class Store extends ChangeNotifier {
     double? imageOffsetX,
     double? imageOffsetY,
     double? imageZoom,
+    String? frameStyle,
+    String? filter,
   }) async {
     if (shape != null) item.shape = shape;
     if (spanX != null) item.spanX = spanX.clamp(1, 2);
@@ -781,6 +855,16 @@ class Store extends ChangeNotifier {
     if (imageOffsetX != null) item.imageOffsetX = imageOffsetX.clamp(0.0, 1.0);
     if (imageOffsetY != null) item.imageOffsetY = imageOffsetY.clamp(0.0, 1.0);
     if (imageZoom != null) item.imageZoom = imageZoom.clamp(1.0, 2.5);
+    if (frameStyle != null && kVisionFrames.contains(frameStyle)) item.frameStyle = frameStyle;
+    if (filter != null && kVisionFilters.contains(filter)) item.filter = filter;
+    await _commit();
+  }
+
+  String get visionBoardBackground => _state.visionBoardBackground;
+
+  Future<void> setVisionBoardBackground(String value) async {
+    if (!kVisionBackgrounds.contains(value)) return;
+    _state.visionBoardBackground = value;
     await _commit();
   }
 
