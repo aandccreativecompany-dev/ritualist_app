@@ -1152,6 +1152,18 @@ class AppState {
   double financeBudgetWantsPct;
   double financeBudgetSavingsPct;
 
+  /// Tracks which budget-threshold alert (0, 80, or 100) has already fired
+  /// for the current calendar month, keyed by a "yyyy-M" string — so
+  /// crossing 80% only notifies once, and the whole thing resets the moment
+  /// a new month starts.
+  String? spendAlertMonthKey;
+  int spendAlertLevel;
+
+  /// The newest release version the user has already dismissed the update
+  /// banner for — so dismissing it is remembered across launches, but a
+  /// version newer than this still shows a fresh banner.
+  String? dismissedUpdateVersion;
+
   /// Mindset & Growth tools: user-written reframe pairs (supplementing the
   /// built-in reference list), and per-day logs for the Stress Bucket and
   /// Daily DOSE checklists, keyed by `dayKey` date string.
@@ -1220,6 +1232,9 @@ class AppState {
     this.financeBudgetNeedsPct = 50,
     this.financeBudgetWantsPct = 30,
     this.financeBudgetSavingsPct = 20,
+    this.spendAlertMonthKey,
+    this.spendAlertLevel = 0,
+    this.dismissedUpdateVersion,
     required this.customReframes,
     required this.stressBucketFills,
     required this.stressBucketEmpties,
@@ -1249,6 +1264,24 @@ class AppState {
               title: 'Evening close',
               enabled: true,
               hour: 21,
+              minute: 0),
+          ReminderSetting(
+              id: 'spendWeekly',
+              title: 'Weekly spending summary (Sundays)',
+              enabled: true,
+              hour: 19,
+              minute: 0),
+          ReminderSetting(
+              id: 'spendMonthly',
+              title: 'Monthly spending summary (1st of month)',
+              enabled: true,
+              hour: 9,
+              minute: 0),
+          ReminderSetting(
+              id: 'spendAlerts',
+              title: 'Budget threshold alerts (80% / 100% spent)',
+              enabled: true,
+              hour: 0,
               minute: 0),
         ],
         mantraSeed: DateTime.now().millisecondsSinceEpoch % 997,
@@ -1359,6 +1392,9 @@ class AppState {
         'financeBudgetNeedsPct': financeBudgetNeedsPct,
         'financeBudgetWantsPct': financeBudgetWantsPct,
         'financeBudgetSavingsPct': financeBudgetSavingsPct,
+        'spendAlertMonthKey': spendAlertMonthKey,
+        'spendAlertLevel': spendAlertLevel,
+        'dismissedUpdateVersion': dismissedUpdateVersion,
         'customReframes': customReframes.map((r) => r.toJson()).toList(),
         'stressBucketFills': stressBucketFills,
         'stressBucketEmpties': stressBucketEmpties,
@@ -1660,6 +1696,15 @@ class AppState {
     }
     if (json['financeBudgetWantsPct'] is num) {
       state.financeBudgetWantsPct = (json['financeBudgetWantsPct'] as num).toDouble();
+    }
+    if (json['spendAlertMonthKey'] is String) {
+      state.spendAlertMonthKey = json['spendAlertMonthKey'] as String;
+    }
+    if (json['spendAlertLevel'] is int) {
+      state.spendAlertLevel = json['spendAlertLevel'] as int;
+    }
+    if (json['dismissedUpdateVersion'] is String) {
+      state.dismissedUpdateVersion = json['dismissedUpdateVersion'] as String;
     }
     if (json['financeBudgetSavingsPct'] is num) {
       state.financeBudgetSavingsPct = (json['financeBudgetSavingsPct'] as num).toDouble();

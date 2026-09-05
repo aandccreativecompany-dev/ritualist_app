@@ -94,6 +94,10 @@ Future<void> main() async {
     } catch (error, stack) {
       debugPrint('HomeWidgetService.wire failed: $error\n$stack');
     }
+    // Fire-and-forget: a single GET to GitHub Releases, never awaited here
+    // so a slow or absent network can't delay the first frame. Store.
+    // checkForUpdate() is itself best-effort and never throws.
+    unawaited(store.checkForUpdate());
     // Firebase reads its config from android/app/google-services.json (baked
     // in at build time) — no explicit FirebaseOptions needed on Android. If
     // it's ever missing (a local dev build without the file), sign-in/sync

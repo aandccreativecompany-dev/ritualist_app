@@ -146,7 +146,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                           ),
                                         ],
                                       ),
-                                      if (store.reminders[i].enabled) ...[
+                                      if (store.reminders[i].enabled &&
+                                          store.reminders[i].id !=
+                                              'spendAlerts') ...[
                                         const SizedBox(height: 14),
                                         Divider(
                                             height: 1,
@@ -410,6 +412,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
         return 'Sent with your top 3 priorities';
       case 'midday':
         return 'Only if something is still open';
+      case 'evening':
+        return 'Habits and tomorrow';
+      case 'spendWeekly':
+        return 'A nudge to review your wallet, every Sunday';
+      case 'spendMonthly':
+        return 'A nudge to review last month, on the 1st';
+      case 'spendAlerts':
+        return 'Instant alert at 80% and 100% of your monthly budget';
       default:
         return 'Habits and tomorrow';
     }

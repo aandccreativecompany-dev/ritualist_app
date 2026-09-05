@@ -60,6 +60,14 @@ class SpendingTrackerScreen extends StatelessWidget {
                         children: [
                           _BudgetCard(dark: dark),
                           const SizedBox(height: 18),
+                          _PeriodSummaryCard(dark: dark),
+                          if (entries.isNotEmpty) ...[
+                            const SizedBox(height: 18),
+                            _SpendVisualizationsCard(dark: dark),
+                          ],
+                          const SizedBox(height: 18),
+                          _BudgetSplitCard(dark: dark),
+                          const SizedBox(height: 18),
                           ModuleCard(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,6 +154,406 @@ class _LegendDot extends StatelessWidget {
         height: 8,
         decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       );
+}
+
+/// "This week" / "this month" total, independent of whether a budget limit
+/// is set — the budget card above only appears once a limit exists, but
+/// people should be able to see what they've spent in a period either way.
+class _PeriodSummaryCard extends StatefulWidget {
+  final bool dark;
+  const _PeriodSummaryCard({required this.dark});
+  @override
+  State<_PeriodSummaryCard> createState() => _PeriodSummaryCardState();
+}
+
+class _PeriodSummaryCardState extends State<_PeriodSummaryCard> {
+  bool _week = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final amount = _week ? store.spentThisWeek : store.spentThisMonth;
+    final byCategory = store.spentByCategorySince(_week
+        ? DateTime.now().subtract(Duration(days: DateTime.now().weekday - 1))
+        : DateTime(DateTime.now().year, DateTime.now().month, 1));
+    final topEntry = byCategory.entries.isEmpty
+        ? null
+        : byCategory.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    final topCategory =
+        topEntry == null ? null : store.spendCategoryById(topEntry.key);
+
+    return ModuleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('SPENDING', style: label(Surfaces.eyebrow(dark)))),
+              _PeriodToggle(
+                week: _week,
+                dark: dark,
+                onChanged: (w) => setState(() => _week = w),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text('₹${amount.toStringAsFixed(0)}', style: display(24, Surfaces.heading(dark))),
+          Text(_week ? 'so far this week' : 'so far this month',
+              style: body(11.5, Surfaces.muted(dark))),
+          if (topCategory != null) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.trending_up, size: 14, color: Surfaces.accent(dark)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Biggest category: ${topCategory.name} (₹${topEntry!.value.toStringAsFixed(0)})',
+                    style: body(11.5, Surfaces.bodyText(dark), weight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodToggle extends StatelessWidget {
+  final bool week;
+  final bool dark;
+  final ValueChanged<bool> onChanged;
+  const _PeriodToggle({required this.week, required this.dark, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget option(String text, bool selected, VoidCallback onTap) => InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: selected ? Surfaces.accent(dark).withValues(alpha: 0.16) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: selected ? Surfaces.accent(dark) : Surfaces.accentBorder(dark)),
+            ),
+            child: Text(text,
+                style: body(11, selected ? Surfaces.accent(dark) : Surfaces.muted(dark),
+                    weight: FontWeight.w700)),
+          ),
+        );
+    return Row(
+      children: [
+        option('Week', week, () => onChanged(true)),
+        const SizedBox(width: 6),
+        option('Month', !week, () => onChanged(false)),
+      ],
+    );
+  }
+}
+
+/// Lightweight, dependency-free visualizations — a category-breakdown donut
+/// and a 7-day spend trend bar chart — drawn with CustomPainter rather than
+/// a charting package, to keep the app's size and dependency count down.
+class _SpendVisualizationsCard extends StatefulWidget {
+  final bool dark;
+  const _SpendVisualizationsCard({required this.dark});
+  @override
+  State<_SpendVisualizationsCard> createState() => _SpendVisualizationsCardState();
+}
+
+class _SpendVisualizationsCardState extends State<_SpendVisualizationsCard> {
+  static const _palette = [
+    Color(0xFFF2B93B),
+    Color(0xFF7FC8F8),
+    Color(0xFFF08BA0),
+    Color(0xFF6FDCA8),
+    Color(0xFFC79BF0),
+    Color(0xFFFF9770),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.dark;
+    final byCategory = store.spentByCategoryId;
+    final sorted = byCategory.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final top = sorted.take(5).toList();
+    final total = byCategory.values.fold(0.0, (a, b) => a + b);
+    final daily = store.dailySpendTotals(7);
+    final maxDaily = daily.fold(0.0, (a, b) => a > b ? a : b);
+
+    return ModuleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('WHERE IT GOES', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 12),
+          if (top.isEmpty || total <= 0)
+            Text('Log a few expenses to see a breakdown here.',
+                style: body(12, Surfaces.muted(dark)))
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(84, 84),
+                  painter: _DonutPainter(
+                    values: [for (final e in top) e.value],
+                    colors: _palette,
+                    total: total,
+                    trackColor: Surfaces.accent(dark).withValues(alpha: 0.10),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < top.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            children: [
+                              _LegendDot(color: _palette[i % _palette.length]),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  store.spendCategoryById(top[i].key)?.name ?? 'Uncategorized',
+                                  style: body(11, Surfaces.bodyText(dark)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text('${(top[i].value / total * 100).round()}%',
+                                  style: body(10.5, Surfaces.muted(dark), weight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          const SizedBox(height: 18),
+          Text('LAST 7 DAYS', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 64,
+            child: maxDaily <= 0
+                ? Center(
+                    child: Text('Nothing logged this week yet.',
+                        style: body(11.5, Surfaces.muted(dark))))
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < daily.length; i++)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Tooltip(
+                                  message: '₹${daily[i].toStringAsFixed(0)}',
+                                  child: Container(
+                                    height: 6 +
+                                        (daily[i] / maxDaily) * 40,
+                                    decoration: BoxDecoration(
+                                      color: Surfaces.accent(dark)
+                                          .withValues(alpha: daily[i] > 0 ? 0.85 : 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(_weekdayLetter(i, daily.length),
+                                    style: body(9, Surfaces.muted(dark))),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _weekdayLetter(int offset, int total) {
+    const letters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final day = DateTime.now().subtract(Duration(days: total - 1 - offset));
+    return letters[day.weekday - 1];
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+  final double total;
+  final Color trackColor;
+  const _DonutPainter(
+      {required this.values, required this.colors, required this.total, required this.trackColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final strokeWidth = size.width * 0.22;
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawArc(rect.deflate(strokeWidth / 2), 0, 6.2832, false, trackPaint);
+
+    if (total <= 0) return;
+    var startAngle = -1.5708; // -90deg, 12 o'clock
+    for (var i = 0; i < values.length; i++) {
+      final sweep = (values[i] / total) * 6.2832;
+      final paint = Paint()
+        ..color = colors[i % colors.length]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawArc(rect.deflate(strokeWidth / 2), startAngle, sweep * 0.96, false, paint);
+      startAngle += sweep;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
+      oldDelegate.values != values || oldDelegate.total != total;
+}
+
+/// Compact Needs/Wants/Savings summary right in the wallet, comparing this
+/// month's actual Need/Want spend against the 50/30/20-style split set in
+/// Finance & Money goals — so the budget calculator's targets are visible
+/// from where spending is actually logged, not just from its own section.
+class _BudgetSplitCard extends StatelessWidget {
+  final bool dark;
+  const _BudgetSplitCard({required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    final income = store.financeBudgetIncome;
+    final needsPct = store.financeBudgetNeedsPct;
+    final wantsPct = store.financeBudgetWantsPct;
+    final savingsPct = store.financeBudgetSavingsPct;
+    final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final entriesThisMonth = store.spendEntries.where((e) => !e.date.isBefore(monthStart));
+    final actualNeeds =
+        entriesThisMonth.where((e) => e.isNeed).fold(0.0, (s, e) => s + e.amount);
+    final actualWants =
+        entriesThisMonth.where((e) => !e.isNeed).fold(0.0, (s, e) => s + e.amount);
+
+    return ModuleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('NEEDS · WANTS · SAVINGS', style: label(Surfaces.eyebrow(dark))),
+          const SizedBox(height: 4),
+          Text(
+            income == null
+                ? 'Set a monthly income in Finance & Money goals to compare actual spend against a 50/30/20-style plan.'
+                : 'This month, against your ${needsPct.round()}/${wantsPct.round()}/${savingsPct.round()} split.',
+            textAlign: TextAlign.justify,
+            style: body(11.5, Surfaces.muted(dark)).copyWith(height: 1.4),
+          ),
+          if (income != null) ...[
+            const SizedBox(height: 12),
+            _SplitRow(
+              label: 'Needs',
+              actual: actualNeeds,
+              planned: income * needsPct / 100,
+              color: const Color(0xFF6FDCA8),
+              dark: dark,
+            ),
+            const SizedBox(height: 8),
+            _SplitRow(
+              label: 'Wants',
+              actual: actualWants,
+              planned: income * wantsPct / 100,
+              color: const Color(0xFFF08BA0),
+              dark: dark,
+            ),
+            const SizedBox(height: 8),
+            _SplitRow(
+              label: 'Savings target',
+              actual: null,
+              planned: income * savingsPct / 100,
+              color: const Color(0xFF7FC8F8),
+              dark: dark,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SplitRow extends StatelessWidget {
+  final String label;
+  final double? actual;
+  final double planned;
+  final Color color;
+  final bool dark;
+  const _SplitRow({
+    required this.label,
+    required this.actual,
+    required this.planned,
+    required this.color,
+    required this.dark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (actual == null || planned <= 0) ? null : (actual! / planned).clamp(0.0, 1.4);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _LegendDot(color: color),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(label,
+                  style: body(11.5, Surfaces.bodyText(dark), weight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                actual == null
+                    ? '₹${planned.toStringAsFixed(0)} target'
+                    : '₹${actual!.toStringAsFixed(0)} / ₹${planned.toStringAsFixed(0)}',
+                style: body(11, Surfaces.muted(dark)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+        if (pct != null) ...[
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: pct.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: color.withValues(alpha: 0.12),
+              color: pct > 1.0 ? Colors.redAccent : color,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _SpendRow extends StatelessWidget {

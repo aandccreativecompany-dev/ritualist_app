@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -94,6 +95,10 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (store.updateAvailable != null) ...[
+                    const SizedBox(height: 14),
+                    _UpdateBanner(dark: dark),
+                  ],
                   const SizedBox(height: 90),
                   InkWell(
                     borderRadius: BorderRadius.circular(20),
@@ -211,6 +216,52 @@ class DashboardScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A dismissible banner shown when [Store.checkForUpdate] finds a newer
+/// GitHub release than this build. "Update" opens the Release page in the
+/// browser (Play Store distribution isn't wired up, so there's no in-app
+/// download path) — this is a notice, not a self-update mechanism.
+class _UpdateBanner extends StatelessWidget {
+  final bool dark;
+  const _UpdateBanner({required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    final info = store.updateAvailable;
+    if (info == null) return const SizedBox.shrink();
+    return ModuleCard(
+      accent: true,
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+      child: Row(
+        children: [
+          Icon(Icons.system_update_alt_rounded, color: Surfaces.accent(dark), size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Version ${info.version} is available',
+                    style: body(13, Surfaces.accentText(dark), weight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(info.url),
+                      mode: LaunchMode.externalApplication),
+                  child: Text('See what\'s new',
+                      style: body(11.5, Surfaces.accent(dark), weight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => store.dismissUpdate(),
+            icon: Icon(Icons.close, size: 18, color: Surfaces.muted(dark)),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
       ),
     );
   }

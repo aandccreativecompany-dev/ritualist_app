@@ -6,7 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'mantras.dart';
 import 'models.dart';
 import 'notifications.dart';
-import 'theme.dart' show setAccentId, setFontFamily, setFontScale;
+import 'services/update_checker.dart';
+import 'theme.dart' show AppThemePreset, setAccentId, setFontFamily, setFontScale;
 import 'tips.dart';
 
 const _storageKey = 'ritualist_state_v1';
@@ -15,6 +16,34 @@ const _storageKey = 'ritualist_state_v1';
 class Store extends ChangeNotifier {
   AppState _state = AppState.initial();
   bool ready = false;
+
+  /// Set once a background GitHub Releases check finds something newer than
+  /// this build — null the rest of the time. Purely in-memory (not
+  /// persisted): a fresh check runs, and this is reset, on every launch.
+  UpdateInfo? updateAvailable;
+
+  /// Best-effort, silent check for a newer release — never blocks app
+  /// startup and never throws. Safe to call once per launch (see main.dart);
+  /// a dismissed version is skipped until something newer comes out.
+  Future<void> checkForUpdate() async {
+    try {
+      final info = await UpdateChecker.instance.checkForUpdate();
+      if (info == null) return;
+      if (info.version == _state.dismissedUpdateVersion) return;
+      updateAvailable = info;
+      notifyListeners();
+    } catch (_) {
+      // Best-effort — no network, GitHub unreachable, whatever.
+    }
+  }
+
+  Future<void> dismissUpdate() async {
+    final info = updateAvailable;
+    if (info == null) return;
+    _state.dismissedUpdateVersion = info.version;
+    updateAvailable = null;
+    await _commit();
+  }
 
   AppState get state => _state;
 
@@ -361,6 +390,19 @@ class Store extends ChangeNotifier {
     await _commit();
   }
 
+  /// Applies a curated [AppThemePreset] in one tap — sets accent, font, and
+  /// text size together. The independent pickers stay available afterward
+  /// for further tweaking.
+  Future<void> applyThemePreset(AppThemePreset preset) async {
+    _state.themeAccentId = preset.accentId;
+    _state.fontFamilyId = preset.fontFamilyId;
+    _state.fontScaleId = preset.fontScaleId;
+    setAccentId(preset.accentId);
+    setFontFamily(preset.fontFamilyId);
+    setFontScale(preset.fontScaleId);
+    await _commit();
+  }
+
   /// Which kHomePageSections key opens first on launch.
   String get defaultPageKey => _state.defaultPageKey;
 
@@ -439,6 +481,51 @@ class Store extends ChangeNotifier {
       ),
     );
     await _commit();
+    await _maybeSendSpendAlert();
+  }
+
+  /// Fires a one-time "80% of budget" and "100%+ of budget" local
+  /// notification for the current calendar month, based on the Needs+Wants
+  /// portion of the income set in the budget calculator (savings isn't
+  /// "spend"). Silently does nothing until income is set, and never fires
+  /// twice for the same threshold in the same month.
+  Future<void> _maybeSendSpendAlert() async {
+    final alertsOn = _state.reminders
+        .where((r) => r.id == 'spendAlerts')
+        .any((r) => r.enabled);
+    final income = _state.financeBudgetIncome;
+    if (!alertsOn || income == null || income <= 0) return;
+
+    final now = DateTime.now();
+    final monthKey = '${now.year}-${now.month}';
+    if (_state.spendAlertMonthKey != monthKey) {
+      _state.spendAlertMonthKey = monthKey;
+      _state.spendAlertLevel = 0;
+    }
+
+    final spendBudget =
+        income * (financeBudgetNeedsPct + financeBudgetWantsPct) / 100;
+    if (spendBudget <= 0) return;
+    final pct = (spentThisMonth / spendBudget) * 100;
+
+    if (pct >= 100 && _state.spendAlertLevel < 100) {
+      _state.spendAlertLevel = 100;
+      await _commit();
+      await Notifications.instance.showInstant(
+        id: 6001,
+        title: '⚠️ Monthly budget exceeded',
+        body:
+            'You\'ve spent ${pct.round()}% of this month\'s needs + wants budget.',
+      );
+    } else if (pct >= 80 && _state.spendAlertLevel < 80) {
+      _state.spendAlertLevel = 80;
+      await _commit();
+      await Notifications.instance.showInstant(
+        id: 6000,
+        title: '💸 80% of your budget spent',
+        body: 'You\'re at ${pct.round()}% of this month\'s spending budget.',
+      );
+    }
   }
 
   Future<void> removeSpendEntry(SpendEntry entry) async {
@@ -485,6 +572,53 @@ class Store extends ChangeNotifier {
       result[e.categoryId] = (result[e.categoryId] ?? 0) + e.amount;
     }
     return result;
+  }
+
+  DateTime get _startOfThisWeek {
+    final today = DateTime.now();
+    final midnight = DateTime(today.year, today.month, today.day);
+    return midnight.subtract(Duration(days: midnight.weekday - 1)); // Monday
+  }
+
+  DateTime get _startOfThisMonth {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  /// Total logged since a given start instant — the general-purpose version
+  /// of [spentInCurrentBudgetPeriod] that works whether or not the user has
+  /// actually set a budget, so "how much this week/month" is always visible.
+  double spentSince(DateTime start) => _state.spendEntries
+      .where((e) => !e.date.isBefore(start))
+      .fold(0.0, (sum, e) => sum + e.amount);
+
+  double get spentThisWeek => spentSince(_startOfThisWeek);
+  double get spentThisMonth => spentSince(_startOfThisMonth);
+
+  /// Per-category totals restricted to a window — feeds both the weekly/
+  /// monthly summary and the category breakdown chart.
+  Map<String, double> spentByCategorySince(DateTime start) {
+    final result = <String, double>{};
+    for (final e in _state.spendEntries) {
+      if (e.date.isBefore(start)) continue;
+      result[e.categoryId] = (result[e.categoryId] ?? 0) + e.amount;
+    }
+    return result;
+  }
+
+  /// Total logged per day over the last [days] days (including today),
+  /// oldest first — the data behind the spend trend sparkline/bars.
+  List<double> dailySpendTotals(int days) {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day)
+        .subtract(Duration(days: days - 1));
+    final totals = List<double>.filled(days, 0.0);
+    for (final e in _state.spendEntries) {
+      final d = DateTime(e.date.year, e.date.month, e.date.day);
+      final offset = d.difference(start).inDays;
+      if (offset >= 0 && offset < days) totals[offset] += e.amount;
+    }
+    return totals;
   }
 
   // ---- Wallet budget (monthly/weekly) ----
