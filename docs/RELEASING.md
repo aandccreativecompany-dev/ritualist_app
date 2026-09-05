@@ -56,13 +56,12 @@ release will actually work end to end:
    The copy in this change only has the package name field edited by
    hand — Google Sign-In and Firestore will not authenticate against it
    until the real one from the console is in place.
-2. **GitHub repo name**: rename the repo itself (Settings → repository
-   name, or `gh repo rename prakriya_app`) and update the remote URL
-   locally (`git remote set-url origin
-   https://github.com/aandccreativecompany-dev/prakriya_app.git`) — GitHub
-   redirects the old URL automatically, but `lib/services/update_checker.dart`'s
-   `_repo` constant and the link in this doc (above) already assume the new
-   name.
+2. **GitHub repo name**: done — the repo is now
+   `aandccreativecompany-dev/Prakriya`. `lib/services/update_checker.dart`'s
+   `_repo` constant and the link below are already updated to match.
+   Update your local `origin` remote if you haven't:
+   `git remote set-url origin
+   https://github.com/aandccreativecompany-dev/Prakriya.git`
 3. **Existing installs**: because the applicationId changed, Android treats
    this as a different app — anyone with the old Ritualist APK installed
    will not get this as an "update"; they need to install the new APK
@@ -86,8 +85,7 @@ The `release.yml` workflow builds the signed APK and attaches it to a draft
 release. Open the release, write the notes, publish.
 
 The permanent link to hand to users:
-`https://github.com/aandccreativecompany-dev/prakriya_app/releases/latest`
-(update this once the repo itself is renamed on GitHub — see the note below)
+`https://github.com/aandccreativecompany-dev/Prakriya/releases/latest`
 
 ## Release notes template
 

@@ -20,11 +20,9 @@ class UpdateChecker {
   static final UpdateChecker instance = UpdateChecker._();
 
   static const _owner = 'aandccreativecompany-dev';
-  // Update this if/when the GitHub repo itself gets renamed to match the
-  // app (e.g. via `gh repo rename prakriya_app`) — this string has to match
-  // the repo's actual name on GitHub for the Releases API call below to
-  // find anything.
-  static const _repo = 'prakriya_app';
+  // Must match the repo's actual name on GitHub exactly (case included) —
+  // this is used verbatim in the Releases API URL below.
+  static const _repo = 'Prakriya';
 
   /// Returns the latest release's info if it's newer than [kAppVersion],
   /// otherwise null. Never throws — a missing network, GitHub rate limit, or
