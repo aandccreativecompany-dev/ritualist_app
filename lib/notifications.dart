@@ -14,7 +14,7 @@ class Notifications {
       FlutterLocalNotificationsPlugin();
   bool _initialised = false;
 
-  static const _channelId = 'ritualist_daily';
+  static const _channelId = 'prakriya_daily';
   static const _channelName = 'Daily reminders';
   static const _channelDescription =
       'Your mantra, open tasks, and the evening close.';
@@ -126,6 +126,53 @@ class Notifications {
     return scheduled;
   }
 
+  /// Next occurrence of [weekday] (1 = Monday .. 7 = Sunday, matching
+  /// [DateTime.weekday]) at the given time.
+  tz.TZDateTime _nextWeekday(int weekday, int hour, int minute) {
+    var scheduled = _nextInstance(hour, minute);
+    while (scheduled.weekday != weekday) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    return scheduled;
+  }
+
+  /// Next occurrence of the given day-of-month at the given time — clamped
+  /// so a "31st" target never overflows into the following month.
+  tz.TZDateTime _nextDayOfMonth(int day, int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+    int lastDayOf(int y, int m) => DateTime(y, m + 1, 0).day;
+    var year = now.year;
+    var month = now.month;
+    var scheduled = tz.TZDateTime(
+        tz.local, year, month, day.clamp(1, lastDayOf(year, month)), hour, minute);
+    if (!scheduled.isAfter(now)) {
+      month += 1;
+      if (month > 12) {
+        month = 1;
+        year += 1;
+      }
+      scheduled = tz.TZDateTime(
+          tz.local, year, month, day.clamp(1, lastDayOf(year, month)), hour, minute);
+    }
+    return scheduled;
+  }
+
+  /// Fires immediately — used for the budget-threshold alert, which can't be
+  /// scheduled ahead of time because it depends on live spending data.
+  Future<void> showInstant({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    try {
+      await init();
+      if (!await permissionGranted()) return;
+      await _plugin.show(id, title, body, _details);
+    } catch (_) {
+      // Best-effort, same as everything else here.
+    }
+  }
+
   Future<void> _schedule({
     required int id,
     required String title,
@@ -217,6 +264,39 @@ class Notifications {
                 hour: reminder.hour,
                 minute: reminder.minute,
               );
+              break;
+
+            case 'spendWeekly':
+              await _plugin.zonedSchedule(
+                4,
+                '📊 Your week in spending',
+                'Open your wallet to see where it went this week.',
+                _nextWeekday(DateTime.sunday, reminder.hour, reminder.minute),
+                _details,
+                androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+                uiLocalNotificationDateInterpretation:
+                    UILocalNotificationDateInterpretation.absoluteTime,
+                matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+              );
+              break;
+
+            case 'spendMonthly':
+              await _plugin.zonedSchedule(
+                5,
+                '📅 Your month in spending',
+                'A new month just started — check last month\'s totals in your wallet.',
+                _nextDayOfMonth(1, reminder.hour, reminder.minute),
+                _details,
+                androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+                uiLocalNotificationDateInterpretation:
+                    UILocalNotificationDateInterpretation.absoluteTime,
+                matchDateTimeComponents: DateTimeComponents.dayOfMonthAndTime,
+              );
+              break;
+
+            case 'spendAlerts':
+              // No fixed time to schedule — this toggle only gates the
+              // instant, live alert fired from Store.maybeSendSpendAlert.
               break;
           }
         } catch (_) {

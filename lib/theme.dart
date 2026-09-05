@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Brand tokens, lifted from the Ritualist design set.
+/// Brand tokens for the Prakriyā design set.
 class Brand {
   static const deep = Color(0xFF150C28);
   static const base = Color(0xFF1B0F33);
@@ -123,6 +123,9 @@ const kFontFamilies = [
   AppFont('nunito', 'Nunito', 'Nunito'),
   AppFont('quicksand', 'Quicksand', 'Quicksand'),
   AppFont('workSans', 'Work Sans', 'Work Sans'),
+  AppFont('montserrat', 'Montserrat', 'Montserrat'),
+  AppFont('lora', 'Lora', 'Lora'),
+  AppFont('merriweather', 'Merriweather', 'Merriweather'),
 ];
 
 /// One selectable text size scale. Kept to a small, hand-picked set of
@@ -155,6 +158,78 @@ void setFontScale(String id) {
 
 String get currentFontFamilyId => _fontFamilyId;
 String get currentFontScaleId => _fontScaleId;
+
+/// A curated, one-tap bundle of accent color + font + text size — for
+/// people who'd rather pick a whole look than tune three separate pickers.
+/// The independent pickers below (APP THEME COLOR / TEXT STYLE in Settings)
+/// stay fully available for anyone who wants to fine-tune from here.
+class AppThemePreset {
+  final String id;
+  final String label;
+  final String description;
+  final String accentId;
+  final String fontFamilyId;
+  final String fontScaleId;
+  const AppThemePreset({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.accentId,
+    required this.fontFamilyId,
+    required this.fontScaleId,
+  });
+}
+
+const kThemePresets = [
+  AppThemePreset(
+    id: 'classic',
+    label: 'Classic Gold',
+    description: 'The original Prakriyā look.',
+    accentId: 'gold',
+    fontFamilyId: 'inter',
+    fontScaleId: 'default',
+  ),
+  AppThemePreset(
+    id: 'midnight',
+    label: 'Midnight Amethyst',
+    description: 'Cool, calm, a little mystical.',
+    accentId: 'amethyst',
+    fontFamilyId: 'poppins',
+    fontScaleId: 'default',
+  ),
+  AppThemePreset(
+    id: 'blush',
+    label: 'Morning Blush',
+    description: 'Soft and warm, rounded reading font.',
+    accentId: 'rose',
+    fontFamilyId: 'quicksand',
+    fontScaleId: 'default',
+  ),
+  AppThemePreset(
+    id: 'forest',
+    label: 'Forest Calm',
+    description: 'Grounded green, friendly and legible.',
+    accentId: 'emerald',
+    fontFamilyId: 'nunito',
+    fontScaleId: 'default',
+  ),
+  AppThemePreset(
+    id: 'ocean',
+    label: 'Ocean Breeze',
+    description: 'Clean and modern, slightly larger text.',
+    accentId: 'sky',
+    fontFamilyId: 'workSans',
+    fontScaleId: 'large',
+  ),
+  AppThemePreset(
+    id: 'sunset',
+    label: 'Sunset Coral',
+    description: 'Warm coral with a classic serif for reading.',
+    accentId: 'coral',
+    fontFamilyId: 'lora',
+    fontScaleId: 'default',
+  ),
+];
 
 AppFont get _currentFont =>
     kFontFamilies.firstWhere((f) => f.id == _fontFamilyId, orElse: () => kFontFamilies.first);

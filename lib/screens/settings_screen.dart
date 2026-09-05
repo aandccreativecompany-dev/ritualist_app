@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../app_version.dart';
 import '../models.dart';
 import '../services/auth_service.dart';
 import '../services/cloud_sync.dart';
@@ -210,6 +211,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                     ),
                                   ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          Text('THEMES', style: label(Surfaces.muted(dark))),
+                          const SizedBox(height: 12),
+                          ModuleCard(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'A quick-pick look — sets the color, font and text size together in one tap. Fine-tune each below if you want.',
+                                  textAlign: TextAlign.justify,
+                                  style: body(12, Surfaces.muted(dark)).copyWith(height: 1.4),
+                                ),
+                                const SizedBox(height: 14),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: [
+                                    for (final preset in kThemePresets)
+                                      _ThemePresetCard(
+                                        preset: preset,
+                                        selected: store.themeAccentId == preset.accentId &&
+                                            store.fontFamilyId == preset.fontFamilyId &&
+                                            store.fontScaleId == preset.fontScaleId,
+                                        dark: dark,
+                                        onTap: () async {
+                                          await store.applyThemePreset(preset);
+                                          if (context.mounted) {
+                                            toastSaved(context, label: preset.label);
+                                          }
+                                        },
+                                      ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
@@ -664,7 +701,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Prakriyā 0.4.1',
+Text('Prakriyā $kAppVersion',
                                     style: body(13.5, Surfaces.bodyText(dark),
                                         weight: FontWeight.w600)),
                                 const SizedBox(height: 6),
@@ -761,6 +798,76 @@ class _NavRow extends StatelessWidget {
               ),
             ),
             Icon(Icons.chevron_right, color: Surfaces.muted(dark), size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One curated theme preset — a small swatch-plus-"Aa" preview card so the
+/// pick previews both the color and the font at a glance.
+class _ThemePresetCard extends StatelessWidget {
+  final AppThemePreset preset;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _ThemePresetCard({
+    required this.preset,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = kAccentPalettes.firstWhere((p) => p.id == preset.accentId,
+        orElse: () => kAccentPalettes.first);
+    final font = kFontFamilies.firstWhere((f) => f.id == preset.fontFamilyId,
+        orElse: () => kFontFamilies.first);
+    final accentColor = dark ? palette.dark : palette.light;
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        width: 132,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: selected ? accentColor.withValues(alpha: 0.14) : Surfaces.card(dark),
+          border: Border.all(
+            color: selected ? accentColor : Surfaces.cardBorder(dark),
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: accentColor),
+                ),
+                const Spacer(),
+                if (selected) Icon(Icons.check_circle, size: 16, color: accentColor),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Aa',
+                style: GoogleFonts.getFont(font.googleFontsFamily,
+                    fontSize: 18, fontWeight: FontWeight.w700, color: Surfaces.heading(dark))),
+            const SizedBox(height: 4),
+            Text(preset.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: body(11.5, Surfaces.bodyText(dark), weight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(preset.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: body(10, Surfaces.muted(dark))),
           ],
         ),
       ),

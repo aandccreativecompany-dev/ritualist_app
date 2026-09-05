@@ -55,7 +55,7 @@
              content). Data is pushed by lib/services/home_widget_service.dart
              via the home_widget plugin. -->
         <receiver
-            android:name="ai.aandccreative.ritualist.HabitsWidgetProvider"
+            android:name="ai.aandccreative.prakriya.HabitsWidgetProvider"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

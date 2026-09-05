@@ -33,7 +33,7 @@ still fixing errors.
 
 ## Where the APK ends up
 
-- **Manual run:** the run page, under *Artifacts* → `ritualist-apk`. Only people
+- **Manual run:** the run page, under *Artifacts* → `prakriya-apk`. Only people
   signed in to GitHub can download it.
 - **Tagged run:** a draft release, with the APK attached. Open Releases, edit the
   draft, write the notes and publish. That is the version the public link points
@@ -45,5 +45,5 @@ still fixing errors.
 |---|---|
 | `error: ... isn't defined` in a `lib/` file | A Dart mistake of mine. Send the line. |
 | `Gradle task assembleRelease failed` | Android config. Send 50 lines above it. |
-| `Because ritualist depends on ...` | A package version clash. Send the block. |
+| `Because prakriya depends on ...` | A package version clash. Send the block. |
 | `No such file or directory: android/app/...` | The generate step failed earlier up the log. |

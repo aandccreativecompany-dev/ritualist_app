@@ -5,7 +5,6 @@ import '../models.dart';
 import '../store.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
-import 'about_screen.dart';
 import 'dashboard_screen.dart';
 import 'evening_reflection_screen.dart';
 import 'exercise_timer_screen.dart';
@@ -176,9 +175,14 @@ class _HomeScreenState extends State<HomeScreen> {
           for (final section in kHomePageSections)
             if (section.moduleIds.any(visible.contains)) section,
         ];
-        final primarySections = visibleSections.take(3).toList();
-        final overflowSections = visibleSections.skip(3).toList();
-        final hasOverflow = overflowSections.isNotEmpty;
+        // Every visible section now gets its own bottom-nav tab — none of
+        // them are pushed into a "More" screen any more. A fixed-width
+        // NavigationBar can't fit an open-ended number of tabs, so the bar
+        // itself scrolls horizontally instead (see _ScrollableNavBar) and
+        // "More" is retired as a nav destination (About Us stays reachable
+        // from the Dashboard, as it already was).
+        final primarySections = visibleSections;
+        const overflowSections = <HomePageSection>[];
 
         final tabs = <Widget>[
           DashboardScreen(
@@ -195,17 +199,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (visible.contains(id)) _itemFor(id),
               ],
             ),
-          if (hasOverflow) _MoreScreen(sections: overflowSections, onOpen: _pushSection),
         ];
 
-        final destinations = <NavigationDestination>[
-          const NavigationDestination(
-              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Dashboard'),
+        final navItems = <_NavItem>[
+          const _NavItem(
+              icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Dashboard'),
           for (final section in primarySections)
-            NavigationDestination(
-                icon: Icon(_sectionIcon(section.key)), label: _sectionShortLabel(section.key)),
-          if (hasOverflow)
-            const NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+            _NavItem(icon: _sectionIcon(section.key), label: _sectionShortLabel(section.key)),
         ];
 
         final safeIndex = _tabIndex.clamp(0, tabs.length - 1);
@@ -221,16 +221,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       FadeTransition(opacity: animation, child: child),
                   child: KeyedSubtree(key: ValueKey(safeIndex), child: tabs[safeIndex]),
                 ),
-          bottomNavigationBar: destinations.length > 1
+          bottomNavigationBar: navItems.length > 1
               ? SafeArea(
                   top: false,
-                  child: NavigationBar(
+                  child: _ScrollableNavBar(
                     selectedIndex: safeIndex,
-                    onDestinationSelected: (i) {
-                      HapticFeedback.selectionClick();
-                      setState(() => _tabIndex = i);
-                    },
-                    destinations: destinations,
+                    items: navItems,
+                    onSelected: (i) => setState(() => _tabIndex = i),
                   ),
                 )
               : null,
@@ -240,78 +237,147 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// Every other section, plus About Us, when there are more sections
-/// visible than fit as their own bottom-nav tab — still one tap away.
-class _MoreScreen extends StatelessWidget {
-  final List<HomePageSection> sections;
-  final void Function(HomePageSection) onOpen;
-  const _MoreScreen({required this.sections, required this.onOpen});
+/// One entry in the bottom nav bar's model — decoupled from
+/// [NavigationDestination] so the bar itself can be a plain horizontally
+/// scrolling row instead of Material's fixed-width widget.
+class _NavItem {
+  final IconData icon;
+  final IconData? selectedIcon;
+  final String label;
+  const _NavItem({required this.icon, this.selectedIcon, required this.label});
+}
+
+/// A bottom nav bar that scrolls horizontally so every visible section can
+/// have its own tab — Material's [NavigationBar] only ever lays out a fixed
+/// row and starts squeezing labels/icons once there are more than about 5
+/// destinations, which is exactly the "only 3 + More" ceiling this replaces.
+/// Auto-scrolls to keep the selected tab in view when it changes off-screen
+/// (e.g. after adding/removing modules in Settings).
+class _ScrollableNavBar extends StatefulWidget {
+  final int selectedIndex;
+  final List<_NavItem> items;
+  final ValueChanged<int> onSelected;
+  const _ScrollableNavBar({
+    required this.selectedIndex,
+    required this.items,
+    required this.onSelected,
+  });
+
+  @override
+  State<_ScrollableNavBar> createState() => _ScrollableNavBarState();
+}
+
+class _ScrollableNavBarState extends State<_ScrollableNavBar> {
+  final _scrollController = ScrollController();
+  var _keys = <GlobalKey>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _keys = [for (var i = 0; i < widget.items.length; i++) GlobalKey()];
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ScrollableNavBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.items.length != widget.items.length) {
+      _keys = [for (var i = 0; i < widget.items.length; i++) GlobalKey()];
+    }
+    if (oldWidget.selectedIndex != widget.selectedIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+    }
+  }
+
+  void _scrollToSelected() {
+    if (widget.selectedIndex < 0 || widget.selectedIndex >= _keys.length) return;
+    final ctx = _keys[widget.selectedIndex].currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(ctx,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+        alignment: 0.5);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      body: Container(
-        decoration: Surfaces.pageBackground(dark),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const ScreenHeader(
-                icon: Icons.more_horiz,
-                title: 'More',
-                subtitle: 'Everything else, one tap away.',
-              ),
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-                  children: [
-                    for (final section in sections)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => onOpen(section),
-                          child: ModuleCard(
-                            child: Row(
-                              children: [
-                                Icon(_sectionIcon(section.key), size: 20, color: Surfaces.accent(dark)),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(section.title,
-                                      style: body(14, Surfaces.heading(dark), weight: FontWeight.w700)),
-                                ),
-                                Icon(Icons.chevron_right, size: 18, color: Surfaces.muted(dark)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
-                        child: ModuleCard(
-                          child: Row(
-                            children: [
-                              Icon(Icons.info_outline, size: 20, color: Surfaces.accent(dark)),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text('About us',
-                                    style: body(14, Surfaces.heading(dark), weight: FontWeight.w700)),
-                              ),
-                              Icon(Icons.chevron_right, size: 18, color: Surfaces.muted(dark)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Surfaces.sheet(dark),
+        border: Border(top: BorderSide(color: Surfaces.cardBorder(dark))),
+      ),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        child: Row(
+          children: [
+            for (var i = 0; i < widget.items.length; i++)
+              Container(
+                key: _keys[i],
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                child: _NavChip(
+                  item: widget.items[i],
+                  selected: i == widget.selectedIndex,
+                  dark: dark,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    widget.onSelected(i);
+                  },
                 ),
               ),
-            ],
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavChip extends StatelessWidget {
+  final _NavItem item;
+  final bool selected;
+  final bool dark;
+  final VoidCallback onTap;
+  const _NavChip({
+    required this.item,
+    required this.selected,
+    required this.dark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? Surfaces.accent(dark) : Surfaces.muted(dark);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        constraints: const BoxConstraints(minWidth: 64),
+        decoration: BoxDecoration(
+          color: selected ? Surfaces.accentCard(dark) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(selected ? (item.selectedIcon ?? item.icon) : item.icon,
+                size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: body(10.5, color,
+                    weight: selected ? FontWeight.w700 : FontWeight.w500)),
+          ],
         ),
       ),
     );

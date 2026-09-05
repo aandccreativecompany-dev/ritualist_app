@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:ritualist/main.dart';
-import 'package:ritualist/models.dart';
-import 'package:ritualist/store.dart';
+import 'package:prakriya/main.dart';
+import 'package:prakriya/models.dart';
+import 'package:prakriya/store.dart';
 
 void main() {
   testWidgets('App boots to onboarding on first run', (tester) async {
@@ -35,7 +35,16 @@ void main() {
     // stats screen instead of every section repeating them.
     expect(find.text('YOUR SECTIONS'), findsOneWidget);
     expect(find.text('Productivity'), findsWidgets);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    // The bottom nav is now a horizontally scrolling row (so every visible
+    // section can have its own tab, not just the first 3 + "More") rather
+    // than a fixed-width NavigationBar — check for that scrollable
+    // container plus the Dashboard tab's own label instead.
+    expect(
+      find.byWidgetPredicate((w) =>
+          w is SingleChildScrollView && w.scrollDirection == Axis.horizontal),
+      findsOneWidget,
+    );
+    expect(find.text('Dashboard'), findsOneWidget);
 
     // Tapping the Productivity destination switches to its own full
     // section screen (no back arrow — it's a tab, not a pushed route).

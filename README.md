@@ -138,7 +138,11 @@ tracking, a journaling data-loss fix, relationship check-ins).
 
 ## Package name
 
-`ai.aandccreative.ritualist` — permanent once published. Do not change it.
+`ai.aandccreative.prakriya` (renamed from `ai.aandccreative.ritualist` when the
+app itself was renamed from Ritualist to Prakriyā). Treat this one as
+permanent going forward — an applicationId change is a breaking change for
+anyone with the app already installed (Android treats it as a different
+app), so it should not happen again casually.
 
 ## Design reference
 
@@ -146,7 +150,8 @@ tracking, a journaling data-loss fix, relationship check-ins).
 light) — everything above plus the not-yet-built paywall screens. Open it in
 a browser. Screens are labelled `2a` through `2t`.
 
-`design/Ritualist - Ship to Play Store.dc.html` is the publishing guide,
+`design/Ritualist - Ship to Play Store.dc.html` (filename kept from before the
+rename) is the publishing guide,
 including the GitHub Releases route this repo currently uses.
 
 `design/Privacy Policy.dc.html` is the app's privacy policy.
