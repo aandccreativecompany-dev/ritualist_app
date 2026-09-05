@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -10,7 +11,11 @@ import 'services/update_checker.dart';
 import 'theme.dart' show AppThemePreset, setAccentId, setFontFamily, setFontScale;
 import 'tips.dart';
 
-const _storageKey = 'ritualist_state_v1';
+const _storageKey = 'prakriya_state_v1';
+// The app's old name, kept only so `load()` below can migrate anyone whose
+// data is still sitting under this key forward — see the rename comment
+// there. Never write to this key.
+const _legacyStorageKey = 'ritualist_state_v1';
 
 /// Single source of truth. Persists to shared_preferences as one JSON blob.
 class Store extends ChangeNotifier {
@@ -52,7 +57,22 @@ class Store extends ChangeNotifier {
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
+    // The app was renamed from "Ritualist" to "Prakriyā" (storage key
+    // included) — an in-place update under the SAME applicationId (Android
+    // package rename aside, e.g. if that part is ever reverted or on a
+    // platform where it doesn't apply) would otherwise look like a fresh
+    // install with the old data still sitting under the old key, unread. A
+    // brand-new applicationId gets its own empty storage regardless, so
+    // this is a no-op there — but it's what makes an in-place update safe
+    // either way.
+    var raw = prefs.getString(_storageKey);
+    if (raw == null || raw.isEmpty) {
+      final legacy = prefs.getString(_legacyStorageKey);
+      if (legacy != null && legacy.isNotEmpty) {
+        raw = legacy;
+        unawaited(prefs.setString(_storageKey, legacy));
+      }
+    }
     if (raw != null && raw.isNotEmpty) {
       try {
         final decoded = jsonDecode(raw);

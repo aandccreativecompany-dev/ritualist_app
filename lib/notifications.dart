@@ -14,7 +14,7 @@ class Notifications {
       FlutterLocalNotificationsPlugin();
   bool _initialised = false;
 
-  static const _channelId = 'ritualist_daily';
+  static const _channelId = 'prakriya_daily';
   static const _channelName = 'Daily reminders';
   static const _channelDescription =
       'Your mantra, open tasks, and the evening close.';

@@ -20,7 +20,11 @@ class UpdateChecker {
   static final UpdateChecker instance = UpdateChecker._();
 
   static const _owner = 'aandccreativecompany-dev';
-  static const _repo = 'ritualist_app';
+  // Update this if/when the GitHub repo itself gets renamed to match the
+  // app (e.g. via `gh repo rename prakriya_app`) — this string has to match
+  // the repo's actual name on GitHub for the Releases API call below to
+  // find anything.
+  static const _repo = 'prakriya_app';
 
   /// Returns the latest release's info if it's newer than [kAppVersion],
   /// otherwise null. Never throws — a missing network, GitHub rate limit, or
@@ -32,7 +36,7 @@ class UpdateChecker {
       final request = await client.getUrl(Uri.https(
           'api.github.com', '/repos/$_owner/$_repo/releases/latest'));
       request.headers.set('Accept', 'application/vnd.github+json');
-      request.headers.set('User-Agent', 'ritualist-app');
+      request.headers.set('User-Agent', 'prakriya-app');
       final response = await request.close().timeout(const Duration(seconds: 8));
       if (response.statusCode != 200) {
         await response.drain<void>();

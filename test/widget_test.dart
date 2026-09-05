@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:ritualist/main.dart';
-import 'package:ritualist/models.dart';
-import 'package:ritualist/store.dart';
+import 'package:prakriya/main.dart';
+import 'package:prakriya/models.dart';
+import 'package:prakriya/store.dart';
 
 void main() {
   testWidgets('App boots to onboarding on first run', (tester) async {

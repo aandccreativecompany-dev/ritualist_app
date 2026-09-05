@@ -1,4 +1,4 @@
-# Ritualist
+# Prakriyā
 
 A daily planner for Android. Three priorities a day, habits, a mantra each morning,
 and reminders that reach you when you're too busy to open the app.
@@ -79,7 +79,11 @@ no Gradle wrapper. See `docs/RELEASING.md` for the full release process and
 
 ## Package name
 
-`ai.aandccreative.ritualist` — permanent once published. Do not change it.
+`ai.aandccreative.prakriya` (renamed from `ai.aandccreative.ritualist` when the
+app itself was renamed from Ritualist to Prakriyā). Treat this one as
+permanent going forward — an applicationId change is a breaking change for
+anyone with the app already installed (Android treats it as a different
+app), so it should not happen again casually.
 
 ## Design reference
 
@@ -87,7 +91,8 @@ no Gradle wrapper. See `docs/RELEASING.md` for the full release process and
 light) — everything above plus the not-yet-built sign-in and paywall screens.
 Open it in a browser. Screens are labelled `2a` through `2t`.
 
-`design/Ritualist - Ship to Play Store.dc.html` is the publishing guide,
+`design/Ritualist - Ship to Play Store.dc.html` (filename kept from before the
+rename) is the publishing guide,
 including the GitHub Releases route this repo currently uses.
 
 ## Licence

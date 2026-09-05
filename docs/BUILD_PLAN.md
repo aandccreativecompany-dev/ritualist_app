@@ -10,7 +10,7 @@ which this build doesn't have. See the README's "Not in this build" section.
 
 ## Phase 0 — Foundation
 
-- `flutter create --org ai.aandccreative ritualist`
+- `flutter create --org ai.aandccreative prakriya`
 - Light and dark `ThemeData`, `themeMode: ThemeMode.system`, with a stored override
 - Fonts: Archivo Black (headings), Inter (everything else)
 - Local database for plans, habits, mantras, journal entries

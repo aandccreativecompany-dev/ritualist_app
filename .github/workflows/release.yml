@@ -28,7 +28,7 @@ jobs:
       # The repo holds only pubspec.yaml and lib/ — same as the debug build
       # workflow. This generates android/ (including the Gradle wrapper).
       - name: Generate the Android project
-        run: flutter create . --platforms=android --org ai.aandccreative --project-name ritualist
+        run: flutter create . --platforms=android --org ai.aandccreative --project-name prakriya
 
       - name: Apply our manifest
         run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
@@ -43,8 +43,8 @@ jobs:
       # manifest and Firebase config above.
       - name: Add the home screen widget (native provider)
         run: |
-          mkdir -p android/app/src/main/kotlin/ai/aandccreative/ritualist
-          cp android_overrides/widget/HabitsWidgetProvider.kt android/app/src/main/kotlin/ai/aandccreative/ritualist/HabitsWidgetProvider.kt
+          mkdir -p android/app/src/main/kotlin/ai/aandccreative/prakriya
+          cp android_overrides/widget/HabitsWidgetProvider.kt android/app/src/main/kotlin/ai/aandccreative/prakriya/HabitsWidgetProvider.kt
           mkdir -p android/app/src/main/res/xml android/app/src/main/res/layout
           cp android_overrides/widget/habits_widget_info.xml android/app/src/main/res/xml/habits_widget_info.xml
           cp android_overrides/widget/habits_widget.xml android/app/src/main/res/layout/habits_widget.xml
@@ -95,7 +95,7 @@ jobs:
           PYEOF
 
       - name: Restore keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/ritualist-upload.jks
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/prakriya-upload.jks
 
       - name: Write signing config
         run: |
@@ -103,7 +103,7 @@ jobs:
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=ritualist-upload.jks
+          storeFile=prakriya-upload.jks
           EOF
 
       # `flutter create` never wires a real signing config into the release
@@ -181,7 +181,7 @@ jobs:
       - name: Name the artifact
         run: |
           mv build/app/outputs/flutter-apk/app-release.apk \
-             ritualist-${GITHUB_REF_NAME#v}.apk
+             prakriya-${GITHUB_REF_NAME#v}.apk
 
       # Published immediately (not a draft) and explicitly not marked as a
       # pre-release: GitHub's "latest release" (the page/API the website's
@@ -195,5 +195,5 @@ jobs:
           name: "Prakriyā ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          files: ritualist-*.apk
+          files: prakriya-*.apk
           generate_release_notes: true

@@ -1,4 +1,4 @@
-package ai.aandccreative.ritualist
+package ai.aandccreative.prakriya
 
 import android.appwidget.AppWidgetManager
 import android.content.Context
@@ -11,7 +11,7 @@ import org.json.JSONArray
 /**
  * The Prakriyā home-screen widget — shows whichever of today's habits
  * checklist / top priority / mantra the user turned on in Settings > Home
- * screen widget. Data is written by [ai.aandccreative.ritualist's Flutter
+ * screen widget. Data is written by [ai.aandccreative.prakriya's Flutter
  * side] (lib/services/home_widget_service.dart) via the home_widget plugin,
  * which lands in the SharedPreferences file this class reads.
  */

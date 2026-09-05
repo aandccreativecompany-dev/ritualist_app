@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Brand tokens, lifted from the Ritualist design set.
+/// Brand tokens for the Prakriyā design set.
 class Brand {
   static const deep = Color(0xFF150C28);
   static const base = Color(0xFF1B0F33);

@@ -26,7 +26,7 @@ jobs:
       # The repo holds only pubspec.yaml and lib/. This generates the android/
       # folder (including the Gradle wrapper) without touching our source.
       - name: Generate the Android project
-        run: flutter create . --platforms=android --org ai.aandccreative --project-name ritualist
+        run: flutter create . --platforms=android --org ai.aandccreative --project-name prakriya
 
       - name: Apply our manifest
         run: cp android_overrides/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
@@ -41,8 +41,8 @@ jobs:
       # manifest and Firebase config above.
       - name: Add the home screen widget (native provider)
         run: |
-          mkdir -p android/app/src/main/kotlin/ai/aandccreative/ritualist
-          cp android_overrides/widget/HabitsWidgetProvider.kt android/app/src/main/kotlin/ai/aandccreative/ritualist/HabitsWidgetProvider.kt
+          mkdir -p android/app/src/main/kotlin/ai/aandccreative/prakriya
+          cp android_overrides/widget/HabitsWidgetProvider.kt android/app/src/main/kotlin/ai/aandccreative/prakriya/HabitsWidgetProvider.kt
           mkdir -p android/app/src/main/res/xml android/app/src/main/res/layout
           cp android_overrides/widget/habits_widget_info.xml android/app/src/main/res/xml/habits_widget_info.xml
           cp android_overrides/widget/habits_widget.xml android/app/src/main/res/layout/habits_widget.xml
@@ -97,7 +97,7 @@ jobs:
       # manual build's SHA-1 matches what's registered with Google Sign-In
       # instead of a throwaway key that changes every run.
       - name: Restore keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/ritualist-upload.jks
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/prakriya-upload.jks
 
       - name: Write signing config
         run: |
@@ -105,7 +105,7 @@ jobs:
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=ritualist-upload.jks
+          storeFile=prakriya-upload.jks
           EOF
 
       # `flutter create` never wires a real signing config into the release
@@ -175,17 +175,17 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           if [ "$GITHUB_REF_TYPE" != "tag" ]; then VERSION="dev-${GITHUB_SHA::7}"; fi
-          cp build/app/outputs/flutter-apk/app-release.apk "ritualist-$VERSION.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "prakriya-$VERSION.apk"
 
       # Always keep the APK, even on a manual run with no tag.
       - uses: actions/upload-artifact@v4
         with:
-          name: ritualist-apk
-          path: ritualist-*.apk
+          name: prakriya-apk
+          path: prakriya-*.apk
 
       - name: Draft the release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: ritualist-*.apk
+          files: prakriya-*.apk
